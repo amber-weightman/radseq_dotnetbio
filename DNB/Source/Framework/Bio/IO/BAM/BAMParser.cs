@@ -87,13 +87,13 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
         /// Receives each sequence as it is read by the parser (actual operation performed on
         /// the sequence depends on the type of metric handler)
         /// </summary>
-        protected internal IMetricHandler metricHandler = null;
+        private IMetricHandler metricHandler = null;
 
         /// <summary>
         /// Flag to indicate whether the BAM file is being loaded into memory (true) or is being
         /// proccessed then cleared from memory (false)
         /// </summary>
-        protected internal bool storeMemory = true;
+        private bool storeMemory = true;
 
         #endregion
 
@@ -996,7 +996,8 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
         }
 
 
-        private SequenceAlignmentMap GetAlignmentRefac(Stream reader, BAMIndexFile bamIndexFile = null,
+        // Refactored this to implement shared code from the 5 GetAlignment() methods in the one place
+        private SequenceAlignmentMap GetAlignmentMap(Stream reader, BAMIndexFile bamIndexFile = null,
             string refSeqName = null, int refSeqIndex = -1, int start = 0, int end = int.MaxValue)
         {
             SAMAlignmentHeader header;
@@ -1064,48 +1065,16 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
             return seqMap;
         }
 
-        
-
-
-    private void GetAlignmentWithoutIndex(SAMAlignmentHeader header, ref SequenceAlignmentMap seqMap)
+        // Refactored to remove this block from GetAlignmentMap()
+        private SAMAlignedSequence BamIndexing(SAMAlignedSequence alignedSeq, BAMReferenceIndexes refIndices, BAMIndex bamIndex,
+            ulong lastcOffset, ushort lastuOffset, ref Chunk lastChunk)
         {
             int lastBin = int.MaxValue;
-            Chunk lastChunk = null;
             Bin bin;
             Chunk chunk;
             int lastRefSeqIndex = 0;
             int curRefSeqIndex;
-            ulong lastcOffset = 0;
-            ushort lastuOffset = 0;
-            BAMReferenceIndexes refIndices = null;
-
-            if (createBamIndex)
-            {
-                bamIndex = new BAMIndex();
-
-                for (int i = 0; i < refSeqNames.Count; i++)
-                {
-                    bamIndex.RefIndexes.Add(new BAMReferenceIndexes());
-                }
-
-                refIndices = bamIndex.RefIndexes[0];
-            }
-
-            if (!createBamIndex && seqMap == null && storeMemory)
-            {
-                seqMap = new SequenceAlignmentMap(header);
-            }
-
-            while (!IsEOF())
-            {
-                if (createBamIndex)
-                {
-                    lastcOffset = (ulong)currentCompressedBlockStartPos;
-                    lastuOffset = (ushort)deCompressedStream.Position;
-                }
-
-                SAMAlignedSequence alignedSeq = GetAlignedSequence(0, int.MaxValue);
-
+            
                 #region BAM indexing
                 if (createBamIndex)
                 {
@@ -1177,7 +1146,44 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
                     }
                 }
                 #endregion
+        return alignedSeq;
+        }
 
+
+    private void GetAlignmentWithoutIndex(SAMAlignmentHeader header, ref SequenceAlignmentMap seqMap)
+        {
+            Chunk lastChunk = null;
+            ulong lastcOffset = 0;
+            ushort lastuOffset = 0;
+            BAMReferenceIndexes refIndices = null;
+
+            if (createBamIndex)
+            {
+                bamIndex = new BAMIndex();
+
+                for (int i = 0; i < refSeqNames.Count; i++)
+                {
+                    bamIndex.RefIndexes.Add(new BAMReferenceIndexes());
+                }
+                refIndices = bamIndex.RefIndexes[0];
+            }
+
+            if (!createBamIndex && seqMap == null && storeMemory)
+            {
+                seqMap = new SequenceAlignmentMap(header);
+            }
+
+            while (!IsEOF())
+            {
+                if (createBamIndex)
+                {
+                    lastcOffset = (ulong)currentCompressedBlockStartPos;
+                    lastuOffset = (ushort)deCompressedStream.Position;
+                }
+
+                SAMAlignedSequence alignedSeq = GetAlignedSequence(0, int.MaxValue);
+                alignedSeq = BamIndexing(alignedSeq, refIndices, bamIndex, lastcOffset, lastuOffset, ref lastChunk);
+               
                 if (!createBamIndex && alignedSeq != null && storeMemory)
                 {
                     seqMap.QuerySequences.Add(alignedSeq);
@@ -1206,19 +1212,13 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
             }
             #endregion
 
-
-
         }
 
 
         // Returns SequenceAlignmentMap object by parsing specified BAM stream.
         private SequenceAlignmentMap GetAlignment(Stream reader)
         {
-            return GetAlignmentRefac(reader);
-            
-            
-
-            //return seqMap;
+            return GetAlignmentMap(reader);
         }
 
         /// <summary>
@@ -1570,31 +1570,27 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
         // Returns SequenceAlignmentMap by parsing specified BAM stream and BAMIndexFile for the specified reference sequence index.
         private SequenceAlignmentMap GetAlignment(Stream bamStream, BAMIndexFile bamIndexFile, int refSeqIndex)
         {
-            return GetAlignmentRefac(bamStream, bamIndexFile, null, refSeqIndex);
-            //return seqMap;
+            return GetAlignmentMap(bamStream, bamIndexFile, null, refSeqIndex);
         }
 
         // Returns SequenceAlignmentMap by parsing specified BAM stream and BAMIndexFile for the specified reference sequence name.
         private SequenceAlignmentMap GetAlignment(Stream bamStream, BAMIndexFile bamIndexFile, string refSeqName)
         {
-            return GetAlignmentRefac(bamStream, bamIndexFile, refSeqName);
-            //return seqMap;
+            return GetAlignmentMap(bamStream, bamIndexFile, refSeqName);
         }
 
         // Returns SequenceAlignmentMap by parsing specified BAM stream and BAMIndexFile for the specified reference sequence index.
         // this method uses linear index information also.
         private SequenceAlignmentMap GetAlignment(Stream bamStream, BAMIndexFile bamIndexFile, string refSeqName, int start, int end)
         {
-            return GetAlignmentRefac(bamStream, bamIndexFile, refSeqName, -1, start, end);
-            //return seqMap;
+            return GetAlignmentMap(bamStream, bamIndexFile, refSeqName, -1, start, end);
         }
 
         // Returns SequenceAlignmentMap by parsing specified BAM stream and BAMIndexFile for the specified reference sequence index.
         // this method uses linear index information also.
         private SequenceAlignmentMap GetAlignment(Stream bamStream, BAMIndexFile bamIndexFile, int refSeqIndex, int start, int end)
         {
-            return GetAlignmentRefac(bamStream, bamIndexFile, null, refSeqIndex, start, end);
-            //return seqMap;
+            return GetAlignmentMap(bamStream, bamIndexFile, null, refSeqIndex, start, end);
         }
 
         // Gets aligned sequence from the specified chunks of the BAM file which overlaps with the specified start and end co-ordinates.

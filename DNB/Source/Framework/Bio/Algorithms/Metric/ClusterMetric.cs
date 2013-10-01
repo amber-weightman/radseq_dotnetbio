@@ -206,6 +206,8 @@ namespace Bio.Algorithms.Metric
         /// <summary>
         /// Calculate metric values from the given list of sequences.
         /// </summary>
+        /// <param name="sequences">Sequences to add.</param>
+
         public void Calculate(List<SAMAlignedSequence> sequences)
         {
             this.sequences = sequences;
