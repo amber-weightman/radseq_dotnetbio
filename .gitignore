@@ -9209,7 +9209,7 @@ DNB/Tests/Bio.Tests/Framework/IO/AppliedBiosystems/Ab1DataValidator.cs
 DNB/Tests/Bio.Tests/Framework/IO/AppliedBiosystems/Ab1Examples.cs
 DNB/Tests/Bio.Tests/Framework/IO/AppliedBiosystems/AbiTests.cs
 DNB/Tests/Bio.Tests/Framework/IO/AppliedBiosystems/TestAb1Data.cs
-DNB/Tests/Bio.Tests/Framework/IO/BAM/BAMTests.cs
+
 DNB/Tests/Bio.Tests/Framework/IO/Bed/BEDOperationsTests.cs
 DNB/Tests/Bio.Tests/Framework/IO/ClustalW/ClustalWTests.cs
 DNB/Tests/Bio.Tests/Framework/IO/FastA/FastaTests.cs
@@ -9977,3 +9977,4 @@ DNB/Tests/TestData/TestUtils/WiggleWithInvalidAutoScale.wig
 DNB/Tests/TestData/TestUtils/WiggleWithInvalidTrack.wig
 DNB/Tests/TestData/TestUtils/WiggleWithVariableStep.wig
 DNB/UpgradeLog.htm
+DNB/Tests/Bio.Tests/obj/Debug/TempPE/Properties.Resource.Designer.cs.dll
