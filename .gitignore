@@ -9978,3 +9978,6 @@ DNB/Tests/TestData/TestUtils/WiggleWithInvalidTrack.wig
 DNB/Tests/TestData/TestUtils/WiggleWithVariableStep.wig
 DNB/UpgradeLog.htm
 DNB/Tests/Bio.Tests/obj/Debug/TempPE/Properties.Resource.Designer.cs.dll
+DNB/Build/Binaries/Debug/Bio.dll.CodeAnalysisLog.xml
+DNB/Build/Binaries/Debug/Bio.dll.lastcodeanalysissucceeded
+DNB/Build/Binaries/Debug/vs1681.tmp

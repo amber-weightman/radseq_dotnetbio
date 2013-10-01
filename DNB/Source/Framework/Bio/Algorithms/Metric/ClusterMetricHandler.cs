@@ -2,6 +2,7 @@
 using Bio.IO.SAM;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -80,7 +81,7 @@ namespace Bio.Algorithms.Metric
         /// </summary>
         /// <param name="clusterFileName">Name of the file metric data is to be written to.</param>
         /// <param name="sequences">List of sequences.</param>
-        public ClusterMetricHandler(string clusterFileName, List<SAMAlignedSequence> sequences)
+        public ClusterMetricHandler(string clusterFileName, Collection<SAMAlignedSequence> sequences)
             : this(clusterFileName)
         {
             AddAll(sequences);
@@ -135,7 +136,7 @@ namespace Bio.Algorithms.Metric
         /// then add the sequenceto a new cluster
         /// </summary>
         /// <param name="sequences">A list of sequences.</param>
-        public void AddAll(List<SAMAlignedSequence> sequences)
+        public void AddAll(Collection<SAMAlignedSequence> sequences)
         {
             foreach (SAMAlignedSequence seq in sequences)
             {

@@ -2,6 +2,7 @@
 using Bio.IO.SAM;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 
@@ -47,7 +48,7 @@ namespace Bio.Tests.Framework.IO.BAM
         /// Add a list of sequences.
         /// </summary>
         /// <param name="sequences">Sequences to add.</param>
-        public void AddAll(List<SAMAlignedSequence> sequences)
+        public void AddAll(Collection<SAMAlignedSequence> sequences)
         {
             foreach(SAMAlignedSequence seq in sequences)
             {

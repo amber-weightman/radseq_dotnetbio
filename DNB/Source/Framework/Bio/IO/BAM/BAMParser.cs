@@ -1066,7 +1066,7 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
         }
 
         // Refactored to remove this block from GetAlignmentMap()
-        private SAMAlignedSequence BamIndexing(SAMAlignedSequence alignedSeq, BAMReferenceIndexes refIndices, BAMIndex bamIndex,
+        private SAMAlignedSequence BamIndexing(SAMAlignedSequence alignedSeq, BAMReferenceIndexes refIndices, BAMIndex index,
             ulong lastcOffset, ushort lastuOffset, ref Chunk lastChunk)
         {
             int lastBin = int.MaxValue;
@@ -1082,7 +1082,7 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
 
                     if (lastRefSeqIndex != curRefSeqIndex)
                     {
-                        refIndices = bamIndex.RefIndexes[curRefSeqIndex];
+                        refIndices = index.RefIndexes[curRefSeqIndex];
                         lastBin = int.MaxValue;
                         lastRefSeqIndex = curRefSeqIndex;
                     }

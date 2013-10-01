@@ -1,6 +1,7 @@
 ﻿using Bio.IO.SAM;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 
@@ -12,6 +13,7 @@ namespace Bio.Algorithms.Metric
     /// </summary>
     public interface IMetricHandler : IDisposable
     {
+
         /// <summary>
         /// Add a sequence.
         /// </summary>
@@ -19,10 +21,10 @@ namespace Bio.Algorithms.Metric
         void Add(SAMAlignedSequence sequence);
 
         /// <summary>
-        /// Add a list of sequences.
+        /// Add a set of sequences.
         /// </summary>
-        /// <param name="sequences">A list of sequences.</param>
-        void AddAll(List<SAMAlignedSequence> sequences);
+        /// <param name="sequences">A set of sequences.</param>
+        void AddAll(Collection<SAMAlignedSequence> sequences);
 
         /// <summary>
         /// Process sequences (may process all, or a selection thereof).
