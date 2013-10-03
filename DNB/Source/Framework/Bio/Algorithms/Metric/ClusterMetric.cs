@@ -159,7 +159,7 @@ namespace Bio.Algorithms.Metric
         /// </summary>
         public int CountInPloidy
         {
-            get { return GetCountInPloidy(2); }
+            get { return GetCountInPloidy(2, GetFrequencyDistribution(SequenceDict)); }
         }
 
         /// <summary>
@@ -168,7 +168,7 @@ namespace Bio.Algorithms.Metric
         /// </summary>
         public Double BeyondPloidy
         {
-            get { return GetPercentBeyondPloidy(2); }
+            get { return GetPercentBeyondPloidy(2, GetFrequencyDistribution(SequenceDict)); }
         }
 
         
@@ -183,13 +183,42 @@ namespace Bio.Algorithms.Metric
         /// </summary>
         public string ToFileString()
         {
+            double stdDirt = GetPercentBeyondPloidy(2, GetFrequencyDistribution(SequenceDict));
+            double indivDirt = GetPercentBeyondPloidy(2, GetFrequencyDistribution(sequenceSampleDict));
+            double anorDirt = (stdDirt + indivDirt) / 2;
+
+
+            List<int> scaledFx = new List<int>();
+            List<int> seqFx = GetFrequencyDistribution(SequenceDict);
+            List<int> indivFx = GetFrequencyDistribution(sequenceSampleDict);
+            for (int i = 0; i < seqFx.Count; i++)
+            {
+                scaledFx.Add(seqFx[i] * indivFx[i]);
+            }
+            double scaledDirt = GetPercentBeyondPloidy(2, scaledFx);
+
+            //Dictionary<double, int> baseFreqDict = BaseFrequencies();
+            // for each seq in the cluster
+
+            string baseFxString = "";
+            List<Dictionary<char, double>> baseFx = BaseFrequencies();
+            foreach(Dictionary<char, double> position in baseFx)
+            {
+                //baseFxString = baseFxString + "(";
+                foreach(KeyValuePair<char, double> pos in position)
+                {
+                    baseFxString = baseFxString + pos.Key + "\t" + pos.Value + "\t";
+                }
+                baseFxString = baseFxString + "\n ";
+            }
+
             return Id + "\t" +
                 CountDistinct + "\t" +
                 CountSamples + "\t" +
-                GetPercentBeyondPloidy(1) + ", " + GetPercentBeyondPloidy(2) + ", "
-                + GetPercentBeyondPloidy(3) + ", " + GetPercentBeyondPloidy(4) + ", " + GetPercentBeyondPloidy(5)
-                + Environment.NewLine
-                + "\n" + FrequencyAndGaps() 
+                stdDirt + ", "
+                + indivDirt + ", " + anorDirt + ", *" + scaledDirt
+                //+ Environment.NewLine
+                + "\n" + FrequencyAndGaps() + "\n" + baseFxString;
                 //+ CompositeDictMetrics(sampleSequenceDict) 
                 //+ CompositeDictMetrics(sequenceSampleDict);
                 ;
@@ -266,17 +295,41 @@ namespace Bio.Algorithms.Metric
         private string FrequencyAndGaps()
         {
             string returnVal = "";
+            List<int> frequencies2 = GetFrequencyDistribution(sequenceSampleDict);
+            string frequenciesList2 = string.Join(",", frequencies2.ToArray());
+
+            
+            returnVal = returnVal + "Indiv fx: "+frequenciesList2 + "\n\n";
+            
             List<int> frequencies = FrequencyDistributionSequences;
             string frequenciesList = string.Join(",", frequencies.ToArray());
-            returnVal = returnVal + "Frequencies: "+frequenciesList + "\n";
-            List<int> gaps = new List<int>();
+
+            List<int> frequencies3 = new List<int>();
+            for (int i = 0; i < frequencies.Count; i++)
+            {
+                frequencies3.Add(frequencies2[i] * frequencies[i]);
+            }
+            string frequenciesList3 = string.Join(",", frequencies3.ToArray());
+            returnVal = returnVal + "Scaled fx: " + frequenciesList3 + "\n";
+
+            returnVal = returnVal + "Seq fx: "+frequenciesList + "\n";
+
+            return returnVal;
+            /*List<int> gaps = new List<int>();
             
             for(int i = 1; i < frequencies.Count; i++)
             {
                 gaps.Add(frequencies[i-1] - frequencies[i]);
+                
             }
             string gapsList = string.Join(",", gaps.ToArray());
-            return returnVal + " Gaps: "+gapsList + "\n";
+            int gapCount = gaps.Sum();
+            for (int i = 0; i < gaps.Count; i++)
+            {
+                gaps[i] = gaps[i]*10000/gapCount;
+            }
+            string normGapsList = string.Join(",", gaps.ToArray());
+            return returnVal + " Gaps: " + gapsList + "\n" + normGapsList+"\n";*/
         }
 
 
@@ -311,7 +364,7 @@ namespace Bio.Algorithms.Metric
 
 
         // get count in ploidy for distinct sequences
-        private int GetCountInPloidy(int ploidy)
+        /*private int GetCountInPloidy(int ploidy)
         {
             int count = 0, seqsCount = 0;
             foreach (KeyValuePair<String, List<SAMAlignedSequence>> seqs in sequenceDict)
@@ -326,15 +379,38 @@ namespace Bio.Algorithms.Metric
                 }
             }
             return seqsCount;
+        }*/
+
+        private int GetCountInPloidy(int ploidy, List<int> frequencies)
+        {
+            int count = 0, seqsCount = 0;
+            foreach (int fx in frequencies)
+            {
+                if (count++ < ploidy)
+                {
+                    seqsCount += fx;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            return seqsCount;
         }
 
-        private double GetPercentBeyondPloidy(int ploidy)
+        private double GetPercentBeyondPloidy(int ploidy, List<int> frequencies)
         {
-            return (Double)(CountAll - GetCountInPloidy(ploidy)) / (Double)CountAll;
+            return (Double)(frequencies.Sum() - GetCountInPloidy(ploidy, frequencies)) / (Double)frequencies.Sum();
         }
+
+        // is this it??????
+        //http://bioinformatics.oxfordjournals.org/content/early/2012/10/09/bioinformatics.bts601.abstract
+        //http://bioinformatics.tudelft.nl/
 
         // gene prediction: uses hmm
         // "copy number variation"
+
+        // "De novo detection of copy number variation "
 
         // Aneuploidy - abnormal num chromosomes
         // Given that we know the probable ploidy of the organism, we could be said to be
@@ -368,13 +444,15 @@ namespace Bio.Algorithms.Metric
         // (where the reads are the observed data)
         private void HiddenMarkov()
         {
-            
+            // don't understand how this translates to transition over time
+            // http://nar.oxfordjournals.org/content/33/suppl_2/W451.long need the species name + our seq too short
         }
 
         // use information derived from the alignment within a cluster as covariates
         private void LogisticRegression()
         {
-            
+            // appears to be a sensible model to use
+            //(multinomial logitic progression)
         }
 
 
@@ -505,9 +583,91 @@ namespace Bio.Algorithms.Metric
             return frequencies;
         }
 
-        
+        // Fx with one seq per individual
+        private List<int> GetFrequencyDistribution(Dictionary<String, Dictionary<String, List<SAMAlignedSequence>>> dict)
+        {
+            // todo aw probably a more efficient way
+            List<int> frequencies = new List<int>();
+            foreach (KeyValuePair<String, Dictionary<String, List<SAMAlignedSequence>>> seq in dict)
+            {
+                frequencies.Add(seq.Value.Count); // the number of sub-dict items
+            }
+            return frequencies;
+        }
+
+
+
+        private List<Dictionary<char, double>> BaseFrequencies()
+        {
+            //Dictionary<double, int> freqDict = new Dictionary<double, int>();
+            List<Dictionary<char, double>> freqList = new List<Dictionary<char, double>>();
+
+            //double A = 0, T = 0, C = 0, G = 0;
+            foreach(SAMAlignedSequence seq in Sequences)
+            {
+                string seqStr = Regex.Split(seq.QuerySequence.ToString(), "\r\n")[0];
+                int count = 0;
+                foreach (char c in seqStr.ToUpper().ToCharArray())
+                {
+                    // 5 // ok to index 4
+                    if(count >= freqList.Count)
+                    {
+                        freqList.Add(new Dictionary<char, double>());
+                    }
+                    if(freqList[count].ContainsKey(c))
+                    {
+                        ++freqList[count][c];
+                    }
+                    else
+                    {
+                        freqList[count].Add(c, 1);
+                    }
+
+                    count++;
+                }
+            }
+                
+            foreach(Dictionary<char, double> bases in freqList)
+            {
+                double numBases = bases.Values.Sum();
+                if(bases.ContainsKey('A'))
+                {
+                    bases['A'] = Math.Round((bases['A'] / numBases), 2);
+                    if(bases['A'] == 0) { bases.Remove('A'); }
+                }
+                if (bases.ContainsKey('T'))
+                {
+                    bases['T'] = Math.Round((bases['T'] / numBases), 2);
+                    if (bases['T'] == 0) { bases.Remove('T'); }
+                }
+                if (bases.ContainsKey('C'))
+                {
+                    bases['C'] = Math.Round((bases['C'] / numBases), 2);
+                    if (bases['C'] == 0) { bases.Remove('C'); }
+                }
+                if (bases.ContainsKey('G'))
+                {
+                    bases['G'] = Math.Round((bases['G'] / numBases), 2);
+                    if (bases['G'] == 0) { bases.Remove('G'); }
+                }
+                
+
+                /*var sortedSequenceDict = (from b in bases
+                                          orderby b.Key ascending
+                                          select b)
+                    .ToDictionary(pair => pair.Key, pair => pair.Value);
+                bases = sortedSequenceDict;*/
+
+            }
+
+            return freqList;
+        }
+
 
         #endregion
 
     }
+
+
+    
 }

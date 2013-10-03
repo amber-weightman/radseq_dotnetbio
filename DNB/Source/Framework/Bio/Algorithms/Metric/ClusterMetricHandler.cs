@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Bio.Algorithms.Metric
 {
@@ -169,6 +170,8 @@ namespace Bio.Algorithms.Metric
                 sequences = new List<SAMAlignedSequence>();
             }
             sequences.Add(sequence);
+            // just looking - todo remove this
+            //Console.WriteLine(Regex.Split(sequence.QuerySequence.ToString(), "\r\n")[0]);
         }
 
         /// <summary>
