@@ -184,18 +184,19 @@ namespace Bio.Algorithms.Metric
         public string ToFileString()
         {
             double stdDirt = GetPercentBeyondPloidy(2, GetFrequencyDistribution(SequenceDict));
-            double indivDirt = GetPercentBeyondPloidy(2, GetFrequencyDistribution(sequenceSampleDict));
-            double anorDirt = (stdDirt + indivDirt) / 2;
+            
+            //double indivDirt = GetPercentBeyondPloidy(2, GetFrequencyDistribution(sequenceSampleDict));
+            //double anorDirt = (stdDirt + indivDirt) / 2;
 
 
-            List<int> scaledFx = new List<int>();
-            List<int> seqFx = GetFrequencyDistribution(SequenceDict);
-            List<int> indivFx = GetFrequencyDistribution(sequenceSampleDict);
-            for (int i = 0; i < seqFx.Count; i++)
+            //List<int> scaledFx = new List<int>();
+            //List<int> seqFx = GetFrequencyDistribution(SequenceDict);
+            //List<int> indivFx = GetFrequencyDistribution(sequenceSampleDict);
+            /*for (int i = 0; i < seqFx.Count; i++)
             {
                 scaledFx.Add(seqFx[i] * indivFx[i]);
-            }
-            double scaledDirt = GetPercentBeyondPloidy(2, scaledFx);
+            }*/
+            //double scaledDirt = GetPercentBeyondPloidy(2, scaledFx);
 
             //Dictionary<double, int> baseFreqDict = BaseFrequencies();
             // for each seq in the cluster
@@ -212,13 +213,18 @@ namespace Bio.Algorithms.Metric
                 baseFxString = baseFxString + "\n ";
             }
 
+            List<int> frequenciesWSnp = FreqCombineSnp();
+
+            double dirtWSnp = GetPercentBeyondPloidy(2, frequenciesWSnp);
+
             return Id + "\t" +
                 CountDistinct + "\t" +
                 CountSamples + "\t" +
-                stdDirt + ", "
-                + indivDirt + ", " + anorDirt + ", *" + scaledDirt
+                stdDirt + ", "+dirtWSnp
+                //+ indivDirt + ", " + anorDirt + ", *" + scaledDirt
                 //+ Environment.NewLine
-                + "\n" + FrequencyAndGaps() + "\n" + baseFxString;
+                + "\n" + FrequencyAndGaps() + "\n" //+ baseFxString;
+                ;
                 //+ CompositeDictMetrics(sampleSequenceDict) 
                 //+ CompositeDictMetrics(sequenceSampleDict);
                 ;
@@ -292,27 +298,112 @@ namespace Bio.Algorithms.Metric
         }
 
 
+        // loaded with assumptions
+        private int NumQueryDiff(string seqA, string seqB)
+        {
+            // if diff lengths or diff index, do something about that todo aw
+            //int startPos = (seqA.MPos > seqB.MPos) ? seqA.MPos - seqB.MPos : seqB.MPos - seqA.MPos; // startPos is 0 based
+            
+            char[] charsA = seqA.ToCharArray();
+            char[] charsB = seqB.ToCharArray();
+            int count = 0;
+            for (int i = 0; i < charsA.Length; i++ )
+            {
+                if(charsA[i] != charsB[i])
+                {
+                    ++count;
+                }
+            }
+            return count;
+        }
+
+        private List<int> FreqCombineSnp()
+        {
+            List<int> frequencies = new List<int>();
+
+            int firstI = 0, secondI = 0;
+            int firstSeqIndex = 0, nextSeqIndex;
+
+
+            for (int i = firstSeqIndex+1; i < SequenceDict.Count; i++)
+            {
+                int diff = NumQueryDiff(SequenceDict.ElementAt(firstSeqIndex).Key, SequenceDict.ElementAt(i).Key);
+                // if 1 snp suggested
+                if(diff < 2) 
+                {
+                    frequencies.Add(SequenceDict.ElementAt(firstSeqIndex).Value.Count + SequenceDict.ElementAt(i).Value.Count);
+                    firstI = i;
+                    break;
+                }
+                // worthless sequence or finished iterating
+                else if (SequenceDict.ElementAt(i).Value.Count < 2 || i == SequenceDict.Count - 1)
+                {
+                    frequencies.Add(SequenceDict.ElementAt(firstSeqIndex).Value.Count); // first elem only
+                    firstI = -1;
+                    break;
+                }
+            }
+            
+
+            nextSeqIndex = (firstI == 1) ? 2 : 1;
+
+            for (int i = nextSeqIndex + 1; i < SequenceDict.Count; i++)
+            {
+                int diff = NumQueryDiff(SequenceDict.ElementAt(nextSeqIndex).Key, SequenceDict.ElementAt(i).Key);
+                // if 1 snp suggested
+                if (diff < 2)
+                {
+                    frequencies.Add(SequenceDict.ElementAt(nextSeqIndex).Value.Count + SequenceDict.ElementAt(i).Value.Count);
+                    secondI = i;
+                    break;
+                }
+                // worthless sequence or finished iterating
+                else if (SequenceDict.ElementAt(i).Value.Count < 2 || i == SequenceDict.Count - 1)
+                {
+                    frequencies.Add(SequenceDict.ElementAt(nextSeqIndex).Value.Count); // first elem only
+                    secondI = -1;
+                    break;
+                }
+            }
+
+            for (int i = nextSeqIndex + 1; i < SequenceDict.Count; i++)
+            {
+                if (i != firstI && i != secondI)
+                {
+                    frequencies.Add(SequenceDict.ElementAt(i).Value.Count);
+                }
+            }
+            return frequencies;
+        }
+
+
         private string FrequencyAndGaps()
         {
             string returnVal = "";
-            List<int> frequencies2 = GetFrequencyDistribution(sequenceSampleDict);
-            string frequenciesList2 = string.Join(",", frequencies2.ToArray());
-
             
-            returnVal = returnVal + "Indiv fx: "+frequenciesList2 + "\n\n";
+            // indiv fx
+            /*List<int> frequencies2 = GetFrequencyDistribution(sequenceSampleDict);
+            string frequenciesList2 = string.Join(",", frequencies2.ToArray());           
+            returnVal = returnVal + "Indiv fx: "+frequenciesList2 + "\n\n";*/
             
             List<int> frequencies = FrequencyDistributionSequences;
             string frequenciesList = string.Join(",", frequencies.ToArray());
 
-            List<int> frequencies3 = new List<int>();
+            List<int> frequenciesWSnp = FreqCombineSnp();
+            string frequenciesWSnpList = string.Join(",", frequenciesWSnp.ToArray());
+
+
+
+            // scaled fx
+            /*List<int> frequencies3 = new List<int>();
             for (int i = 0; i < frequencies.Count; i++)
             {
                 frequencies3.Add(frequencies2[i] * frequencies[i]);
             }
             string frequenciesList3 = string.Join(",", frequencies3.ToArray());
-            returnVal = returnVal + "Scaled fx: " + frequenciesList3 + "\n";
+            returnVal = returnVal + "Scaled fx: " + frequenciesList3 + "\n";*/
 
-            returnVal = returnVal + "Seq fx: "+frequenciesList + "\n";
+            returnVal = returnVal + "Seq fx:\n" + frequenciesList + "\nSeq fx w/ snp:\n" + frequenciesWSnpList + "\n";
 
             return returnVal;
             /*List<int> gaps = new List<int>();
@@ -400,7 +491,7 @@ namespace Bio.Algorithms.Metric
 
         private double GetPercentBeyondPloidy(int ploidy, List<int> frequencies)
         {
-            return (Double)(frequencies.Sum() - GetCountInPloidy(ploidy, frequencies)) / (Double)frequencies.Sum();
+            return Math.Round((frequencies.Sum() - GetCountInPloidy(ploidy, frequencies)) / (Double)frequencies.Sum(), 2);
         }
 
         // is this it??????
@@ -459,10 +550,14 @@ namespace Bio.Algorithms.Metric
         // Get sequence string
         private String GetSequenceDictKey(SAMAlignedSequence seq)
         {
+            return GetSequence(seq);
+        }
+
+        private string GetSequence(SAMAlignedSequence seq)
+        {
             String seqStr = seq.QuerySequence.ToString();
             return Regex.Split(seqStr, "\r\n")[0]; // todo aw something more efficient than regex?
         }
-
 
         // Get individual string
         private String GetSampleDictKey(SAMAlignedSequence seq)
