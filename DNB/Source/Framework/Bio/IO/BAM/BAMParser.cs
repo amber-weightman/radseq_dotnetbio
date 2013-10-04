@@ -982,16 +982,28 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
             }
 
             IList<SAMAlignedSequence> alignedSeqs = GetAlignedSequences(chunks, start, end);
-            foreach (SAMAlignedSequence alignedSeq in alignedSeqs)
+            if (storeMemory && metricHandler != null)
             {
-                if(storeMemory){
+                foreach (SAMAlignedSequence alignedSeq in alignedSeqs)
+                {
+                    seqMap.QuerySequences.Add(alignedSeq);
+                    metricHandler.Add(alignedSeq);
+                }
+            } else if(storeMemory)
+            {
+                foreach (SAMAlignedSequence alignedSeq in alignedSeqs)
+                {
                     seqMap.QuerySequences.Add(alignedSeq);
                 }
-                if (metricHandler != null)
+            }
+            else if (metricHandler != null)
+            {
+                foreach (SAMAlignedSequence alignedSeq in alignedSeqs)
                 {
                     metricHandler.Add(alignedSeq);
                 }
             }
+
             readStream = null;
         }
 
@@ -1052,14 +1064,8 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
 
             if (metricHandler != null)
             {
-                try
-                {
-                    metricHandler.FlushSequences();
-                }
-                finally
-                {
-                    metricHandler.Dispose();
-                }
+                metricHandler.SetComplete();
+                metricHandler.Dispose();
             }
 
             return seqMap;

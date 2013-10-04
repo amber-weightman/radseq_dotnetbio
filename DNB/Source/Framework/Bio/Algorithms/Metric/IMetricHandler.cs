@@ -24,7 +24,7 @@ namespace Bio.Algorithms.Metric
         /// Add a set of sequences.
         /// </summary>
         /// <param name="sequences">A set of sequences.</param>
-        void AddAll(Collection<SAMAlignedSequence> sequences);
+        void AddRange(IEnumerable<SAMAlignedSequence> sequences);
 
         /// <summary>
         /// Process sequences (may process all, or a selection thereof).
@@ -34,7 +34,7 @@ namespace Bio.Algorithms.Metric
         /// <summary>
         /// Process any/all remaining sequences.
         /// </summary>
-        void FlushSequences();
+        void SetComplete();
 
     }
 }
