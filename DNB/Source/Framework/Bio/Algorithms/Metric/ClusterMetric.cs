@@ -70,18 +70,18 @@ namespace Bio.Algorithms.Metric
         /// </summary>
         public string Id
         {
-            get 
+            get
             {
-                if (! sequences[0].Flag.HasFlag(SAMFlags.UnmappedQuery))
+                if (!sequences[0].Flag.HasFlag(SAMFlags.UnmappedQuery))
                 {
                     String rname = sequences[0].RName;
-                    return (sequences != null) ? rname : null; 
+                    return (sequences != null) ? rname : null;
                 }
                 else
                 {
                     throw new Exception("Unmapped query exception"); // todo particular kind of exception?
                 }
-                
+
             }
         }
 
@@ -136,7 +136,7 @@ namespace Bio.Algorithms.Metric
         {
             get { return sequences; }
         }
-        
+
         /// <summary>
         /// Experimental.
         /// </summary>
@@ -171,7 +171,7 @@ namespace Bio.Algorithms.Metric
             get { return GetPercentBeyondPloidy(2, GetFrequencyDistribution(SequenceDict)); }
         }
 
-        
+
         #endregion
 
         #region Public Methods
@@ -184,7 +184,7 @@ namespace Bio.Algorithms.Metric
         public string ToFileString()
         {
             double stdDirt = GetPercentBeyondPloidy(2, GetFrequencyDistribution(SequenceDict));
-            
+
             //double indivDirt = GetPercentBeyondPloidy(2, GetFrequencyDistribution(sequenceSampleDict));
             //double anorDirt = (stdDirt + indivDirt) / 2;
 
@@ -203,10 +203,10 @@ namespace Bio.Algorithms.Metric
 
             string baseFxString = "";
             List<Dictionary<char, double>> baseFx = BaseFrequencies();
-            foreach(Dictionary<char, double> position in baseFx)
+            foreach (Dictionary<char, double> position in baseFx)
             {
                 //baseFxString = baseFxString + "(";
-                foreach(KeyValuePair<char, double> pos in position)
+                foreach (KeyValuePair<char, double> pos in position)
                 {
                     baseFxString = baseFxString + pos.Key + "\t" + pos.Value + "\t";
                 }
@@ -220,14 +220,14 @@ namespace Bio.Algorithms.Metric
             return Id + "\t" +
                 CountDistinct + "\t" +
                 CountSamples + "\t" +
-                stdDirt + ", "+dirtWSnp
+                stdDirt + ", " + dirtWSnp
                 //+ indivDirt + ", " + anorDirt + ", *" + scaledDirt
                 //+ Environment.NewLine
                 + "\n" + FrequencyAndGaps() + "\n" //+ baseFxString;
                 ;
-                //+ CompositeDictMetrics(sampleSequenceDict) 
-                //+ CompositeDictMetrics(sequenceSampleDict);
-                ;
+            //+ CompositeDictMetrics(sampleSequenceDict) 
+            //+ CompositeDictMetrics(sequenceSampleDict);
+            ;
         }
 
         /// <summary>
@@ -264,7 +264,7 @@ namespace Bio.Algorithms.Metric
         private string FrequencyDistributionMetrics()
         {
             List<int> frequencies = FrequencyDistributionSequences;
-            int countAll = frequencies.Sum(); 
+            int countAll = frequencies.Sum();
             int length = frequencies.Count();
 
             int haploidAverage = frequencies[0] / 1;
@@ -274,18 +274,18 @@ namespace Bio.Algorithms.Metric
             int nonDiploidAverage = (countAll - frequencies[0] - frequencies[1]) / (length - 2);
 
             int triploidAverage = (frequencies[0] + frequencies[1] + frequencies[2]) / 3;
-            int nonTriploidAverage = (countAll - frequencies[0] - frequencies[1] - frequencies[2]) 
+            int nonTriploidAverage = (countAll - frequencies[0] - frequencies[1] - frequencies[2])
                 / (length - 3);
 
             int tetraploidAverage = (frequencies[0] + frequencies[1] + frequencies[2] + frequencies[3]) / 4;
-            int nonTetraploidAverage = (countAll - frequencies[0] - frequencies[1] - frequencies[2] - frequencies[3]) 
+            int nonTetraploidAverage = (countAll - frequencies[0] - frequencies[1] - frequencies[2] - frequencies[3])
                 / (length - 4);
 
             // we are looking at the size of the gap between each ploidy level
             int hapDipGap = haploidAverage - diploidAverage;
             int dipTripGap = diploidAverage - triploidAverage;
-            int tripQuadGap = triploidAverage - tetraploidAverage;            
-            
+            int tripQuadGap = triploidAverage - tetraploidAverage;
+
             /*return frequenciesList + "\n"
                 + haploidAverage + "\t" + diploidAverage + "\t" + tetraploidAverage + "\t" + quadraploidAverage + "\n"
                 + nonHaploidAverage + "\t" + nonDiploidAverage + "\t" + nonTetraploidAverage + "\t" + nonQuadraploidAverage + "\n"
@@ -303,13 +303,13 @@ namespace Bio.Algorithms.Metric
         {
             // if diff lengths or diff index, do something about that todo aw
             //int startPos = (seqA.MPos > seqB.MPos) ? seqA.MPos - seqB.MPos : seqB.MPos - seqA.MPos; // startPos is 0 based
-            
+
             char[] charsA = seqA.ToCharArray();
             char[] charsB = seqB.ToCharArray();
             int count = 0;
-            for (int i = 0; i < charsA.Length; i++ )
+            for (int i = 0; i < charsA.Length; i++)
             {
-                if(charsA[i] != charsB[i])
+                if (charsA[i] != charsB[i])
                 {
                     ++count;
                 }
@@ -325,11 +325,11 @@ namespace Bio.Algorithms.Metric
             int firstSeqIndex = 0, nextSeqIndex;
 
 
-            for (int i = firstSeqIndex+1; i < SequenceDict.Count; i++)
+            for (int i = firstSeqIndex + 1; i < SequenceDict.Count; i++)
             {
                 int diff = NumQueryDiff(SequenceDict.ElementAt(firstSeqIndex).Key, SequenceDict.ElementAt(i).Key);
                 // if 1 snp suggested
-                if(diff < 2) 
+                if (diff < 2)
                 {
                     frequencies.Add(SequenceDict.ElementAt(firstSeqIndex).Value.Count + SequenceDict.ElementAt(i).Value.Count);
                     firstI = i;
@@ -343,7 +343,7 @@ namespace Bio.Algorithms.Metric
                     break;
                 }
             }
-            
+
 
             nextSeqIndex = (firstI == 1) ? 2 : 1;
 
@@ -380,12 +380,12 @@ namespace Bio.Algorithms.Metric
         private string FrequencyAndGaps()
         {
             string returnVal = "";
-            
+
             // indiv fx
             /*List<int> frequencies2 = GetFrequencyDistribution(sequenceSampleDict);
             string frequenciesList2 = string.Join(",", frequencies2.ToArray());           
             returnVal = returnVal + "Indiv fx: "+frequenciesList2 + "\n\n";*/
-            
+
             List<int> frequencies = FrequencyDistributionSequences;
             string frequenciesList = string.Join(",", frequencies.ToArray());
 
@@ -584,7 +584,7 @@ namespace Bio.Algorithms.Metric
         /// </summary>
         private Dictionary<String, List<SAMAlignedSequence>> MakeSequenceDict(List<SAMAlignedSequence> seqs)
         {
-            Dictionary<String, List<SAMAlignedSequence>>  dict = new Dictionary<String, List<SAMAlignedSequence>>();
+            Dictionary<String, List<SAMAlignedSequence>> dict = new Dictionary<String, List<SAMAlignedSequence>>();
 
             foreach (SAMAlignedSequence seq in seqs)
             {
@@ -698,18 +698,18 @@ namespace Bio.Algorithms.Metric
             List<Dictionary<char, double>> freqList = new List<Dictionary<char, double>>();
 
             //double A = 0, T = 0, C = 0, G = 0;
-            foreach(SAMAlignedSequence seq in Sequences)
+            foreach (SAMAlignedSequence seq in Sequences)
             {
                 string seqStr = Regex.Split(seq.QuerySequence.ToString(), "\r\n")[0];
                 int count = 0;
                 foreach (char c in seqStr.ToUpper().ToCharArray())
                 {
                     // 5 // ok to index 4
-                    if(count >= freqList.Count)
+                    if (count >= freqList.Count)
                     {
                         freqList.Add(new Dictionary<char, double>());
                     }
-                    if(freqList[count].ContainsKey(c))
+                    if (freqList[count].ContainsKey(c))
                     {
                         ++freqList[count][c];
                     }
@@ -721,14 +721,14 @@ namespace Bio.Algorithms.Metric
                     count++;
                 }
             }
-                
-            foreach(Dictionary<char, double> bases in freqList)
+
+            foreach (Dictionary<char, double> bases in freqList)
             {
                 double numBases = bases.Values.Sum();
-                if(bases.ContainsKey('A'))
+                if (bases.ContainsKey('A'))
                 {
                     bases['A'] = Math.Round((bases['A'] / numBases), 2);
-                    if(bases['A'] == 0) { bases.Remove('A'); }
+                    if (bases['A'] == 0) { bases.Remove('A'); }
                 }
                 if (bases.ContainsKey('T'))
                 {
@@ -745,7 +745,7 @@ namespace Bio.Algorithms.Metric
                     bases['G'] = Math.Round((bases['G'] / numBases), 2);
                     if (bases['G'] == 0) { bases.Remove('G'); }
                 }
-                
+
 
                 /*var sortedSequenceDict = (from b in bases
                                           orderby b.Key ascending
@@ -762,7 +762,5 @@ namespace Bio.Algorithms.Metric
         #endregion
 
     }
-
-
     
 }

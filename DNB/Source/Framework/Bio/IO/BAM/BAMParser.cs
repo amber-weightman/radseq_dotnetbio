@@ -84,8 +84,8 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
         private string bamFilename;
 
         /// <summary>
-        /// Receives each sequence as it is read by the parser (actual operation performed on
-        /// the sequence depends on the type of metric handler)
+        /// Receives each sequence as it is read by the parser, and performs operation/s on
+        /// each sequence or set of sequences
         /// </summary>
         private IMetricHandler metricHandler = null;
 
