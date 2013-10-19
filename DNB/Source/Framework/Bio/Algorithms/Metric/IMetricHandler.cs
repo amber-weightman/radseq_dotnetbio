@@ -22,12 +22,15 @@ namespace Bio.Algorithms.Metric
 
         /// <summary>
         /// Add a set of sequences.
+        /// THIS IS NOT ACTUALLY CALLED IN BAMPARSER, BUT SEEMS A LOGICAL INCLUSION - AW
         /// </summary>
         /// <param name="sequences">A set of sequences.</param>
         void AddRange(IEnumerable<SAMAlignedSequence> sequences);
 
         /// <summary>
         /// Process sequences (may process all, or a selection thereof).
+        /// ALSO NOT CALLED BY BAMPARSER. IS THIS A LOGICAL INCLUSION FOR A MORE FUNCTIONAL
+        /// INTERFACE, OR SHOULD IT BE REMOVED? - AW
         /// </summary>
         void ProcessSequences();
 

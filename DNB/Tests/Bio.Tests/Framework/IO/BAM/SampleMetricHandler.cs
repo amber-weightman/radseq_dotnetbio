@@ -47,10 +47,10 @@ namespace Bio.Tests.Framework.IO.BAM
         /// <summary>
         /// Add a list of sequences.
         /// </summary>
-        /// <param name="sequences">Sequences to add.</param>
-        public void AddAll(Collection<SAMAlignedSequence> sequences)
+        /// <param name="seqs">Sequences to add.</param>
+        public void AddRange(IEnumerable<SAMAlignedSequence> seqs)
         {
-            foreach(SAMAlignedSequence seq in sequences)
+            foreach(SAMAlignedSequence seq in seqs)
             {
                 sequences.Add(seq);
             }
@@ -67,7 +67,7 @@ namespace Bio.Tests.Framework.IO.BAM
         /// <summary>
         /// Remove all sequences from the stored list.
         /// </summary>
-        public void FlushSequences()
+        public void SetComplete()
         {
             sequences = new List<SAMAlignedSequence>();
         }

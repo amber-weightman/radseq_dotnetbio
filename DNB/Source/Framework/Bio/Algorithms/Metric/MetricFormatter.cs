@@ -6,7 +6,11 @@ using System.Text;
 
 namespace Bio.Algorithms.Metric
 {
-    class MetricFormatter : Bio.IO.IFormatter
+
+    /// <summary>
+    /// Writes metric info to a csv file
+    /// </summary>
+    public class MetricFormatter : Bio.IO.IFormatter
     {
         #region Member variables
 

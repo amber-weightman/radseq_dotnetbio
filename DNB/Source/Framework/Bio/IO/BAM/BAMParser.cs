@@ -1010,7 +1010,7 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
 
         // Refactored this to implement shared code from the 5 GetAlignment() methods in the one place
         private SequenceAlignmentMap GetAlignmentMap(Stream reader, BAMIndexFile bamIndexFile = null,
-            string refSeqName = null, int refSeqIndex = -1, int start = 0, int end = int.MaxValue)
+            string refSeqName = null, int? refSeq = null, int start = 0, int end = int.MaxValue)
         {
             SAMAlignmentHeader header;
             SequenceAlignmentMap seqMap;
@@ -1024,33 +1024,33 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
             header = GetHeader();
             seqMap = null;
 
-            if (refSeqIndex != -1 && refSeqName == null)
+            if (refSeq.HasValue && refSeqName == null)
             {
                 // verify whether the chromosome index is there in the header or not.
-                if (refSeqIndex < 0 || refSeqIndex >= header.ReferenceSequences.Count)
+                if (refSeq < 0 || refSeq >= header.ReferenceSequences.Count)
                 {
-                    throw new ArgumentOutOfRangeException("refSeqIndex");
+                    throw new ArgumentOutOfRangeException("refSeq");
                 }
             }
-            else if(refSeqName != null && refSeqIndex == -1)
+            else if (refSeqName != null && !refSeq.HasValue)
             {
-                refSeqIndex = refSeqNames.IndexOf(refSeqName);
-                if (refSeqIndex < 0)
+                refSeq = refSeqNames.IndexOf(refSeqName);
+                if (refSeq < 0 || !refSeq.HasValue)
                 {
                     string message = string.Format(CultureInfo.InvariantCulture, Properties.Resource.BAM_RefSeqNotFound, refSeqName);
                     throw new ArgumentException(message, "refSeqName");
                 }
             }
-            else if (refSeqIndex != -1 && refSeqName != null)
+            else if (refSeq.HasValue && refSeqName != null)
             {
                 throw new ArgumentException("Received values for params reSeqIndex and refSeqName. Only one parameter can have a value, not both.");
             }
 
-            if(refSeqIndex != -1)
+            if (refSeq.HasValue)
             {
                 if (bamIndexFile != null)
                 {
-                    GetAlignmentWithIndex(bamIndexFile, refSeqIndex, start, end, header, ref seqMap);
+                    GetAlignmentWithIndex(bamIndexFile, (int)refSeq, start, end, header, ref seqMap);
                 }
                 else
                 {
