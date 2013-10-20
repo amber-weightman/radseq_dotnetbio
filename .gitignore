@@ -10106,3 +10106,6 @@ DNB/Build/Binaries/Debug/Accord.Statistics.dll
 DNB/Build/Binaries/Debug/Accord.Statistics.pdb
 DNB/Build/Binaries/Debug/Accord.Statistics.xml
 DNB/Build/Binaries/Debug/Accord.xml
+ambertests/DotnetBioTester/Ploidulator/obj/Debug/Ploidulator.baml
+ambertests/DotnetBioTester/Ploidulator/obj/Debug/Ploidulator.g.cs
+ambertests/DotnetBioTester/Ploidulator/obj/Debug/Ploidulator.g.i.cs

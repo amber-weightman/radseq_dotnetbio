@@ -1,5 +1,6 @@
 ﻿using Bio.Algorithms.Alignment;
 using Bio.Algorithms.Metric;
+using Bio.IO.BAM;
 using Bio.IO.SAM;
 using System;
 using System.Collections.Generic;
@@ -54,12 +55,19 @@ namespace Ploidulator
         /// <summary>
         /// Number of clusters which have been received
         /// </summary>
-        private int clusterCount;
+        private int clusterCount = 0;
 
         /// <summary>
         /// Sequences stored, not yet processed.
         /// </summary>
         private List<SAMAlignedSequence> sequences = null;
+
+        /// <summary>
+        /// Every sequence, for if we want to store in mem
+        /// </summary>
+        private List<SAMAlignedSequence> allSequences = null;
+        // curr sequences
+        //private SequenceAlignmentMap seqMap = null;
 
         /// <summary>
         /// Formatter used to write metric data to file
@@ -76,6 +84,11 @@ namespace Ploidulator
         /// Used to write read data back out to SAM or BAM file
         /// </summary>
         private TextWriter samWriter = null;
+        private Stream bamWriter = null;
+
+        private BAMFormatter bamFormatter = null;
+
+        private SAMAlignmentHeader header = null;
 
         /// <summary>
         /// Indicates whether input is to be written back out to a SAM or BAM file
@@ -161,7 +174,7 @@ namespace Ploidulator
         /// </summary>
         /// <param name="clusterFileName">Name of the file metric data is to be written to.</param>
         public ClusterMetricHandlerPloidulator(string clusterFileName, int ploidy, 
-            double dirtCutoff, int alignQualCutoff, string readQualCutoff, int numSamples, int numClustersToParse,
+            double dirtCutoff, int alignQualCutoff, string readQualCutoff, int numSamples, bool? outputToFile,
             Dispatcher d, WrapPanel p)
             : this()
         {
@@ -174,7 +187,8 @@ namespace Ploidulator
             this.alignQualCutoff = alignQualCutoff;
             this.readQualCutoff = readQualCutoff;
             this.numSamples = numSamples;
-            this.numClustersToParse = numClustersToParse;
+            this.writeToFile = (outputToFile.HasValue) ? outputToFile.Value : false;
+
         }
 
 
@@ -212,6 +226,15 @@ namespace Ploidulator
         }
 
         /// <summary>
+        /// number of clusters which have been parsed
+        /// </summary>
+        public int ClusterCount
+        {
+            get { return clusterCount; }
+        }
+
+
+        /// <summary>
         /// Sequences stored, not yet processed.
         /// </summary>
         public List<SAMAlignedSequence> Sequences
@@ -226,6 +249,13 @@ namespace Ploidulator
         public List<double[]> ClustSeqFrequencies
         {
             get { return clustSeqFrequencies; }
+        }
+
+
+        public SAMAlignmentHeader Header
+        {
+            get { return header; }
+            set { header = value; }
         }
 
         #endregion
@@ -250,9 +280,10 @@ namespace Ploidulator
         /// <param name="sequences">A list of sequences.</param>
         public void AddRange(IEnumerable<SAMAlignedSequence> sequences)
         {
+            
             foreach (SAMAlignedSequence seq in sequences)
             {
-                Add(seq);
+                Add(seq); 
             }
         }
 
@@ -265,13 +296,16 @@ namespace Ploidulator
         public void Add(SAMAlignedSequence sequence)
         {
             string thisSeqCluster = sequence.RName; // Cluster the sequence we just added belongs to
+            
             if (currCluster == null)
             {
                 currCluster = thisSeqCluster;
             }
             else if (!currCluster.Equals(thisSeqCluster)) // This sequence belongs to a different cluster from the ones currently stored in sequences
             {
+            
                 ProcessSequences();
+            
                 currCluster = thisSeqCluster;
                 sequences = new List<SAMAlignedSequence>();
             }
@@ -289,9 +323,10 @@ namespace Ploidulator
         /// </summary>
         public void ProcessSequences()
         {
+            
             if (sequences != null && sequences.Count > 0)
             {
-                if (clusterCount < numClustersToParse || numClustersToParse == -1) 
+                if ((metric == null || metric.Id != "142919") && (clusterCount < numClustersToParse || numClustersToParse == -1)) 
                 {
                     clusterCount++;
 
@@ -304,11 +339,18 @@ namespace Ploidulator
                     {
                         formatter = new MetricFormatter(FileName + ".metr");
                     }
-                    if (writeToFile && samWriter == null)
+                    if (writeToFile && bamWriter == null)
                     {
                         // todo fixme we might prefer this to be a bam file, but i'm using sam now so I can easily read it
-                        samWriter = new StreamWriter(FileName + "_filtered.sam");
-                        SAMFormatter.WriteHeader(new SAMAlignmentHeader(), samWriter); // todo what goes in the header?
+                        //samWriter = new StreamWriter(FileName + "_filtered.sam");
+                        //SAMFormatter.WriteHeader(new SAMAlignmentHeader(), samWriter); // todo what goes in the header?
+                        //BAMFormatter.WriteHeader(new SAMAlignmentHeader(), samWriter); // todo what goes in the header?
+
+                        bamWriter = File.Create(FileName + "_filtered.bam");
+                        bamFormatter = new BAMFormatter();
+                        
+                        bamFormatter.WriteHeader(header, bamWriter);
+                        Console.WriteLine("header has been written");
                     }
 
                     // calculate metric
@@ -318,58 +360,17 @@ namespace Ploidulator
                     clustSeqFrequencies.Add(metric.ClustSeqFrequencies);
 
                     SetThisDictValueCounts(graphDataAllReads, metric.CountAll);
-                    /*if (graphDataAllReads.ContainsKey(metric.CountAll))
-                    {
-                        ++graphDataAllReads[metric.CountAll];
-                    }
-                    else
-                    {
-                        graphDataAllReads[metric.CountAll] = 1;
-                    }*/
 
                     SetThisDictValueCounts(graphDataDistinctReads, metric.CountDistinct);
-                    /*if (graphDataDistinctReads.ContainsKey(metric.CountDistinct))
-                    {
-                        ++graphDataDistinctReads[metric.CountDistinct];
-                    }
-                    else
-                    {
-                        graphDataDistinctReads[metric.CountDistinct] = 1;
-                    }*/
 
                     SetThisDictValueCounts(graphDataIndividualsCounts, metric.CountSamples);
-                    /*if (graphDataIndividualsCounts.ContainsKey(metric.CountSamples))
-                    {
-                        ++graphDataIndividualsCounts[metric.CountSamples];
-                    }
-                    else
-                    {
-                        graphDataIndividualsCounts[metric.CountSamples] = 1;
-                    }*/
 
                     int key = (int)Math.Round(metric.SampleReadCountsDistinct.Average(), 1);
                     SetThisDictValueCounts(graphDataIndividualsDistinctReadcounts, key);
-                    /*if (graphDataIndividualsDistinctReadcounts.ContainsKey(key))
-                    {
-                        ++graphDataIndividualsDistinctReadcounts[key];
-                    }
-                    else
-                    {
-                        graphDataIndividualsDistinctReadcounts[key] = 1;
-                    }*/
                     
-
                     key = (int)Math.Round(metric.SampleReadCountsAll.Average(), 1);
                     SetThisDictValueCounts(graphDataIndividualsTotalReadcounts, key);
-                    /*if (graphDataIndividualsTotalReadcounts.ContainsKey(key))
-                    {
-                        ++graphDataIndividualsTotalReadcounts[key];
-                    }
-                    else
-                    {
-                        graphDataIndividualsTotalReadcounts[key] = 1;
-                    }*/
-
+                    
                     bool isOk = true;
                     if (metric.Dirt > dirtCutoff)
                     {
@@ -380,28 +381,35 @@ namespace Ploidulator
                     {
                         isOk = false;
                     }
-                    if(!isOk)
-                    {
-                        //Console.WriteLine("BAD");
-                    }
-
-                    // debugging purposes only
-                    if (Convert.ToInt32(metric.Id) >= numClustersToParse) // only works when clust id is a num
-                    {
-                        // end iterating and calculate metrics across clusters
-                    }
-
+                    
                     // write metric out to metric file
                     formatter.Write(metric);
 
                     // if cluster is good, write aligned reads out to another sam/bam file for downstream analysis
-                    if (writeToFile && metric.Good) 
+                    if (writeToFile && isOk) 
                     {
-                        foreach (IAlignedSequence seq in sequences)
+                        foreach(SAMAlignedSequence seq in sequences)
                         {
-                            SAMFormatter.WriteSAMAlignedSequence(seq, samWriter);
+                            bamFormatter.WriteAlignedSequence(header, seq, bamWriter);   
                         }
+                    } 
+                    // we might be writing these to file later, so store them
+                    // we might be changing the parameters for isOk later, so for now all is ok
+                    else if(!writeToFile)
+                    {
+                        if(allSequences == null)
+                        {
+                            allSequences = new List<SAMAlignedSequence>();
+                        }
+                        allSequences.AddRange(sequences);
                     }
+
+
+                    /*dispatcher.BeginInvoke(
+                        System.Windows.Threading.DispatcherPriority.Normal,
+                        new OneArgDelegate(DrawChart),
+                        clustSeqFrequencies[numChartsDisplayed]);
+                    */
 
                     // draw a chart for this cluster
                     /*for (; numChartsDisplayed < maxNumCharts && clustSeqFrequencies.Count > numChartsDisplayed; numChartsDisplayed++)
@@ -411,10 +419,12 @@ namespace Ploidulator
                         new OneArgDelegate(DrawChart),
                         clustSeqFrequencies[numChartsDisplayed]);
                     }*/
-  
+
                     metric.Reset();
+                    
+                    
                 }
-                else if (numClustersToParse != -1) // for debugging pretend this is the end of the file if numClustersToParse is not -1
+                else if (numClustersToParse != -1 || metric.Id == "142919") // for debugging pretend this is the end of the file if numClustersToParse is not -1
                 {
                     PrintAllCluserMetrics();
 
@@ -457,7 +467,7 @@ namespace Ploidulator
              * 1. normalise each
              */
             #region clusters_avg_size
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_allreadcounts"))
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_allreadcounts.tsv"))
             {
                 file.WriteLine("num_reads\tnum_clusters");
                 foreach (KeyValuePair<int, int> dat in graphDataAllReads)
@@ -466,7 +476,7 @@ namespace Ploidulator
                 }
             }
 
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_distinctreadcounts"))
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_distinctreadcounts.tsv"))
             {
                 file.WriteLine("num_reads\tnum_clusters");
                 foreach (KeyValuePair<int, int> dat in graphDataDistinctReads)
@@ -484,7 +494,7 @@ namespace Ploidulator
              */
             #region cluster_individual_representation
 
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_numindividualscounts"))
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_numindividualscounts.tsv"))
             {
                 file.WriteLine("num_reads\tnum_clusters");
                 foreach (KeyValuePair<int, int> dat in graphDataIndividualsCounts)
@@ -498,7 +508,7 @@ namespace Ploidulator
             // read count per cluster)
             // average total readcount by individual
             //graphDataIndividualsTotalReadcounts
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_byindividualsrtotaleadcounts"))
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_byindividualsrtotaleadcounts.tsv"))
             {
                 file.WriteLine("num_reads\tnum_clusters");
                 foreach (KeyValuePair<int, int> dat in graphDataIndividualsTotalReadcounts)
@@ -509,7 +519,7 @@ namespace Ploidulator
 
             // average distinct readcount by individual
             //graphDataIndividualsDistinctReadcounts
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_byindividualsrdistincteadcounts"))
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_byindividualsrdistincteadcounts.tsv"))
             {
                 file.WriteLine("num_reads\tnum_clusters");
                 foreach (KeyValuePair<int, int> dat in graphDataIndividualsDistinctReadcounts)
@@ -527,7 +537,7 @@ namespace Ploidulator
              * 
              */
             #region frequency_distributions
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_frequencies"))
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_frequencies.tsv"))
             {
                 file.WriteLine("frequencies");
                 foreach (double[] dat in clustSeqFrequencies)
@@ -536,9 +546,6 @@ namespace Ploidulator
                 }
             }
             #endregion
-
-
-
 
             Console.WriteLine("finished");
         }
@@ -611,6 +618,7 @@ namespace Ploidulator
         {
             ProcessSequences();
             PrintAllCluserMetrics();
+            Console.WriteLine("im finished that, so what else do you want to do?");
             // Any other cleanup required that doesn't fit into Dispose()? todo
         }
 
@@ -629,6 +637,14 @@ namespace Ploidulator
             if (samWriter != null)
             {
                 samWriter.Close();
+            }
+            if (bamWriter != null)
+            {
+                bamWriter.Close();
+            }
+            if (bamFormatter != null)
+            {
+                //bamFormatter.Close();
             }
         }
 

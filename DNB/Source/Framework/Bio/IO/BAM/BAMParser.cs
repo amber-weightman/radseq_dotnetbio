@@ -456,7 +456,47 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
 
             return GetAlignment(reader);
         }
+    /// <summary>
+    /// test
+    /// </summary>
+    /// <param name="reader">t</param>
+    /// <returns>t</returns>
+        public IEnumerable<SAMAlignedSequence> ParseSequence(Stream reader)
+        {
+            if (reader == null)
+            {
+                throw new ArgumentNullException("reader");
+            }
 
+            foreach (SAMAlignedSequence seq in GetAlignmentYield(reader))
+            {
+                yield return seq;
+            }
+        }
+    /// <summary>
+    /// test
+    /// </summary>
+    /// <param name="fileName">t</param>
+    /// <returns>t</returns>
+        public IEnumerable<SAMAlignedSequence> ParseSequence(string fileName)
+        {
+            bamFilename = fileName;
+
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                throw new ArgumentNullException("fileName");
+            }
+
+            using (readStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                foreach (SAMAlignedSequence seq in ParseSequence(readStream))
+                {
+                    yield return seq;
+                }
+
+
+            }
+        }
 
         /// <summary>
         /// Returns a SequenceAlignmentMap object by parsing a BAM file.
@@ -952,6 +992,42 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
             }
         }
 
+
+        private IEnumerable<SAMAlignedSequence> GetAlignmentWithIndexYield(BAMIndexFile bamIndexFile, int refSeqIndex, int start, int end,
+            SAMAlignmentHeader header)
+        {
+            BAMIndex bamIndexInfo;
+            BAMReferenceIndexes refIndex;
+            IList<Chunk> chunks;
+
+            bamIndexInfo = bamIndexFile.Read();
+
+            if (refSeqIndex != -1 && bamIndexInfo.RefIndexes.Count <= refSeqIndex)
+            {
+                throw new ArgumentOutOfRangeException("refSeqIndex");
+            }
+
+            refIndex = bamIndexInfo.RefIndexes[refSeqIndex];
+
+            if (start == 0 && end == int.MaxValue)
+            {
+                chunks = GetChunks(refIndex);
+            }
+            else
+            {
+                chunks = GetChunks(refIndex, start, end);
+            }
+
+            IList<SAMAlignedSequence> alignedSeqs = GetAlignedSequences(chunks, start, end);
+            foreach (SAMAlignedSequence alignedSeq in alignedSeqs)
+            {
+                yield return alignedSeqs[0];
+            }
+            
+            readStream = null;
+        }
+
+
         private void GetAlignmentWithIndex(BAMIndexFile bamIndexFile, int refSeqIndex, int start, int end, 
             SAMAlignmentHeader header, ref SequenceAlignmentMap seqMap)
         {
@@ -982,6 +1058,9 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
             }
 
             IList<SAMAlignedSequence> alignedSeqs = GetAlignedSequences(chunks, start, end);
+
+
+
             if (storeMemory && metricHandler != null)
             {
                 foreach (SAMAlignedSequence alignedSeq in alignedSeqs)
@@ -1069,6 +1148,67 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
             }
 
             return seqMap;
+        }
+
+        private IEnumerable<SAMAlignedSequence> GetAlignmentMapYield(Stream reader, BAMIndexFile bamIndexFile = null,
+                string refSeqName = null, int? refSeq = null, int start = 0, int end = int.MaxValue)
+        {
+            SAMAlignmentHeader header;
+
+            if (reader == null || reader.Length == 0)
+            {
+                throw new FileFormatException(Properties.Resource.BAM_InvalidBAMFile);
+            }
+            readStream = reader;
+            ValidateReader();
+            header = GetHeader();
+
+            if (refSeq.HasValue && refSeqName == null)
+            {
+                // verify whether the chromosome index is there in the header or not.
+                if (refSeq < 0 || refSeq >= header.ReferenceSequences.Count)
+                {
+                    throw new ArgumentOutOfRangeException("refSeq");
+                }
+            }
+            else if (refSeqName != null && !refSeq.HasValue)
+            {
+                refSeq = refSeqNames.IndexOf(refSeqName);
+                if (refSeq < 0 || !refSeq.HasValue)
+                {
+                    string message = string.Format(CultureInfo.InvariantCulture, Properties.Resource.BAM_RefSeqNotFound, refSeqName);
+                    throw new ArgumentException(message, "refSeqName");
+                }
+            }
+            else if (refSeq.HasValue && refSeqName != null)
+            {
+                throw new ArgumentException("Received values for params reSeqIndex and refSeqName. Only one parameter can have a value, not both.");
+            }
+
+            if (refSeq.HasValue)
+            {
+                if (bamIndexFile != null)
+                {
+                    //yield return GetAlignmentWithIndexYield(bamIndexFile, (int)refSeq, start, end, header);
+                    foreach (SAMAlignedSequence seq in GetAlignmentWithIndexYield(bamIndexFile, (int)refSeq, start, end, header))
+                    {
+                        yield return seq;
+                    }
+                }
+                else
+                {
+                    throw new ArgumentNullException("refSeqIndex");
+                }
+            }
+            else
+            {
+                //yield return GetAlignmentWithoutIndexYield(header);
+                foreach (SAMAlignedSequence seq in GetAlignmentWithoutIndexYield(header))
+                {
+                    yield return seq;
+                }
+            }
+
         }
 
         // Refactored to remove this block from GetAlignmentMap()
@@ -1221,10 +1361,70 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
         }
 
 
+
+    private IEnumerable<SAMAlignedSequence> GetAlignmentWithoutIndexYield(SAMAlignmentHeader header)
+    {
+        Chunk lastChunk = null;
+        ulong lastcOffset = 0;
+        ushort lastuOffset = 0;
+        BAMReferenceIndexes refIndices = null;
+
+        if (createBamIndex)
+        {
+            bamIndex = new BAMIndex();
+
+            for (int i = 0; i < refSeqNames.Count; i++)
+            {
+                bamIndex.RefIndexes.Add(new BAMReferenceIndexes());
+            }
+            refIndices = bamIndex.RefIndexes[0];
+        }
+
+        while (!IsEOF())
+        {
+            if (createBamIndex)
+            {
+                lastcOffset = (ulong)currentCompressedBlockStartPos;
+                lastuOffset = (ushort)deCompressedStream.Position;
+            }
+
+            SAMAlignedSequence alignedSeq = GetAlignedSequence(0, int.MaxValue);
+            alignedSeq = BamIndexing(alignedSeq, refIndices, bamIndex, lastcOffset, lastuOffset, ref lastChunk);
+
+            yield return alignedSeq;    
+            alignedSeq = null;
+        }
+
+        #region BAM Indexing
+        if (createBamIndex)
+        {
+            lastChunk.ChunkEnd.CompressedBlockOffset = (ulong)readStream.Position;
+
+            if (deCompressedStream != null)
+            {
+                lastChunk.ChunkEnd.UncompressedBlockOffset = (ushort)deCompressedStream.Position;
+            }
+            else
+            {
+                lastChunk.ChunkEnd.UncompressedBlockOffset = 0;
+            }
+        }
+        #endregion
+   
+    }
+
+
         // Returns SequenceAlignmentMap object by parsing specified BAM stream.
         private SequenceAlignmentMap GetAlignment(Stream reader)
         {
             return GetAlignmentMap(reader);
+        }
+        private IEnumerable<SAMAlignedSequence> GetAlignmentYield(Stream reader)
+        {
+            foreach (SAMAlignedSequence seq in GetAlignmentMapYield(reader))
+            {
+                yield return seq;
+            }
         }
 
         /// <summary>
@@ -1579,10 +1779,26 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
             return GetAlignmentMap(bamStream, bamIndexFile, null, refSeqIndex);
         }
 
+        private IEnumerable<SAMAlignedSequence> GetAlignmentYield(Stream bamStream, BAMIndexFile bamIndexFile, int refSeqIndex)
+        {
+            foreach (SAMAlignedSequence seq in GetAlignmentMapYield(bamStream, bamIndexFile, null, refSeqIndex))
+            {
+                yield return seq;
+            }
+        }
+
         // Returns SequenceAlignmentMap by parsing specified BAM stream and BAMIndexFile for the specified reference sequence name.
         private SequenceAlignmentMap GetAlignment(Stream bamStream, BAMIndexFile bamIndexFile, string refSeqName)
         {
             return GetAlignmentMap(bamStream, bamIndexFile, refSeqName);
+        }
+
+        private IEnumerable<SAMAlignedSequence> GetAlignmentYield(Stream bamStream, BAMIndexFile bamIndexFile, string refSeqName)
+        {
+            foreach (SAMAlignedSequence seq in GetAlignmentMapYield(bamStream, bamIndexFile, refSeqName))
+            {
+                yield return seq;
+            }
         }
 
         // Returns SequenceAlignmentMap by parsing specified BAM stream and BAMIndexFile for the specified reference sequence index.
@@ -1591,12 +1807,26 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
         {
             return GetAlignmentMap(bamStream, bamIndexFile, refSeqName, -1, start, end);
         }
+        private IEnumerable<SAMAlignedSequence> GetAlignmentYield(Stream bamStream, BAMIndexFile bamIndexFile, string refSeqName, int start, int end)
+        {
+            foreach (SAMAlignedSequence seq in GetAlignmentMapYield(bamStream, bamIndexFile, refSeqName, -1, start, end))
+            {
+                yield return seq;
+            }
+        }
 
         // Returns SequenceAlignmentMap by parsing specified BAM stream and BAMIndexFile for the specified reference sequence index.
         // this method uses linear index information also.
         private SequenceAlignmentMap GetAlignment(Stream bamStream, BAMIndexFile bamIndexFile, int refSeqIndex, int start, int end)
         {
             return GetAlignmentMap(bamStream, bamIndexFile, null, refSeqIndex, start, end);
+        }
+        private IEnumerable<SAMAlignedSequence> GetAlignmentYield(Stream bamStream, BAMIndexFile bamIndexFile, int refSeqIndex, int start, int end)
+        {
+            foreach (SAMAlignedSequence seq in GetAlignmentMapYield(bamStream, bamIndexFile, null, refSeqIndex, start, end))
+            {
+                yield return seq;
+            }
         }
 
         // Gets aligned sequence from the specified chunks of the BAM file which overlaps with the specified start and end co-ordinates.

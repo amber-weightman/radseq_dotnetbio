@@ -2,8 +2,10 @@
 using Accord.Statistics.Models.Markov;
 using Accord.Statistics.Models.Regression;
 using Accord.Statistics.Models.Regression.Fitting;
+using Bio;
 using Bio.Algorithms.Alignment;
 using Bio.Algorithms.Metric;
+using Bio.IO.BAM;
 using Bio.IO.SAM;
 using System;
 using System.Collections.Generic;
@@ -79,6 +81,8 @@ namespace Ploidulator
         /// </summary>
         private List<SAMAlignedSequence> sequences = null;
 
+        //private SequenceAlignmentMap sequenceMap = null;
+
         #endregion
 
         #region Constructors
@@ -148,6 +152,11 @@ namespace Ploidulator
         /// List of all sequences.
         /// </summary>
         public List<SAMAlignedSequence> Sequences { get { return sequences; } }
+
+        /// <summary>
+        /// Sequences as map
+        /// </summary>
+        //public SequenceAlignmentMap SequenceMap { get { return sequenceMap; } }
 
         /// <summary>
         /// Experimental.
@@ -275,6 +284,7 @@ namespace Ploidulator
 
         public void Calculate(List<SAMAlignedSequence> sequences)
         {
+            Console.Write(Id+"-");
             // Create various structures to store or index the sequence data in different ways
             this.sequences = sequences;
             sequenceDict = MakeSequenceDict(sequences);
@@ -524,24 +534,32 @@ namespace Ploidulator
 
 
             int i = 0;
+            QualitativeSequence qSeq;
             foreach (SAMAlignedSequence seq in sequences)
             {
-                readQualScoresAll[i++] = GetReadQuality(seq).ToCharArray().Select(x => (int)x - 33).Average(); // [2,4,4,4,5,4,4,4] per sequence
+                qSeq = new QualitativeSequence(SAMDnaAlphabet.Instance, FastQFormatType.Sanger, GetSequence(seq), GetReadQuality(seq));
+                readQualScoresAll[i++] = qSeq.GetQualityScores().Average();
+                //readQualScoresAll[i++] = GetReadQuality(seq).ToCharArray().Select(x => (int)x - 33).Average(); // [2,4,4,4,5,4,4,4] per sequence
             }
 
             i = 0;
             foreach (SAMAlignedSequence seq in readsInPloidyForIndividuals)
             {
-                readQualScoresIn[i++] = GetReadQuality(seq).ToCharArray().Select(x => (int)x - 33).Average(); // [2,4,4,4,5,4,4,4] per sequence
+                qSeq = new QualitativeSequence(SAMDnaAlphabet.Instance, FastQFormatType.Sanger, GetSequence(seq), GetReadQuality(seq));
+                readQualScoresAll[i++] = qSeq.GetQualityScores().Average();
+                //readQualScoresAll[i++] = GetReadQuality(seq).ToCharArray().Select(x => (int)x - 33).Average(); // [2,4,4,4,5,4,4,4] per sequence
             }
 
             i = 0;
             foreach (SAMAlignedSequence seq in readsNotInPloidyForIndividuals)
             {
-                readQualScoresOut[i++] = GetReadQuality(seq).ToCharArray().Select(x => (int)x - 33).Average(); // [2,4,4,4,5,4,4,4] per sequence
+                qSeq = new QualitativeSequence(SAMDnaAlphabet.Instance, FastQFormatType.Sanger, GetSequence(seq), GetReadQuality(seq));
+                readQualScoresAll[i++] = qSeq.GetQualityScores().Average();
+                //readQualScoresAll[i++] = GetReadQuality(seq).ToCharArray().Select(x => (int)x - 33).Average(); // [2,4,4,4,5,4,4,4] per sequence
             }
 
-            //return new double[] { Math.Round(readQualScoresAll.Average(), 2), Math.Round(readQualScoresIn.Average(), 2), Math.Round(readQualScoresOut.Average(), 2) };
+           
+
 
             return new double[] 
             { 
@@ -550,9 +568,20 @@ namespace Ploidulator
                 readQualScoresOut.Length > 0 ? Math.Round(readQualScoresOut.Average(), 2) : 0
             };
         }
-         
 
 
+        /*private IEnumerable<SAMAlignedSequence> test()
+        {
+            BAMParser parser = new BAMParser(handler, false);
+            parser
+
+            var bamparser = new BAMParser();
+            header = bamparser.GetHeader(stream);
+            while (!bamparser.IsEOF())
+            {
+                yield return bamparser.GetAlignedSequence(false);
+            }
+        }*/
 
         // Fx with one seq per individual
         private List<int> GetFrequencyDistribution(Dictionary<String, Dictionary<String, List<SAMAlignedSequence>>> dict)
@@ -616,6 +645,7 @@ namespace Ploidulator
         /// </summary>
         public void Reset()
         {
+            //sequenceMap.Clear();
             sequences.Clear();
             sequenceDict.Clear();
             sampleDict.Clear();
