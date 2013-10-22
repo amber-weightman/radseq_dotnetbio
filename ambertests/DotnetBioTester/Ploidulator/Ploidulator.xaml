@@ -1,118 +1,449 @@
 ﻿<Window  x:Class="Ploidulator.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Ploidulator" Height="360" Width="640" Top="0" Left="0"
-        xmlns:charting="clr-namespace:System.Windows.Controls.DataVisualization.Charting;assembly=System.Windows.Controls.DataVisualization.Toolkit">
+        Title="Ploidulator" Height="500" Width="750" Top="0" Left="0"
+        xmlns:charting="clr-namespace:System.Windows.Controls.DataVisualization.Charting;assembly=System.Windows.Controls.DataVisualization.Toolkit"
+         MinWidth="480" MinHeight="240">
     <DockPanel LastChildFill="True">
 
-        <WrapPanel Orientation="Horizontal" Margin="5,5,5,5" DockPanel.Dock="Top"  Panel.ZIndex="100" Height="180">
+        <DockPanel DockPanel.Dock="Top" Background="{DynamicResource {x:Static SystemColors.AppWorkspaceBrushKey}}">
+            <Label DockPanel.Dock="Left" HorizontalAlignment="Left">Ploidulator BAM CLUSTER ANALYSIS TOOL</Label>
 
-            <Expander x:Name="FileExpander" Header="File and parameters" Margin="0,0,0,0" IsExpanded="True" 
+            <Label DockPanel.Dock="Right" HorizontalAlignment="Right">Powered by .NET Bio</Label>
+        </DockPanel>
+
+
+
+
+
+        <DockPanel DockPanel.Dock="Top" Panel.ZIndex="100">
+            
+        <WrapPanel Orientation="Vertical" Margin="5" DockPanel.Dock="Left"  
+                   Height="350" HorizontalAlignment="Left" VerticalAlignment="Top">
+
+
+                <Expander x:Name="FileExpander" Header="INPUT FILE AND PARAMETERS" Margin="0" IsExpanded="True" 
             ExpandDirection="Down" Grid.ColumnSpan="2" Width="auto">
-                <Border CornerRadius="10" BorderThickness="2,0,0,1" 
+                    <Border CornerRadius="10" BorderThickness="2,0,0,1" 
                         BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}" 
                         Padding="5" Background="White">
 
-                    <Grid >
+                        <Grid >
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition  />
+                                <RowDefinition  />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="100" />
+                            </Grid.ColumnDefinitions>
+
+                            <Label Content="File:"  
+                               Grid.Row="0" Grid.Column="0"/>
+
+                            <Button x:Name="DataFileAButton" Content="Browse" Click="Button_Click_GetFile"
+                                HorizontalAlignment="Right" Width="50"  Height="22"
+                                Grid.Row="0" Grid.Column="3" />
+
+                            <TextBox x:Name="DataFileATextbox" Text="E:\Harvard\final-all_bam-merged.bam"
+                                TextWrapping="Wrap" HorizontalAlignment="Left" Margin="0,2"
+                                 Width="245" Height="22"
+                                 Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3"/>
+
+                            <Label Content="Ploidy:" 
+                               Grid.Row="1"  />
+
+
+                            <ComboBox x:Name="ExpectedPloidyTextbox" ToolTip="Usual ploidy level of the organism under study"
+                                VerticalAlignment="Center" Margin="0,2" Height="auto"  Grid.RowSpan="1"
+                                Grid.Column="1" Grid.Row="1" SelectedIndex="1" IsDropDownOpen="False">
+                                <ListBoxItem Content="1"/>
+                                <ListBoxItem Content="2"/>
+                                <ListBoxItem Content="3"/>
+                                <ListBoxItem Content="4"/>
+                                <ListBoxItem Content="5"/>
+                                <ListBoxItem Content="6"/>
+                            </ComboBox>
+                            <Separator Grid.ColumnSpan="4" Grid.Row="2" Margin="5"></Separator>
+
+                            <Label Content="Alignment qual min:"
+                               Grid.Row="3"  Grid.Column="0"/>
+                            <TextBox x:Name="AlignmentQualCutoffTextbox" Text="20" 
+                                 ToolTip="BAM MAPQ. The higher the better. Clusters with an average read alignment quality below this value will be excluded. Min should be set to at least 10."
+                                  Margin="0,2"
+                                 Grid.Column="1" Grid.Row="3" />
+
+                            <Label Content="Read qual min:" 
+                               Grid.Row="4" Grid.Column="0" />
+
+                            <ComboBox x:Name="ReadQualCutoffTextbox" ToolTip="Phred quality score from 0 to 93 (per-read average)" 
+                                VerticalAlignment="Center" Margin="0,2" Height="auto"  Grid.RowSpan="1"
+                                Grid.Column="1" Grid.Row="4" SelectedIndex="1" IsDropDownOpen="False">
+                                <ListBoxItem Content="0"/>
+                                <ListBoxItem Content="10"/>
+                                <ListBoxItem Content="20"/>
+                                <ListBoxItem Content="30"/>
+                                <ListBoxItem Content="40"/>
+                                <ListBoxItem Content="50"/>
+                                <ListBoxItem Content="60"/>
+                                <ListBoxItem Content="70"/>
+                                <ListBoxItem Content="80"/>
+                                <ListBoxItem Content="90"/>
+                            </ComboBox>
+
+                            <Label Content="# Samples:" 
+                               Grid.Row="1" Grid.Column="2" />
+                            <TextBox x:Name="NumSamplesTextbox" Text="48" ToolTip="Total number of individuals sampled in the input dataset"
+                                  Margin="0,2" 
+                                 Grid.Column="3" Grid.Row="1" />
+
+                            <Label Content="Dirt max:" 
+                                Grid.Row="3" Grid.Column="2"/>
+
+                            <ComboBox x:Name="DirtCutoffTextbox" ToolTip="Clusters with a 'dirt' reading greater than this value will be excluded from output file" 
+                                VerticalAlignment="Center" Margin="0,2" Height="auto"  Grid.RowSpan="1"
+                                Grid.Column="3" Grid.Row="3" SelectedIndex="10" IsDropDownOpen="False">
+                                <ListBoxItem Content="0.01"/>
+                                <ListBoxItem Content="0.02"/>
+                                <ListBoxItem Content="0.03"/>
+                                <ListBoxItem Content="0.04"/>
+                                <ListBoxItem Content="0.05"/>
+                                <ListBoxItem Content="0.06"/>
+                                <ListBoxItem Content="0.07"/>
+                                <ListBoxItem Content="0.08"/>
+                                <ListBoxItem Content="0.09"/>
+                                <ListBoxItem Content="0.1"/>
+                                <ListBoxItem Content="0.2"/>
+                                <ListBoxItem Content="0.3"/>
+                                <ListBoxItem Content="0.4"/>
+                                <ListBoxItem Content="0.5"/>
+                                <ListBoxItem Content="0.6"/>
+                                <ListBoxItem Content="0.7"/>
+                                <ListBoxItem Content="0.8"/>
+                                <ListBoxItem Content="0.9"/>
+                                <ListBoxItem Content="1" ToolTip="All"/>
+                            </ComboBox>
+
+
+                            <Button x:Name="LaunchButton" Content="Go" ToolTip="Go forth and ploidulate" HorizontalAlignment="Right" 
+                                Width="48"  Click="Button_Click_Go" Height="22"
+                                Grid.Row="4" Grid.Column="3"/>
+
+
+
+                        </Grid>
+
+                    </Border>
+                </Expander>
+
+
+                <Expander x:Name="OutputFileExpander" Header="OUTPUT FILES" Margin="0" IsExpanded="False" 
+            ExpandDirection="Down" Grid.ColumnSpan="2" Width="auto">
+                    <Border CornerRadius="10" BorderThickness="2,0,0,1" 
+                        BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}" 
+                        Padding="5" Background="White">
+
+                        <Grid >
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition  />
+                                <RowDefinition  />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="100" />
+                            </Grid.ColumnDefinitions>
+
+                            <Label Content="Per-cluster metrics from original BAM file:" 
+                                Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" FontStyle="Italic" 
+                                   ToolTip="Generate output file with metric data for the input data file"
+                               Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
+                            <CheckBox x:Name="MetricFileParent" IsChecked="True" 
+                                  ToolTip="Generate output file with metric data for the input data file"
+                                  VerticalAlignment="Center"  HorizontalAlignment="Right" IsEnabled="False"
+                                  Grid.Row="0" Grid.Column="3" />
+
+                            <Label Content="Per-cluster metrics from filtered 'good' clusters" 
+                                Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" FontStyle="Italic" 
+                                   ToolTip="Generate output file with metric data for the filtered 'good' clusters"
+                               Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
+                            <CheckBox x:Name="MetricFileChild" IsChecked="True" ToolTip="Generate output file with metric data for the filtered 'good' clusters"
+                                  VerticalAlignment="Center"  HorizontalAlignment="Right" IsEnabled="False"
+                                  Grid.Row="1" Grid.Column="3" />
+
+
+                            <Label Content="Overview metrics from original BAM file (all clusters)" 
+                                Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" FontStyle="Italic" 
+                                   ToolTip="Generate output file with overview metric data for the input data file"
+                               Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
+                            <CheckBox x:Name="OutputOverviewParent" IsChecked="True" ToolTip="Generate output file with overview metric data for the input data file"
+                                  VerticalAlignment="Center"  HorizontalAlignment="Right" IsEnabled="False"
+                                  Grid.Row="3" Grid.Column="3" />
+
+                            <Label Content="Overview metrics from filtered 'good' clusters (all clusters)" 
+                                Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" FontStyle="Italic" 
+                                   ToolTip="Generate output file with overview metric data for the filtered 'good' clusters"
+                               Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
+                            <CheckBox x:Name="OutputOverviewChild" IsChecked="True" ToolTip="Generate output file with overview metric data for the filtered 'good' clusters"
+                                  VerticalAlignment="Center"  HorizontalAlignment="Right" IsEnabled="False"
+                                  Grid.Row="4" Grid.Column="3" />
+
+                            <Label Content="New filtered BAM file containing 'good' clusters" 
+                                Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" FontStyle="Italic" 
+                                   ToolTip="Outputs 'good' reads directly to another BAM file based on filter criteria"
+                               Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
+                            <CheckBox x:Name="OutputToFile" IsChecked="True" ToolTip="Outputs 'good' reads directly to another BAM file based on filter criteria"
+                                  VerticalAlignment="Center"  HorizontalAlignment="Right" IsEnabled="False"
+                                  Grid.Row="5" Grid.Column="3" />
+
+
+                        </Grid>
+                    </Border>
+                </Expander>
+            
+
+
+
+        
+        </WrapPanel>
+
+            <!--<WrapPanel Name="StatsPanel" Orientation="Horizontal" VerticalAlignment="Top" Margin="5" DockPanel.Dock="right"  
+                   Height="280" Width="200" HorizontalAlignment="Right" Visibility="Visible">
+
+        <Border Margin="5,5" HorizontalAlignment="Right" Padding="5,5"
+                BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}" BorderThickness="1">
+            <Grid HorizontalAlignment="Right" >
+
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                            <RowDefinition />
+                            <RowDefinition />
+                            <RowDefinition />
+                            <RowDefinition />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="140" />
+                    <ColumnDefinition Width="40" />
+                </Grid.ColumnDefinitions>
+                        <Label FontSize="8" HorizontalAlignment="Center"
+                            Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">DETECTED SO FAR</Label>
+                
+                    <Label 
+                        Grid.Row="1" Grid.Column="0" >Samples detected: </Label>
+                        <Label Name="SamplesDisplay" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right"></Label>
+
+                    <Label 
+                        Grid.Row="2" Grid.Column="0">Max alignment quality:</Label>
+                        <Label Name="MAPQdisplay" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right"></Label>
+                        
+                    <Label 
+                        Grid.Row="3" Grid.Column="0">Max read quality:</Label>
+                        <Label Name="READQdisplay" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right"></Label>
+
+                        <Separator Grid.Row="4" Grid.ColumnSpan="2" Margin="2,0"></Separator>
+                        
+                        <Label HorizontalAlignment="Center" FontSize="8"
+                               Grid.ColumnSpan="2" Grid.Row="5"
+                               >ALL CLUSTERS</Label>
+                        <Label 
+                        Grid.Row="6" Grid.Column="0">Average dirt:</Label>
+                        <Label Name="DirtDisplay" Grid.Row="6" Grid.Column="1" HorizontalAlignment="Right"></Label>
+
+                        <Label 
+                        Grid.Row="7" Grid.Column="0">Avg alignment quality:</Label>
+                        <Label Name="AvgMAPQDisplay" Grid.Row="7" Grid.Column="1" HorizontalAlignment="Right"></Label>
+
+                        <Label 
+                        Grid.Row="8" Grid.Column="0">Avg read quality:</Label>
+                        <Label Name="AvgREADQDisplay" Grid.Row="8" Grid.Column="1" HorizontalAlignment="Right"></Label>
+
+
+                        <ProgressBar Name="GoodBadProgressBar" Minimum="0" Maximum="100"  Height="15"
+                                     Margin="2"
+                                     Grid.Row="9" Grid.ColumnSpan="2" Foreground="#FF0157D3"
+                                     ToolTip="Proportion of 'good' to 'bad' clusters based on your filter criteria"/>
+                        <Label Name="GoodCountLabel" Width="auto" HorizontalAlignment="Left"
+                        Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="2" FontSize="9">Good</Label>
+                        <Label Name="BadCountLabel" Width="auto"
+                        Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right" FontSize="9">Bad</Label>
+
+                    </Grid>
+            
+            
+            
+            </Border>
+
+        </WrapPanel>-->
+
+            <StackPanel Name="StatsPanel" Orientation="Vertical" VerticalAlignment="Top" Margin="5" DockPanel.Dock="right"  
+                        
+                   Height="330" Width="200" HorizontalAlignment="Right" Visibility="Visible">
+
+               
+                    <Expander x:Name="MenuExpander0" Header="DETECTED SO FAR" FontSize="10" IsExpanded="False" 
+                            ExpandDirection="Down" Grid.ColumnSpan="2" Width="auto">
+                    <Border BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}" BorderThickness="1,0,1,1">
+                        <Grid HorizontalAlignment="Right" >
+
+                            <Grid.RowDefinitions>
+                                <RowDefinition  />
+                                <RowDefinition />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140" />
+                                <ColumnDefinition Width="40" />
+                            </Grid.ColumnDefinitions>
+
+
+
+                            <Label FontSize="12" Name="SamplesDisplayLabel"
+                        Grid.Row="0" Grid.Column="0" >Samples detected:</Label>
+                        <Label Name="SamplesDisplay" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" FontSize="12"></Label>
+
+                        <Label FontSize="12"
+                        Grid.Row="1" Grid.Column="0">Max alignment quality:</Label>
+                        <Label Name="MAPQdisplay" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" FontSize="12"></Label>
+
+
+                        <Label FontSize="12"
+                        Grid.Row="2" Grid.Column="0">Max read quality:</Label>
+                        <Label Name="READQdisplay" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" FontSize="12"></Label>
+
+
+                    </Grid>
+                    </Border>
+                    </Expander>
+
+                <Expander x:Name="MenuExpander1" Header="ALL CLUSTERS" FontSize="10" IsExpanded="False" 
+                            ExpandDirection="Down" Grid.ColumnSpan="2" Width="auto" >
+                    <Border BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"  BorderThickness="1,0,1,1">
+                    <Grid HorizontalAlignment="Right" >
+
                         <Grid.RowDefinitions>
                             <RowDefinition />
                             <RowDefinition />
                             <RowDefinition />
                             <RowDefinition />
-                            <RowDefinition />
-                            <RowDefinition  />
+
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="auto" />
-                            <ColumnDefinition Width="100" />
-                            <ColumnDefinition Width="auto" />
-                            <ColumnDefinition Width="100" />
+                            <ColumnDefinition Width="140" />
+                            <ColumnDefinition Width="40" />
                         </Grid.ColumnDefinitions>
+                        <Label FontSize="12"
+                        Grid.Row="0" Grid.Column="0">Average dirt:</Label>
+                        <Label Name="DirtDisplay" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" FontSize="12"></Label>
 
-                        <Label Content="File:"  
-                               Grid.Row="0" Grid.Column="0"/>
+                        <Label FontSize="12"
+                        Grid.Row="1" Grid.Column="0">Avg alignment quality:</Label>
+                        <Label Name="AvgMAPQDisplay" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" FontSize="12"></Label>
 
-                        <Button x:Name="DataFileAButton" Content="Browse" Click="Button_Click_GetFile"
-                                HorizontalAlignment="Right" Width="50"  
-                                Grid.Row="0" Grid.Column="3" />
+                        <Label FontSize="12"
+                        Grid.Row="2" Grid.Column="0">Avg read quality:</Label>
+                        <Label Name="AvgREADQDisplay" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" FontSize="12"></Label>
 
-                        <TextBox x:Name="DataFileATextbox" Text="E:\Harvard\final-all_bam-merged.bam"
-                                TextWrapping="Wrap" HorizontalAlignment="Left" Margin="0,2"
-                                 Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3"/>
 
-                        <Label Content="Ploidy:" 
-                               Grid.Row="1"  />
-                        <TextBox x:Name="ExpectedPloidyTextbox" Text="2" ToolTip="Expected ploidy level of the organism under study"
-                                  VerticalAlignment="Center"   Width="100" Margin="0,2"
-                                 Grid.Column="1" Grid.Row="1"/>
-
-                        <Label Content="Alignment qual min:"
-                               Grid.Row="2"  />
-                        <TextBox x:Name="AlignmentQualCutoffTextbox" Text="20" ToolTip="Clusters with an average read alignment quality below this value will be excluded"
-                                  Margin="0,2"
-                                 Grid.Column="1" Grid.Row="2" />
-
-                        <Label Content="Read qual min:" 
-                               Grid.Row="2" Grid.Column="2" />
-                        <TextBox x:Name="ReadQualCutoffTextbox" ToolTip="tba" Text="tba"
-                                  Margin="0,2"
-                                 Grid.Column="3" Grid.Row="2" />
-
-                        <Label Content="# Samples:" 
-                               Grid.Row="1" Grid.Column="2" />
-                        <TextBox x:Name="NumSamplesTextbox" Text="48" ToolTip="Total number of individuals sampled"
-                                  Margin="0,2"
-                                 Grid.Column="3" Grid.Row="1" />
-
-                        <Label Content="Dirt max:" 
-                                Grid.Row="3" Grid.Column="0"/>
-                        <TextBox x:Name="DirtCutoffTextbox" Text="0.19" ToolTip="Clusters with a 'dirt' reading greater than this value will be excluded" 
-                                  Margin="0,2"
-                                Grid.Column="1" Grid.Row="3"/>
-
-                        <Label Content="Output directly to file:" 
-                                Grid.Row="3" Grid.Column="2" Grid.ColumnSpan="2" FontStyle="Italic" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
-                        <CheckBox x:Name="OutputToFile" IsChecked="False" ToolTip="Output reads directly to another BAM file based on filter criteria (if unchecked, reads will be stored in memory and filter criteria can be adjusted)"
-                                  VerticalAlignment="Center"  HorizontalAlignment="Right" IsEnabled="False"
-                                  Grid.Row="3" Grid.Column="3" />
-                        <Button x:Name="LaunchButton" Content="Go" ToolTip="Go forth and ploidulate" HorizontalAlignment="Right" 
-                                Width="50"  Click="Button_Click_Go" 
-                                Grid.Row="4" Grid.Column="3"/>
+                        <ProgressBar Name="GoodBadProgressBar" Minimum="0" Maximum="100"  Height="15"
+                                     Margin="2"
+                                     Grid.Row="3" Grid.ColumnSpan="2" 
+                                     ToolTip="Proportion of 'good' to 'bad' clusters based on your filter criteria"/>
+                        <Label Name="GoodCountLabel" Width="auto" HorizontalAlignment="Left"
+                        Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" FontSize="9">Good</Label>
+                        <Label Name="BadCountLabel" Width="auto"
+                        Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right" FontSize="9">Bad</Label>
 
                     </Grid>
+                    </Border>
+                </Expander>
+
+                <Expander x:Name="MenuExpander2" Header="GOOD CLUSTERS" FontSize="10" IsExpanded="False" 
+                            ExpandDirection="Down" Grid.ColumnSpan="2" Width="auto"
+                          ToolTip="These will be the averages for your filtered BAM output file">
+                    <Border BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"  BorderThickness="1,0,1,1">
+                        <Grid HorizontalAlignment="Right" >
+
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140" />
+                                <ColumnDefinition Width="40" />
+                            </Grid.ColumnDefinitions>
+                            <Label FontSize="12"
+                        Grid.Row="0" Grid.Column="0">Average dirt:</Label>
+                            <Label Name="DirtDisplayGood" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" FontSize="12"></Label>
+
+                            <Label FontSize="12"
+                        Grid.Row="1" Grid.Column="0">Avg alignment quality:</Label>
+                            <Label Name="AvgMAPQDisplayGood" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" FontSize="12"></Label>
+
+                            <Label FontSize="12"
+                        Grid.Row="2" Grid.Column="0">Avg read quality:</Label>
+                            <Label Name="AvgREADQDisplayGood" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" FontSize="12"></Label>
 
 
+                            
+                        </Grid>
+                    </Border>
+                </Expander>
+
+            </StackPanel>
 
 
-                </Border>
-            </Expander>
+                    
 
-            <!--
-            <Expander Header="Status 'Console'" Margin="0,0,0,0" IsExpanded="False" Height="auto" 
-            ExpandDirection="Down" Grid.Column="1" >
-                <Border CornerRadius="10" BorderThickness="2,0,0,1" Background="White"
-                        BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}">
-                    <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Auto" Grid.ColumnSpan="2" Margin="0,0,10,0" Height="auto" Width="auto" RenderTransformOrigin="0.5,0.5">
+        </DockPanel>
+        
 
-                        <TextBlock x:Name="StatusTextBlock" HorizontalAlignment="Left" Text="The quick brown fox jumps over the lazy dog." Margin="5,5,5,5"  VerticalAlignment="Top" Height="auto" Width="auto" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="True" Grid.Column="1"/>
-
-                    </ScrollViewer>
-                </Border>
-            </Expander>
-            -->
-
-        </WrapPanel>
-
-
-        <StatusBar x:Name="StatusBar" DockPanel.Dock="Bottom" Height="50">
-            <StatusBarItem HorizontalContentAlignment="Stretch" >
+        <StatusBar x:Name="StatusBar" DockPanel.Dock="Bottom" Height="50" Background="{DynamicResource {x:Static SystemColors.MenuBrushKey}}">
+            
+            <Button Name="AbortButton" Content="X" ToolTip="Finish parsing the current file" Margin="10,0,0,0"
+                     Height="20" Width="20" Click="Button_Click_Abort" Visibility="Hidden" FontWeight="Bold" 
+                    Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" FontFamily="Tahoma"/>
+            
+            <StatusBarItem Name="ProgressStatusBar" HorizontalContentAlignment="Stretch" Visibility="Visible">
                 <ProgressBar x:Name="ProgressBar"  HorizontalAlignment="Stretch" IsEnabled="True" Height="20"
-                         ValueChanged="ProgressBar_ValueChanged" Visibility="Hidden" Margin="10" HorizontalContentAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Disabled"/>
+                         Visibility="Hidden" Margin="5,10,10,10" HorizontalContentAlignment="Stretch" 
+                             ScrollViewer.VerticalScrollBarVisibility="Disabled" />
             </StatusBarItem>
+            
         </StatusBar>
 
+        <DockPanel DockPanel.Dock="Bottom">
+            <Label Name="AbortingMessage" Visibility="Hidden"  HorizontalAlignment="Center"
+               >Ploidulation will abort after the current cluster is processed.</Label>
+            
+            <Label Name="TimerLabel"  DockPanel.Dock="Right" Width="auto" HorizontalAlignment="Right" Visibility="Hidden"></Label>
+        </DockPanel>
+
+        
+        
+       
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" 
-                      
+                      Visibility="Hidden"
                       Margin="0,-170,0,5" RenderTransformOrigin="0.5,0.5" >
 
             <WrapPanel x:Name="wpMain" Margin="0,0,0,0" Grid.ColumnSpan="2" Height="auto" 

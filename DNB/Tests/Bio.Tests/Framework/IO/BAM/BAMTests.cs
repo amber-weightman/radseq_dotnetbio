@@ -219,60 +219,6 @@ namespace Bio.Tests.IO.BAM
         }
 
 
-        /// <summary>
-        /// Test the BAM Parser non-default constructors.
-        /// </summary>
-        [TestMethod]
-        [Priority(0)]
-        [TestCategory("Priority0")]
-        public void TestParserMetricHandling()
-        {
-            string filePath = @"TestUtils\BAM\SeqAlignment.bam";
-            BAMParser parser = null;
-            SequenceAlignmentMap alignmentMap = null;
-            IMetricHandler metric = new SampleMetricHandler();
-            SampleMetricHandler metric2 = null;
-            metric.Add(new SAMAlignedSequence());
-            
-            try
-            {
-                // alignment map should be created
-                parser = new BAMParser(metric);
-                alignmentMap = parser.Parse(filePath);
-                Assert.IsTrue(alignmentMap != null);
-                Assert.AreEqual(alignmentMap.Header.GetReferenceSequencesInfoFromSQHeader().Count, 1);
-                Assert.AreEqual(alignmentMap.QuerySequences.Count, 2);
-
-                metric2 = metric as SampleMetricHandler;
-                Assert.AreEqual(metric2.Sequences.Count, 0); // when parser returns, all sequences have been processed and cleared
-                metric.Add(new SAMAlignedSequence());
-                
-                // alignment map should be created
-                parser = new BAMParser(metric, true);
-                alignmentMap = parser.Parse(filePath);
-                Assert.IsTrue(alignmentMap != null);
-                Assert.AreEqual(alignmentMap.Header.GetReferenceSequencesInfoFromSQHeader().Count, 1);
-                Assert.AreEqual(alignmentMap.QuerySequences.Count, 2);
-                
-                metric2 = metric as SampleMetricHandler;
-                Assert.AreEqual(metric2.Sequences.Count, 0);
-                metric.Add(new SAMAlignedSequence());
-
-                // alignment map should not be created
-                parser = new BAMParser(metric, false);
-                alignmentMap = parser.Parse(filePath);
-                Assert.IsTrue(alignmentMap == null);
-                
-                metric2 = metric as SampleMetricHandler;
-                Assert.AreEqual(metric2.Sequences.Count, 0);
-                
-            }
-            finally
-            {
-                if (parser != null)
-                    parser.Dispose();
-            }
-        }
 
     }
 }

@@ -18,14 +18,16 @@ namespace Bio.Algorithms.Metric
         /// Add a sequence.
         /// </summary>
         /// <param name="sequence">A sequence.</param>
-        void Add(SAMAlignedSequence sequence);
+        /// <returns>True if successfully added, false otherwise</returns>
+        bool Add(SAMAlignedSequence sequence);
 
         /// <summary>
         /// Add a set of sequences.
         /// THIS IS NOT ACTUALLY CALLED IN BAMPARSER, BUT SEEMS A LOGICAL INCLUSION - AW
         /// </summary>
         /// <param name="sequences">A set of sequences.</param>
-        void AddRange(IEnumerable<SAMAlignedSequence> sequences);
+        /// <returns>True if successfully added, false otherwise</returns>
+        bool AddRange(IEnumerable<SAMAlignedSequence> sequences);
 
         /// <summary>
         /// Process sequences (may process all, or a selection thereof).

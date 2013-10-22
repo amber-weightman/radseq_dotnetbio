@@ -83,18 +83,6 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
         /// </summary>
         private string bamFilename;
 
-        /// <summary>
-        /// Receives each sequence as it is read by the parser, and performs operation/s on
-        /// each sequence or set of sequences
-        /// </summary>
-        private IMetricHandler metricHandler = null;
-
-        /// <summary>
-        /// Flag to indicate whether the BAM file is being loaded into memory (true) or is being
-        /// proccessed then cleared from memory (false)
-        /// </summary>
-        private bool storeMemory = true;
-
         #endregion
 
 
@@ -110,34 +98,8 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
             refSeqLengths = new List<int>();
         }
 
-        /// <summary>
-        /// Non-default constructor. Receives as a parameter an IMetricHandler object. As 
-        /// sequences are parsed, they will be passed to the IMetricHandler, which will perform
-        /// operation/s on them.
-        /// Parser stores BAM data into memory by default.
-        /// Default encoding is chosen based on the alphabet as per default constructor.
-        /// </summary>
-        /// <param name="met">IMetricHandler. Object's class determines what operation/s will
-        /// be performed on each sequence</param>
-        public BAMParser(IMetricHandler met) : this()
-        {
-            metricHandler = met;
-        }
 
-        /// <summary>
-        /// Non-default constructor. Receives as a parameter an IMetricHandler object. As 
-        /// sequences are parsed, they will be passed to the IMetricHandler, which will perform
-        /// operation/s on them.
-        /// Default encoding is chosen based on the alphabet as per default constructor.
-        /// </summary>
-        /// <param name="met">IMetricHandler. Object's class determines what operation/s will
-        /// be performed on each sequence</param>
-        /// <param name="storeMem">Boolean. Identifies whether parser should also store BAM
-        /// data into memory</param>
-        public BAMParser(IMetricHandler met, bool storeMem) : this(met)
-        {
-            storeMemory = storeMem;
-        }
+
 
         #endregion
 
@@ -457,27 +419,27 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
             return GetAlignment(reader);
         }
     /// <summary>
-    /// test
+    /// Returns an iterator over a set of SAMAlignedSequences retrieved from a parsed BAM file.
     /// </summary>
-    /// <param name="reader">t</param>
-    /// <returns>t</returns>
+    /// <param name="reader">Stream to read</param>
+    /// <returns>IEnumerable SAMAlignedSequence object.</returns>
         public IEnumerable<SAMAlignedSequence> ParseSequence(Stream reader)
         {
             if (reader == null)
             {
                 throw new ArgumentNullException("reader");
             }
-
-            foreach (SAMAlignedSequence seq in GetAlignmentYield(reader))
+            foreach (SAMAlignedSequence seq in GetAlignmentIterator(reader))
             {
                 yield return seq;
             }
         }
+
     /// <summary>
-    /// test
+    /// Returns an iterator over a set of SAMAlignedSequences retrieved from a parsed BAM file.
     /// </summary>
-    /// <param name="fileName">t</param>
-    /// <returns>t</returns>
+    /// <param name="fileName">File name to read.</param>
+    /// <returns>IEnumerable SAMAlignedSequence object.</returns>
         public IEnumerable<SAMAlignedSequence> ParseSequence(string fileName)
         {
             bamFilename = fileName;
@@ -493,8 +455,6 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
                 {
                     yield return seq;
                 }
-
-
             }
         }
 
@@ -1034,10 +994,7 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
             BAMIndex bamIndexInfo;
             BAMReferenceIndexes refIndex;
             IList<Chunk> chunks;
-            if (storeMemory)
-            {
-                seqMap = new SequenceAlignmentMap(header);
-            }
+            seqMap = new SequenceAlignmentMap(header);
 
             bamIndexInfo = bamIndexFile.Read();
 
@@ -1058,29 +1015,9 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
             }
 
             IList<SAMAlignedSequence> alignedSeqs = GetAlignedSequences(chunks, start, end);
-
-
-
-            if (storeMemory && metricHandler != null)
+            foreach (SAMAlignedSequence alignedSeq in alignedSeqs)
             {
-                foreach (SAMAlignedSequence alignedSeq in alignedSeqs)
-                {
-                    seqMap.QuerySequences.Add(alignedSeq);
-                    metricHandler.Add(alignedSeq);
-                }
-            } else if(storeMemory)
-            {
-                foreach (SAMAlignedSequence alignedSeq in alignedSeqs)
-                {
-                    seqMap.QuerySequences.Add(alignedSeq);
-                }
-            }
-            else if (metricHandler != null)
-            {
-                foreach (SAMAlignedSequence alignedSeq in alignedSeqs)
-                {
-                    metricHandler.Add(alignedSeq);
-                }
+                seqMap.QuerySequences.Add(alignedSeq);
             }
 
             readStream = null;
@@ -1141,16 +1078,10 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
                 GetAlignmentWithoutIndex(header, ref seqMap);
             }
 
-            if (metricHandler != null)
-            {
-                metricHandler.SetComplete();
-                metricHandler.Dispose();
-            }
-
             return seqMap;
         }
 
-        private IEnumerable<SAMAlignedSequence> GetAlignmentMapYield(Stream reader, BAMIndexFile bamIndexFile = null,
+        private IEnumerable<SAMAlignedSequence> GetAlignmentMapIterator(Stream reader, BAMIndexFile bamIndexFile = null,
                 string refSeqName = null, int? refSeq = null, int start = 0, int end = int.MaxValue)
         {
             SAMAlignmentHeader header;
@@ -1189,7 +1120,6 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
             {
                 if (bamIndexFile != null)
                 {
-                    //yield return GetAlignmentWithIndexYield(bamIndexFile, (int)refSeq, start, end, header);
                     foreach (SAMAlignedSequence seq in GetAlignmentWithIndexYield(bamIndexFile, (int)refSeq, start, end, header))
                     {
                         yield return seq;
@@ -1202,14 +1132,14 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
             }
             else
             {
-                //yield return GetAlignmentWithoutIndexYield(header);
                 foreach (SAMAlignedSequence seq in GetAlignmentWithoutIndexYield(header))
                 {
                     yield return seq;
                 }
             }
-
         }
+
+      
 
         // Refactored to remove this block from GetAlignmentMap()
         private SAMAlignedSequence BamIndexing(SAMAlignedSequence alignedSeq, BAMReferenceIndexes refIndices, BAMIndex index,
@@ -1314,7 +1244,7 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
                 refIndices = bamIndex.RefIndexes[0];
             }
 
-            if (!createBamIndex && seqMap == null && storeMemory)
+            if (!createBamIndex && seqMap == null)
             {
                 seqMap = new SequenceAlignmentMap(header);
             }
@@ -1330,14 +1260,11 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
                 SAMAlignedSequence alignedSeq = GetAlignedSequence(0, int.MaxValue);
                 alignedSeq = BamIndexing(alignedSeq, refIndices, bamIndex, lastcOffset, lastuOffset, ref lastChunk);
                
-                if (!createBamIndex && alignedSeq != null && storeMemory)
+                if (!createBamIndex && alignedSeq != null)
                 {
                     seqMap.QuerySequences.Add(alignedSeq);
                 }
-                if (metricHandler != null)
-                {
-                    metricHandler.Add(alignedSeq);
-                }
+              
 
                 alignedSeq = null;
             }
@@ -1413,15 +1340,24 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
    
     }
 
-
-        // Returns SequenceAlignmentMap object by parsing specified BAM stream.
+        /// <summary>
+        /// Returns SequenceAlignmentMap object by parsing specified BAM stream.
+        /// </summary>
+        /// <param name="reader"></param>
+        /// <returns></returns>
         private SequenceAlignmentMap GetAlignment(Stream reader)
         {
             return GetAlignmentMap(reader);
         }
-        private IEnumerable<SAMAlignedSequence> GetAlignmentYield(Stream reader)
+
+        /// <summary>
+        /// Returns SAMAlignedSequence iterator object by parsing specified BAM stream.
+        /// </summary>
+        /// <param name="reader"></param>
+        /// <returns></returns>
+        private IEnumerable<SAMAlignedSequence> GetAlignmentIterator(Stream reader)
         {
-            foreach (SAMAlignedSequence seq in GetAlignmentMapYield(reader))
+            foreach (SAMAlignedSequence seq in GetAlignmentMapIterator(reader))
             {
                 yield return seq;
             }
@@ -1781,7 +1717,7 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
 
         private IEnumerable<SAMAlignedSequence> GetAlignmentYield(Stream bamStream, BAMIndexFile bamIndexFile, int refSeqIndex)
         {
-            foreach (SAMAlignedSequence seq in GetAlignmentMapYield(bamStream, bamIndexFile, null, refSeqIndex))
+            foreach (SAMAlignedSequence seq in GetAlignmentMapIterator(bamStream, bamIndexFile, null, refSeqIndex))
             {
                 yield return seq;
             }
@@ -1795,7 +1731,7 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
 
         private IEnumerable<SAMAlignedSequence> GetAlignmentYield(Stream bamStream, BAMIndexFile bamIndexFile, string refSeqName)
         {
-            foreach (SAMAlignedSequence seq in GetAlignmentMapYield(bamStream, bamIndexFile, refSeqName))
+            foreach (SAMAlignedSequence seq in GetAlignmentMapIterator(bamStream, bamIndexFile, refSeqName))
             {
                 yield return seq;
             }
@@ -1809,7 +1745,7 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
         }
         private IEnumerable<SAMAlignedSequence> GetAlignmentYield(Stream bamStream, BAMIndexFile bamIndexFile, string refSeqName, int start, int end)
         {
-            foreach (SAMAlignedSequence seq in GetAlignmentMapYield(bamStream, bamIndexFile, refSeqName, -1, start, end))
+            foreach (SAMAlignedSequence seq in GetAlignmentMapIterator(bamStream, bamIndexFile, refSeqName, -1, start, end))
             {
                 yield return seq;
             }
@@ -1823,7 +1759,7 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
         }
         private IEnumerable<SAMAlignedSequence> GetAlignmentYield(Stream bamStream, BAMIndexFile bamIndexFile, int refSeqIndex, int start, int end)
         {
-            foreach (SAMAlignedSequence seq in GetAlignmentMapYield(bamStream, bamIndexFile, null, refSeqIndex, start, end))
+            foreach (SAMAlignedSequence seq in GetAlignmentMapIterator(bamStream, bamIndexFile, null, refSeqIndex, start, end))
             {
                 yield return seq;
             }

@@ -39,21 +39,26 @@ namespace Bio.Tests.Framework.IO.BAM
         /// Add a sequence.
         /// </summary>
         /// <param name="sequence">Sequence to add.</param>
-        public void Add(SAMAlignedSequence sequence)
+        /// <returns>Always returns true</returns>
+        public bool Add(SAMAlignedSequence sequence)
         {
             sequences.Add(sequence);
+            return true;
+            
         }
 
         /// <summary>
         /// Add a list of sequences.
         /// </summary>
         /// <param name="seqs">Sequences to add.</param>
-        public void AddRange(IEnumerable<SAMAlignedSequence> seqs)
+        /// <returns>Always returns true</returns>
+        public bool AddRange(IEnumerable<SAMAlignedSequence> seqs)
         {
             foreach(SAMAlignedSequence seq in seqs)
             {
                 sequences.Add(seq);
             }
+            return true;
         }
 
         /// <summary>

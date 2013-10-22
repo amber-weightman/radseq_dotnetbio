@@ -197,12 +197,16 @@ namespace Ploidulator
         /// Placeholder (determine if cluster is good based on metrics etc)
         /// if the metric determines that we want to keep this read for downstream analysis
         /// </summary>
-        public bool Good { get { return true; } }
+        public bool Good { get { return good; } set { this.good = value; } }
+
+        
+        private bool good = false;
 
         /// <summary>
         /// Placeholder (determine if cluster is bad based on metrics etc)
         /// </summary>
         public bool Bad { get { return false; } }
+
 
         public double Dirt { get { return dirt; } }
         private double dirt;
@@ -1191,6 +1195,29 @@ namespace Ploidulator
 
         #endregion
 
+
+        public void Shrink()
+        {
+            Console.Write("1");
+            sequenceDict.Clear();
+            Console.Write("2");
+            sampleDict.Clear();
+            Console.Write("3");
+            sequenceSampleDict.Clear();
+            Console.Write("4");
+            sampleSequenceDict.Clear();
+            Console.Write("5");
+            readsInPloidyForIndividuals.Clear();
+            Console.Write("6");
+            readsNotInPloidyForIndividuals.Clear();
+            Console.Write("7");
+            
+        }
+
     }
+    
+
+    
+
 
 }

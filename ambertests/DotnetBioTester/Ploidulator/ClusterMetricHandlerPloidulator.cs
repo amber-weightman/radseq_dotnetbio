@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -46,6 +47,8 @@ namespace Ploidulator
         /// Panel in which to display visualisation per cluster
         /// </summary>
         private WrapPanel panel;
+
+        private List<ClusterMetricPloidulator> clusterBucket;
 
         /// <summary>
         /// Id of the cluster to which current sequences belong
@@ -141,10 +144,62 @@ namespace Ploidulator
         private List<int> clustActualSize = new List<int>();
 
         double dirtCutoff = 1;
-        int alignQualCutoff = 0;
-        string readQualCutoff = "na unused placeholder";
+        double alignQualCutoff = 0;
+        double readQualCutoff = 0;
         int numSamples = 0;
         int numClustersToParse = int.MaxValue;
+
+        private int numClustersParsed = 0;
+        private int goodCount = 0;
+        private int maxSampleCount = 0;
+        private double maxMapQ = 0;
+        private double maxReadQ = 0;
+        private double totalDirt = 0;
+        private double totalMapQ = 0;
+        private double totalReadQ = 0;
+        private double totalDirtGood = 0;
+        private double totalMapQGood = 0;
+        private double totalReadQGood = 0;
+
+        private double averageDirt = 0;
+        private double averageMapQ = 0;
+        private double averageReadQ = 0;
+        private double averageDirtGood = 0;
+        private double averageMapQGood = 0;
+        private double averageReadQGood = 0;
+
+        /// <summary>
+        /// precondition: metric.Good must have been set
+        /// </summary>
+        /// <param name="metric"></param>
+        private void SetStats(ClusterMetricPloidulator metric)
+        {
+            // greatest number of samples found so far in any one cluster
+            maxSampleCount = (metric.CountSamples > maxSampleCount) ? metric.CountSamples : maxSampleCount;
+
+            // maximum quality value found so far in any one cluster
+            maxMapQ = (metric.AlignmentQualities[0] > maxMapQ) ? metric.AlignmentQualities[0] : maxMapQ;
+            maxReadQ = (metric.ReadQualities[0] > maxReadQ) ? metric.ReadQualities[0] : maxReadQ;
+
+            // totals are used to enable easy obtaining of average without iterating through lists to count each time
+            totalDirt += metric.Dirt;
+            totalMapQ += metric.AlignmentQualities[0];
+            totalReadQ += metric.ReadQualities[0];
+
+            totalDirtGood = (metric.Good) ? totalDirtGood + metric.Dirt : totalDirtGood;
+            
+            totalMapQGood += (metric.Good) ? metric.AlignmentQualities[0] : 0;
+            totalReadQGood += (metric.Good) ? metric.ReadQualities[0] : 0;
+
+            // running-averages
+            averageDirt = Math.Round(totalDirt / (double)numClustersParsed, 2);
+            averageMapQ = Math.Round(totalMapQ / (double)numClustersParsed, 2);
+            averageReadQ = Math.Round(totalReadQ / (double)numClustersParsed, 2);
+
+            averageDirtGood = (goodCount > 0) ? Math.Round(totalDirtGood / (double)goodCount, 2) : 0;
+            averageMapQGood = (goodCount > 0) ? Math.Round(totalMapQGood / (double)goodCount, 2) : 0;
+            averageReadQGood = (goodCount > 0) ? Math.Round(totalReadQGood / (double)goodCount, 2) : 0;
+        }
 
 
         #endregion
@@ -174,7 +229,7 @@ namespace Ploidulator
         /// </summary>
         /// <param name="clusterFileName">Name of the file metric data is to be written to.</param>
         public ClusterMetricHandlerPloidulator(string clusterFileName, int ploidy, 
-            double dirtCutoff, int alignQualCutoff, string readQualCutoff, int numSamples, bool? outputToFile,
+            double dirtCutoff, double alignQualCutoff, double readQualCutoff, int numSamples, bool? outputToFile,
             Dispatcher d, WrapPanel p)
             : this()
         {
@@ -258,6 +313,28 @@ namespace Ploidulator
             set { header = value; }
         }
 
+
+        
+
+        public int GoodCount { get { return goodCount; } }
+        public int MaxSampleCount { get { return maxSampleCount; } }
+        public double MaxMapQ { get { return maxMapQ; } }
+        public double MaxReadQ { get { return maxReadQ; } }
+        public double AverageDirt { get { return averageDirt; } }
+        public double AverageMapQ { get { return averageMapQ; } }
+        public double AverageReadQ { get { return averageReadQ; } }
+
+        public double AverageDirtGood { get { return averageDirtGood; } }
+        public double AverageMapQGood { get { return averageMapQGood; } }
+        public double AverageReadQGood { get { return averageReadQGood; } }
+
+        private bool aborted = false;
+
+        public void Abort()
+        {
+            aborted = true;
+        }
+
         #endregion
 
         #region Public Methods
@@ -278,13 +355,15 @@ namespace Ploidulator
         /// then add the sequenceto a new cluster
         /// </summary>
         /// <param name="sequences">A list of sequences.</param>
-        public void AddRange(IEnumerable<SAMAlignedSequence> sequences)
+        /// <returns>Always returns true</returns>
+        public bool AddRange(IEnumerable<SAMAlignedSequence> sequences)
         {
             
             foreach (SAMAlignedSequence seq in sequences)
             {
                 Add(seq); 
             }
+            return true;
         }
 
         /// <summary>
@@ -293,29 +372,42 @@ namespace Ploidulator
         /// to a new cluster
         /// </summary>
         /// <param name="sequence">A sequence.</param>
-        public void Add(SAMAlignedSequence sequence)
+        /// <returns>Returns true if the sequence could be added, false if the handler has been closed</returns>
+        public bool Add(SAMAlignedSequence sequence)
         {
-            string thisSeqCluster = sequence.RName; // Cluster the sequence we just added belongs to
-            
-            if (currCluster == null)
+            if (!finished)
             {
-                currCluster = thisSeqCluster;
-            }
-            else if (!currCluster.Equals(thisSeqCluster)) // This sequence belongs to a different cluster from the ones currently stored in sequences
-            {
-            
-                ProcessSequences();
-            
-                currCluster = thisSeqCluster;
-                sequences = new List<SAMAlignedSequence>();
-            }
+                string thisSeqCluster = sequence.RName; // Cluster the sequence we just added belongs to
 
-            if (sequences == null)
-            {
-                sequences = new List<SAMAlignedSequence>();
+                if (currCluster == null)
+                {
+                    currCluster = thisSeqCluster;
+                }
+                else if (!currCluster.Equals(thisSeqCluster)) // This sequence belongs to a different cluster from the ones currently stored in sequences
+                {
+                    ++numClustersParsed; // mark off another cluster
+                    ProcessSequences();
+                    
+                    currCluster = thisSeqCluster;
+                    sequences = new List<SAMAlignedSequence>();
+                }
+
+                if (sequences == null)
+                {
+                    sequences = new List<SAMAlignedSequence>();
+                }
+                sequences.Add(sequence);
+                return true;
             }
-            sequences.Add(sequence);
+            // we should be finished but we are still outputting to the bam file
+            else if(!canWriteToBam)
+            {
+                return true;
+            }
+            return false;
         }
+
+        
 
         /// <summary>
         /// Calculate metric for a single cluser of sequences (all stored sequences), 
@@ -323,113 +415,126 @@ namespace Ploidulator
         /// </summary>
         public void ProcessSequences()
         {
-            
             if (sequences != null && sequences.Count > 0)
             {
-                if ((metric == null || metric.Id != "142919") && (clusterCount < numClustersToParse || numClustersToParse == -1)) 
-                {
+                //if ((metric == null || metric.Id != "142919") && (clusterCount < numClustersToParse)) 
+                //{
                     clusterCount++;
-
+                    Console.Write("a");
                 
-                    if (metric == null)
+                    /*if (metric == null)
                     {
                         metric = new ClusterMetricPloidulator(expectedPloidy, numSamples, dispatcher, panel);
-                    }
+                    }*/
+
+                    ClusterMetricPloidulator tempMetric = new ClusterMetricPloidulator(expectedPloidy, numSamples, dispatcher, panel);
+
                     if (formatter == null)
                     {
                         formatter = new MetricFormatter(FileName + ".metr");
                     }
+                    Console.Write("b");
                     if (writeToFile && bamWriter == null)
                     {
-                        // todo fixme we might prefer this to be a bam file, but i'm using sam now so I can easily read it
-                        //samWriter = new StreamWriter(FileName + "_filtered.sam");
-                        //SAMFormatter.WriteHeader(new SAMAlignmentHeader(), samWriter); // todo what goes in the header?
-                        //BAMFormatter.WriteHeader(new SAMAlignmentHeader(), samWriter); // todo what goes in the header?
-
                         bamWriter = File.Create(FileName + "_filtered.bam");
-                        bamFormatter = new BAMFormatter();
-                        
+                        bamFormatter = new BAMFormatter();   
                         bamFormatter.WriteHeader(header, bamWriter);
-                        Console.WriteLine("header has been written");
-                    }
+                        bamOutputQueue = new Queue<List<SAMAlignedSequence>>();
 
+                    }
+                    Console.Write("c");
                     // calculate metric
-                    metric.Calculate(sequences);
+                    //metric.Calculate(sequences);
 
+                    
+
+
+                    tempMetric.Calculate(sequences);
+
+                    Console.Write("d");
                     // read and/or store some values from the metric
-                    clustSeqFrequencies.Add(metric.ClustSeqFrequencies);
-
-                    SetThisDictValueCounts(graphDataAllReads, metric.CountAll);
-
-                    SetThisDictValueCounts(graphDataDistinctReads, metric.CountDistinct);
-
-                    SetThisDictValueCounts(graphDataIndividualsCounts, metric.CountSamples);
-
-                    int key = (int)Math.Round(metric.SampleReadCountsDistinct.Average(), 1);
+                    clustSeqFrequencies.Add(tempMetric.ClustSeqFrequencies);
+                    Console.Write("e");
+                    SetThisDictValueCounts(graphDataAllReads, tempMetric.CountAll);
+                    Console.Write("f");
+                    SetThisDictValueCounts(graphDataDistinctReads, tempMetric.CountDistinct);
+                    Console.Write("g");
+                    SetThisDictValueCounts(graphDataIndividualsCounts, tempMetric.CountSamples);
+                    Console.Write("h");
+                    int key = (int)Math.Round(tempMetric.SampleReadCountsDistinct.Average(), 1);
                     SetThisDictValueCounts(graphDataIndividualsDistinctReadcounts, key);
-                    
-                    key = (int)Math.Round(metric.SampleReadCountsAll.Average(), 1);
+                    Console.Write("i");
+                    key = (int)Math.Round(tempMetric.SampleReadCountsAll.Average(), 1);
                     SetThisDictValueCounts(graphDataIndividualsTotalReadcounts, key);
-                    
+                    Console.Write("j");
                     bool isOk = true;
-                    if (metric.Dirt > dirtCutoff)
+                    Console.Write("k");
+                    if (tempMetric.Dirt > dirtCutoff 
+                        || tempMetric.AlignmentQualities[0] < alignQualCutoff 
+                        || tempMetric.ReadQualities[0] < readQualCutoff)
                     {
                         isOk = false;
                     }
+                    if (isOk)
+                    {
+                        ++goodCount;
+                    }
+                    tempMetric.Good = isOk;
+                    SetStats(tempMetric);
 
-                    if (metric.AlignmentQual < alignQualCutoff)
-                    {
-                        isOk = false;
-                    }
-                    
+                    Console.Write("<l>");
                     // write metric out to metric file
-                    formatter.Write(metric);
+                    formatter.Write(tempMetric);
+                    Console.Write("m");
+
+                    
+                    
 
                     // if cluster is good, write aligned reads out to another sam/bam file for downstream analysis
-                    if (writeToFile && isOk) 
+                    if (writeToFile && isOk)
                     {
-                        foreach(SAMAlignedSequence seq in sequences)
-                        {
-                            bamFormatter.WriteAlignedSequence(header, seq, bamWriter);   
-                        }
+                        Console.WriteLine("[disabled] writing good cluster to file for sequences: " + sequences.Count);
+                        bamOutputQueue.Enqueue(sequences);
                     } 
                     // we might be writing these to file later, so store them
                     // we might be changing the parameters for isOk later, so for now all is ok
                     else if(!writeToFile)
                     {
-                        if(allSequences == null)
+                        if(clusterBucket == null)
                         {
-                            allSequences = new List<SAMAlignedSequence>();
+                            clusterBucket = new List<ClusterMetricPloidulator>();
                         }
-                        allSequences.AddRange(sequences);
+                        StoreMetric(tempMetric);
                     }
-
-
-                    /*dispatcher.BeginInvoke(
-                        System.Windows.Threading.DispatcherPriority.Normal,
-                        new OneArgDelegate(DrawChart),
-                        clustSeqFrequencies[numChartsDisplayed]);
-                    */
-
-                    // draw a chart for this cluster
-                    /*for (; numChartsDisplayed < maxNumCharts && clustSeqFrequencies.Count > numChartsDisplayed; numChartsDisplayed++)
+                    if (writeToFile && canWriteToBam && bamOutputQueue.Count > 0)
                     {
-                        dispatcher.BeginInvoke(
-                        System.Windows.Threading.DispatcherPriority.Normal,
-                        new OneArgDelegate(DrawChart),
-                        clustSeqFrequencies[numChartsDisplayed]);
-                    }*/
-
-                    metric.Reset();
+                        canWriteToBam = false;
+                        runner = new SequenceDelegate(WriteToBam);
+                        runner.BeginInvoke(null, null);
+                    }
                     
                     
-                }
-                else if (numClustersToParse != -1 || metric.Id == "142919") // for debugging pretend this is the end of the file if numClustersToParse is not -1
-                {
-                    PrintAllCluserMetrics();
-
-                }
+                //}
+                //else if (numClustersToParse != -1 || metric.Id == "142919") // for debugging pretend this is the end of the file if numClustersToParse is not -1
+                //{
+                  //  PrintAllCluserMetrics();
+                //}
             }
+            if(aborted)
+            {
+                // todo this might not quite tidy it up the way we want it to
+                PrintAllCluserMetrics();
+            }
+        }
+        private bool canWriteToBam = true;
+        private bool finished = false;
+        private void StoreMetric(ClusterMetricPloidulator tempMetric)
+        {
+            Console.Write("o");
+            tempMetric.Shrink();
+            Console.Write("p");
+            clusterBucket.Add(tempMetric);
+            Console.Write("q");
         }
 
         /// <summary>
@@ -452,105 +557,117 @@ namespace Ploidulator
 
         private void PrintAllCluserMetrics()
         {
-            // this assumes at the moment that no clusters have been filtered out
-
-
-            // writes to a separate file for each significant all-clusters metric
-
-            /*Gives us the actual, unnormalised size of each cluster (independent of which individuals the reads come from)
-             * Can be used to determine if each is above/below average size and/or the degree of distribution/variation
-             * 
-             * <numReadsAll, numClusters>
-             * <numReadsDistinct, numClusters>
-             * 
-             * 
-             * 1. normalise each
-             */
-            #region clusters_avg_size
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_allreadcounts.tsv"))
+            if (!finished)
             {
-                file.WriteLine("num_reads\tnum_clusters");
-                foreach (KeyValuePair<int, int> dat in graphDataAllReads)
+
+
+                // this assumes at the moment that no clusters have been filtered out
+
+
+                // writes to a separate file for each significant all-clusters metric
+
+                /*Gives us the actual, unnormalised size of each cluster (independent of which individuals the reads come from)
+                 * Can be used to determine if each is above/below average size and/or the degree of distribution/variation
+                 * 
+                 * <numReadsAll, numClusters>
+                 * <numReadsDistinct, numClusters>
+                 * 
+                 * 
+                 * 1. normalise each
+                 */
+                #region clusters_avg_size
+                using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_allreadcounts.tsv"))
                 {
-                    file.WriteLine(dat.Key + "\t" + dat.Value);
+                    file.WriteLine("num_reads\tnum_clusters");
+                    foreach (KeyValuePair<int, int> dat in graphDataAllReads)
+                    {
+                        file.WriteLine(dat.Key + "\t" + dat.Value);
+                    }
                 }
-            }
 
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_distinctreadcounts.tsv"))
-            {
-                file.WriteLine("num_reads\tnum_clusters");
-                foreach (KeyValuePair<int, int> dat in graphDataDistinctReads)
+                using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_distinctreadcounts.tsv"))
                 {
-                    file.WriteLine(dat.Key + "\t" + dat.Value);
+                    file.WriteLine("num_reads\tnum_clusters");
+                    foreach (KeyValuePair<int, int> dat in graphDataDistinctReads)
+                    {
+                        file.WriteLine(dat.Key + "\t" + dat.Value);
+                    }
                 }
-            }
-            #endregion
+                #endregion
 
 
-            /*
+                /*
              * How many individuals are represented in each cluster? Also as Poisson-graphable type data
              * e.g. proportion of clusters that have all population represented Vs proportion that have half population represnted
              * <numIndividuals, numClusters>
              */
-            #region cluster_individual_representation
+                #region cluster_individual_representation
 
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_numindividualscounts.tsv"))
-            {
-                file.WriteLine("num_reads\tnum_clusters");
-                foreach (KeyValuePair<int, int> dat in graphDataIndividualsCounts)
+                using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_numindividualscounts.tsv"))
                 {
-                    file.WriteLine(dat.Key + "\t" + dat.Value);
+                    file.WriteLine("num_reads\tnum_clusters");
+                    foreach (KeyValuePair<int, int> dat in graphDataIndividualsCounts)
+                    {
+                        file.WriteLine(dat.Key + "\t" + dat.Value);
+                    }
                 }
-            }
 
-            // even if every individual is represented in the cluster, is there a vast difference between how they are represented?
-            // something to work out how many reads on average each individual has (read count per indiv averaged across cluster instead of just
-            // read count per cluster)
-            // average total readcount by individual
-            //graphDataIndividualsTotalReadcounts
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_byindividualsrtotaleadcounts.tsv"))
-            {
-                file.WriteLine("num_reads\tnum_clusters");
-                foreach (KeyValuePair<int, int> dat in graphDataIndividualsTotalReadcounts)
+                // even if every individual is represented in the cluster, is there a vast difference between how they are represented?
+                // something to work out how many reads on average each individual has (read count per indiv averaged across cluster instead of just
+                // read count per cluster)
+                // average total readcount by individual
+                //graphDataIndividualsTotalReadcounts
+                using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_byindividualsrtotaleadcounts.tsv"))
                 {
-                    file.WriteLine(dat.Key + "\t" + dat.Value);
+                    file.WriteLine("num_reads\tnum_clusters");
+                    foreach (KeyValuePair<int, int> dat in graphDataIndividualsTotalReadcounts)
+                    {
+                        file.WriteLine(dat.Key + "\t" + dat.Value);
+                    }
                 }
-            }
 
-            // average distinct readcount by individual
-            //graphDataIndividualsDistinctReadcounts
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_byindividualsrdistincteadcounts.tsv"))
-            {
-                file.WriteLine("num_reads\tnum_clusters");
-                foreach (KeyValuePair<int, int> dat in graphDataIndividualsDistinctReadcounts)
+                // average distinct readcount by individual
+                //graphDataIndividualsDistinctReadcounts
+                using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_byindividualsrdistincteadcounts.tsv"))
                 {
-                    file.WriteLine(dat.Key + "\t" + dat.Value);
+                    file.WriteLine("num_reads\tnum_clusters");
+                    foreach (KeyValuePair<int, int> dat in graphDataIndividualsDistinctReadcounts)
+                    {
+                        file.WriteLine(dat.Key + "\t" + dat.Value);
+                    }
                 }
-            }
 
-            #endregion
+                #endregion
 
-            /*
+                /*
              * The frequency distributions of the reads in each cluster on a per-individual basis
              * Normalised as percentages from smaller to larger (e.g. piechart-type data)
              * 
              * 
              */
-            #region frequency_distributions
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_frequencies.tsv"))
-            {
-                file.WriteLine("frequencies");
-                foreach (double[] dat in clustSeqFrequencies)
+                #region frequency_distributions
+                using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_frequencies.tsv"))
                 {
-                    file.WriteLine(String.Join("\t", dat));
+                    file.WriteLine("frequencies");
+                    foreach (double[] dat in clustSeqFrequencies)
+                    {
+                        file.WriteLine(String.Join("\t", dat));
+                    }
                 }
-            }
-            #endregion
+                #endregion
 
-            Console.WriteLine("finished");
+                Console.WriteLine("finished");
+                finished = true;
+            }
         }
 
         public delegate System.Delegate OneArgDelegate(double[] data);
+        public delegate System.Delegate MetricDelegate(ClusterMetricPloidulator metric);
+        public delegate System.Delegate SequenceDelegate();
+
+        public SequenceDelegate runner;
+        public Queue<List<SAMAlignedSequence>> bamOutputQueue;
+
         private int numChartsDisplayed = 0;
         private int maxNumCharts = 10;
         public int MaxNumCharts
@@ -561,53 +678,23 @@ namespace Ploidulator
         private static int CHART_INCREMENT = 10; // syntax?
 
 
-        public System.Delegate DrawChart(double[] data)
+        public System.Delegate WriteToBam()
         {
-            SolidColorBrush myTransparentBrush = new SolidColorBrush();
-            myTransparentBrush.Color = (Color)ColorConverter.ConvertFromString("Transparent");
-
-            // Chart frame
-            Chart c = new Chart();
-            c.Name = "PieChart";
-            c.VerticalAlignment = VerticalAlignment.Top;
-            c.Margin = new System.Windows.Thickness(0, 0, 0, 0);
-            c.Height = 200;
-            c.Width = 200;
-            c.Foreground = myTransparentBrush;
-            c.BorderBrush = myTransparentBrush;
-
-            // Chart data
-            PieSeries s = new PieSeries();
-            s.Title = "Frequencies";
-            s.Margin = new System.Windows.Thickness(0, -40, 0, -20);
-            c.Foreground = myTransparentBrush;
-            c.Background = myTransparentBrush;
-            c.BorderBrush = myTransparentBrush;
-            s.IndependentValueBinding = new Binding("Key");
-            s.DependentValueBinding = new Binding("Value");
-            c.Series.Add(s);
-
-            // Legend style
-            Style style = new Style(typeof(Control));
-            style.Setters.Add(new Setter(Chart.HeightProperty, new Binding("0")));
-            style.Setters.Add(new Setter(Chart.WidthProperty, new Binding("0")));
-            style.Setters.Add(new Setter(Chart.BorderBrushProperty, new Binding("Transparent")));
-            style.Setters.Add(new Setter(Chart.BackgroundProperty, new Binding("Transparent")));
-            c.LegendStyle = style;
-
-            // Bind data
-            KeyValuePair<string, double>[] dataSeries = new KeyValuePair<string, double>[data.Length];
-            int i = 0;
-            foreach (double d in data)
+            while (bamOutputQueue.Count > 0)
             {
-                dataSeries[i] = new KeyValuePair<string, double>("Ploidy " + (++i), d);
+                int i = 0;
+                foreach (SAMAlignedSequence seq in bamOutputQueue.Dequeue())
+                {
+                    bamFormatter.WriteAlignedSequence(header, seq, bamWriter);
+                }
             }
-            ((PieSeries)c.Series[0]).ItemsSource = dataSeries;
 
-            // Add chart
-            panel.Children.Add(c);
+            // signal to next thread runner that it can now process
+            canWriteToBam = true;
             return null;
         }
+
+        
 
 
 
