@@ -75,7 +75,8 @@ namespace Ploidulator
         /// <summary>
         /// Formatter used to write metric data to file
         /// </summary>
-        private MetricFormatter formatter = null;
+        private MetricFormatter formatterOriginalFile = null;
+        private MetricFormatter formatterFilteredFile = null;
 
         /// <summary>
         /// ClusterMetric calculates metric values for each SAMAlignedSequence list
@@ -96,7 +97,17 @@ namespace Ploidulator
         /// <summary>
         /// Indicates whether input is to be written back out to a SAM or BAM file
         /// </summary>
-        private bool writeToFile = false;
+        private bool writeToFilteredBam = true;
+        private bool writeClusterMetricOriginal = true;
+        private bool writeClusterMetricFiltered = true;
+        private bool writeOverviewMetricOriginal = true;
+        private bool writeOverviewMetricFiltered = true;
+        public bool WriteToFilteredBam { get { return writeToFilteredBam; } set { writeToFilteredBam = value; } }
+        public bool WriteClusterMetricOriginal { get { return writeClusterMetricOriginal; } set { writeClusterMetricOriginal = value; } }
+        public bool WriteClusterMetricFiltered { get { return writeClusterMetricFiltered; } set { writeClusterMetricFiltered = value; } }
+        public bool WriteOverviewMetricOriginal { get { return writeOverviewMetricOriginal; } set { writeOverviewMetricOriginal = value; } }
+        public bool WriteOverviewMetricFiltered { get { return writeOverviewMetricFiltered; } set { writeOverviewMetricFiltered = value; } }
+
 
         /// <summary>
         /// Average frequencies for each sequence, calculated per sample per cluster and averaged
@@ -146,6 +157,7 @@ namespace Ploidulator
         double dirtCutoff = 1;
         double alignQualCutoff = 0;
         double readQualCutoff = 0;
+        double popPercent = 0;
         int numSamples = 0;
         int numClustersToParse = int.MaxValue;
 
@@ -229,7 +241,7 @@ namespace Ploidulator
         /// </summary>
         /// <param name="clusterFileName">Name of the file metric data is to be written to.</param>
         public ClusterMetricHandlerPloidulator(string clusterFileName, int ploidy, 
-            double dirtCutoff, double alignQualCutoff, double readQualCutoff, int numSamples, bool? outputToFile,
+            double dirtCutoff, double alignQualCutoff, double readQualCutoff, double popPercent, int numSamples, bool? outputToFile,
             Dispatcher d, WrapPanel p)
             : this()
         {
@@ -241,8 +253,9 @@ namespace Ploidulator
             this.dirtCutoff = dirtCutoff;
             this.alignQualCutoff = alignQualCutoff;
             this.readQualCutoff = readQualCutoff;
+            this.popPercent = popPercent;
             this.numSamples = numSamples;
-            this.writeToFile = (outputToFile.HasValue) ? outputToFile.Value : false;
+            this.writeToFilteredBam = (outputToFile.HasValue) ? outputToFile.Value : false;
 
         }
 
@@ -346,7 +359,7 @@ namespace Ploidulator
         /// be written back out to a new SAM/BAM file.</param>
         public void WriteToFile(bool writeToFile)
         {
-            this.writeToFile = writeToFile;
+            this.writeToFilteredBam = writeToFile;
         }
 
         /// <summary>
@@ -402,6 +415,7 @@ namespace Ploidulator
             // we should be finished but we are still outputting to the bam file
             else if(!canWriteToBam)
             {
+                Thread.Sleep(5000); // sleep 5 seconds
                 return true;
             }
             return false;
@@ -429,12 +443,16 @@ namespace Ploidulator
 
                     ClusterMetricPloidulator tempMetric = new ClusterMetricPloidulator(expectedPloidy, numSamples, dispatcher, panel);
 
-                    if (formatter == null)
+                    if (writeClusterMetricOriginal && formatterOriginalFile == null)
                     {
-                        formatter = new MetricFormatter(FileName + ".metr");
+                        formatterOriginalFile = new MetricFormatter(FileName + "_orig.metr");
+                    }
+                    if (writeClusterMetricFiltered && formatterFilteredFile == null)
+                    {
+                        formatterFilteredFile = new MetricFormatter(FileName + "_filtered.metr");
                     }
                     Console.Write("b");
-                    if (writeToFile && bamWriter == null)
+                    if (writeToFilteredBam && bamWriter == null)
                     {
                         bamWriter = File.Create(FileName + "_filtered.bam");
                         bamFormatter = new BAMFormatter();   
@@ -469,36 +487,57 @@ namespace Ploidulator
                     Console.Write("j");
                     bool isOk = true;
                     Console.Write("k");
+                    Console.WriteLine(tempMetric.PopulationPercentage + "********************");
                     if (tempMetric.Dirt > dirtCutoff 
                         || tempMetric.AlignmentQualities[0] < alignQualCutoff 
-                        || tempMetric.ReadQualities[0] < readQualCutoff)
+                        || tempMetric.ReadQualities[0] < readQualCutoff
+                        || tempMetric.PopulationPercentage < popPercent)
                     {
                         isOk = false;
                     }
                     if (isOk)
                     {
                         ++goodCount;
+                        Console.WriteLine("GOOD "+goodCount);
+                    }
+                    else
+                    {
+                        Console.WriteLine("BAD");
                     }
                     tempMetric.Good = isOk;
                     SetStats(tempMetric);
 
                     Console.Write("<l>");
                     // write metric out to metric file
-                    formatter.Write(tempMetric);
+                    if (writeClusterMetricOriginal)
+                    {
+                        formatterOriginalFile.Write(tempMetric);
+                    }
+                    if (writeClusterMetricFiltered && isOk)
+                    {
+                        formatterFilteredFile.Write(tempMetric);
+                    }
+                    
                     Console.Write("m");
 
                     
                     
 
                     // if cluster is good, write aligned reads out to another sam/bam file for downstream analysis
-                    if (writeToFile && isOk)
+                    if (writeToFilteredBam && isOk)
                     {
-                        Console.WriteLine("[disabled] writing good cluster to file for sequences: " + sequences.Count);
+                        Console.WriteLine("writing good cluster to file for sequences: " + sequences.Count);
+                        while (bamOutputQueue.Count > 100)
+                        {
+                            // Gives the slow bamWriter a chance to catch up 
+                            // fixme - some better way of checking this.
+                            Thread.Sleep(20000); // sleep 20 seconds
+                        }
                         bamOutputQueue.Enqueue(sequences);
                     } 
                     // we might be writing these to file later, so store them
                     // we might be changing the parameters for isOk later, so for now all is ok
-                    else if(!writeToFile)
+                    else if(!writeToFilteredBam)
                     {
                         if(clusterBucket == null)
                         {
@@ -506,7 +545,7 @@ namespace Ploidulator
                         }
                         StoreMetric(tempMetric);
                     }
-                    if (writeToFile && canWriteToBam && bamOutputQueue.Count > 0)
+                    if (writeToFilteredBam && canWriteToBam && bamOutputQueue.Count > 0)
                     {
                         canWriteToBam = false;
                         runner = new SequenceDelegate(WriteToBam);
@@ -659,6 +698,10 @@ namespace Ploidulator
                 Console.WriteLine("finished");
                 finished = true;
             }
+            while (!canWriteToBam) // background thread is currently writing
+            {
+                Thread.Sleep(5000); // sleep 5 seconds
+            }
         }
 
         public delegate System.Delegate OneArgDelegate(double[] data);
@@ -666,7 +709,7 @@ namespace Ploidulator
         public delegate System.Delegate SequenceDelegate();
 
         public SequenceDelegate runner;
-        public Queue<List<SAMAlignedSequence>> bamOutputQueue;
+        private Queue<List<SAMAlignedSequence>> bamOutputQueue;
 
         private int numChartsDisplayed = 0;
         private int maxNumCharts = 10;
@@ -685,6 +728,7 @@ namespace Ploidulator
                 int i = 0;
                 foreach (SAMAlignedSequence seq in bamOutputQueue.Dequeue())
                 {
+                    //Console.Write("-"+(i++)+"-");
                     bamFormatter.WriteAlignedSequence(header, seq, bamWriter);
                 }
             }
@@ -704,6 +748,7 @@ namespace Ploidulator
         public void SetComplete()
         {
             ProcessSequences();
+
             PrintAllCluserMetrics();
             Console.WriteLine("im finished that, so what else do you want to do?");
             // Any other cleanup required that doesn't fit into Dispose()? todo
@@ -714,12 +759,16 @@ namespace Ploidulator
         /// </summary>
         public void Dispose()
         {
-            SetComplete();
+            //SetComplete();
             // todo fixme i have probably done this wrong. there will be some other checking and stuff
             // that i also need to do or other stuff I need to clean up
-            if (formatter != null)
+            if (formatterOriginalFile != null)
             {
-                formatter.Close();
+                formatterOriginalFile.Close();
+            }
+            if (formatterFilteredFile != null)
+            {
+                formatterFilteredFile.Close();
             }
             if (samWriter != null)
             {

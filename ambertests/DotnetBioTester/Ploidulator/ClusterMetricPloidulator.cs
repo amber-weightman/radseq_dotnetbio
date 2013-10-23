@@ -550,7 +550,7 @@ namespace Ploidulator
             foreach (SAMAlignedSequence seq in readsInPloidyForIndividuals)
             {
                 qSeq = new QualitativeSequence(SAMDnaAlphabet.Instance, FastQFormatType.Sanger, GetSequence(seq), GetReadQuality(seq));
-                readQualScoresAll[i++] = qSeq.GetQualityScores().Average();
+                readQualScoresIn[i++] = qSeq.GetQualityScores().Average();
                 //readQualScoresAll[i++] = GetReadQuality(seq).ToCharArray().Select(x => (int)x - 33).Average(); // [2,4,4,4,5,4,4,4] per sequence
             }
 
@@ -558,7 +558,7 @@ namespace Ploidulator
             foreach (SAMAlignedSequence seq in readsNotInPloidyForIndividuals)
             {
                 qSeq = new QualitativeSequence(SAMDnaAlphabet.Instance, FastQFormatType.Sanger, GetSequence(seq), GetReadQuality(seq));
-                readQualScoresAll[i++] = qSeq.GetQualityScores().Average();
+                readQualScoresOut[i++] = qSeq.GetQualityScores().Average();
                 //readQualScoresAll[i++] = GetReadQuality(seq).ToCharArray().Select(x => (int)x - 33).Average(); // [2,4,4,4,5,4,4,4] per sequence
             }
 
