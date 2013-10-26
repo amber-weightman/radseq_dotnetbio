@@ -39,8 +39,7 @@ namespace Ploidulator
         /// The number of samples represented in the entire population
         /// </summary>
         private int numSamples;
-        private Dispatcher dispatcher;
-        private WrapPanel panel;
+        
 
         // buckets of everything
         private List<SAMAlignedSequence> readsInPloidyForIndividuals = null;
@@ -95,12 +94,11 @@ namespace Ploidulator
             //throw new NotImplementedException();
         }
 
-        public ClusterMetricPloidulator(int ploidy, int samples, Dispatcher d, WrapPanel p)
+        public ClusterMetricPloidulator(int ploidy, int samples)
         {
             expectedPloidy = ploidy;
             numSamples = samples;
-            dispatcher = d;
-            panel = p;
+            
         }
 
         #endregion

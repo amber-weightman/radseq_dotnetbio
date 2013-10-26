@@ -5,9 +5,11 @@ using Bio.IO.SAM;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -26,6 +28,12 @@ namespace Ploidulator
     /// </summary>
     public class ClusterMetricHandlerPloidulator : IMetricHandler
     {
+        #region Private Static Fields
+        private static string OUTPUT_FOLDER = @"E:\Harvard\pl_output";
+        private static int OUTPUT_QUEUE_SIZE = 5000; // max number of sequences that can be stored in the
+                                                     // output queue (to prevent too many being held in memory)
+        #endregion
+
         #region Private Fields
 
         /// <summary>
@@ -39,16 +47,14 @@ namespace Ploidulator
         private int expectedPloidy;
 
         /// <summary>
-        /// GUI dispatcher, used to queue jobs on GUI thread
+        /// Whether the handler has been aborted
         /// </summary>
-        private Dispatcher dispatcher;
+        private bool aborted = false;
 
         /// <summary>
-        /// Panel in which to display visualisation per cluster
+        /// Whether the handler has done its completion cleanup 
         /// </summary>
-        private WrapPanel panel;
-
-        private List<ClusterMetricPloidulator> clusterBucket;
+        private bool isComplete = false;
 
         /// <summary>
         /// Id of the cluster to which current sequences belong
@@ -61,53 +67,50 @@ namespace Ploidulator
         private int clusterCount = 0;
 
         /// <summary>
+        /// Original header of input file
+        /// </summary>
+        private SAMAlignmentHeader header = null;
+
+        /// <summary>
+        /// New header for filtered output file
+        /// </summary>
+        private SAMAlignmentHeader newHeader = null;
+
+        #region flags
+        
+        /// <summary>
+        /// Assuming a single bam output file and a single thread writing to this file, this value is true
+        /// if it is ok to write to the bam file
+        /// </summary>
+        private bool canWriteToBam = true;
+
+        /// <summary>
+        /// Whether the sequence and header bam output files have been merged
+        /// </summary>
+        private bool bamFilesMerged = false;
+        
+        /// <summary>
+        /// This value is true if processing has finished for the current input file
+        /// </summary>
+        private bool finished = false;
+
+        #endregion
+
+        #region storage for sequences
+
+        /// <summary>
         /// Sequences stored, not yet processed.
         /// </summary>
         private List<SAMAlignedSequence> sequences = null;
 
         /// <summary>
-        /// Every sequence, for if we want to store in mem
+        /// Output queue for sequences which need to be written to a new filtered BAM file
         /// </summary>
-        private List<SAMAlignedSequence> allSequences = null;
-        // curr sequences
-        //private SequenceAlignmentMap seqMap = null;
+        private Queue<List<SAMAlignedSequence>> bamOutputQueue = null;
 
-        /// <summary>
-        /// Formatter used to write metric data to file
-        /// </summary>
-        private MetricFormatter formatterOriginalFile = null;
-        private MetricFormatter formatterFilteredFile = null;
+        #endregion
 
-        /// <summary>
-        /// ClusterMetric calculates metric values for each SAMAlignedSequence list
-        /// </summary>
-
-        private ClusterMetricPloidulator metric = null;
-
-        /// <summary>
-        /// Used to write read data back out to SAM or BAM file
-        /// </summary>
-        private TextWriter samWriter = null;
-        private Stream bamWriter = null;
-
-        private BAMFormatter bamFormatter = null;
-
-        private SAMAlignmentHeader header = null;
-
-        /// <summary>
-        /// Indicates whether input is to be written back out to a SAM or BAM file
-        /// </summary>
-        private bool writeToFilteredBam = true;
-        private bool writeClusterMetricOriginal = true;
-        private bool writeClusterMetricFiltered = true;
-        private bool writeOverviewMetricOriginal = true;
-        private bool writeOverviewMetricFiltered = true;
-        public bool WriteToFilteredBam { get { return writeToFilteredBam; } set { writeToFilteredBam = value; } }
-        public bool WriteClusterMetricOriginal { get { return writeClusterMetricOriginal; } set { writeClusterMetricOriginal = value; } }
-        public bool WriteClusterMetricFiltered { get { return writeClusterMetricFiltered; } set { writeClusterMetricFiltered = value; } }
-        public bool WriteOverviewMetricOriginal { get { return writeOverviewMetricOriginal; } set { writeOverviewMetricOriginal = value; } }
-        public bool WriteOverviewMetricFiltered { get { return writeOverviewMetricFiltered; } set { writeOverviewMetricFiltered = value; } }
-
+        #region storage for sequence stats
 
         /// <summary>
         /// Average frequencies for each sequence, calculated per sample per cluster and averaged
@@ -154,122 +157,204 @@ namespace Ploidulator
         /// </summary>
         private List<int> clustActualSize = new List<int>();
 
-        double dirtCutoff = 1;
-        double alignQualCutoff = 0;
-        double readQualCutoff = 0;
-        double popPercent = 0;
-        int numSamples = 0;
-        int numClustersToParse = int.MaxValue;
+        #endregion
 
-        private int numClustersParsed = 0;
-        private int goodCount = 0;
-        private int maxSampleCount = 0;
-        private double maxMapQ = 0;
-        private double maxReadQ = 0;
-        private double totalDirt = 0;
-        private double totalMapQ = 0;
-        private double totalReadQ = 0;
-        private double totalDirtGood = 0;
-        private double totalMapQGood = 0;
-        private double totalReadQGood = 0;
-
-        private double averageDirt = 0;
-        private double averageMapQ = 0;
-        private double averageReadQ = 0;
-        private double averageDirtGood = 0;
-        private double averageMapQGood = 0;
-        private double averageReadQGood = 0;
+        #region IO
 
         /// <summary>
-        /// precondition: metric.Good must have been set
+        /// Formatter used to write metric data to file (metrics for input file)
         /// </summary>
-        /// <param name="metric"></param>
-        private void SetStats(ClusterMetricPloidulator metric)
-        {
-            // greatest number of samples found so far in any one cluster
-            maxSampleCount = (metric.CountSamples > maxSampleCount) ? metric.CountSamples : maxSampleCount;
+        private MetricFormatter formatterOriginalFile = null;
 
-            // maximum quality value found so far in any one cluster
-            maxMapQ = (metric.AlignmentQualities[0] > maxMapQ) ? metric.AlignmentQualities[0] : maxMapQ;
-            maxReadQ = (metric.ReadQualities[0] > maxReadQ) ? metric.ReadQualities[0] : maxReadQ;
+        /// <summary>
+        /// Formatter used to write metric data to file (metrics for filtered 'good' sequences)
+        /// </summary>
+        private MetricFormatter formatterFilteredFile = null;
 
-            // totals are used to enable easy obtaining of average without iterating through lists to count each time
-            totalDirt += metric.Dirt;
-            totalMapQ += metric.AlignmentQualities[0];
-            totalReadQ += metric.ReadQualities[0];
+        /// <summary>
+        /// Used to write read data back out to filtered BAM file
+        /// </summary>
+        private Stream bamStream = null;
 
-            totalDirtGood = (metric.Good) ? totalDirtGood + metric.Dirt : totalDirtGood;
-            
-            totalMapQGood += (metric.Good) ? metric.AlignmentQualities[0] : 0;
-            totalReadQGood += (metric.Good) ? metric.ReadQualities[0] : 0;
+        /// <summary>
+        /// Used to write read data back out to filtered BAM file
+        /// </summary>
+        private BAMFormatter bamFormatter = null;
 
-            // running-averages
-            averageDirt = Math.Round(totalDirt / (double)numClustersParsed, 2);
-            averageMapQ = Math.Round(totalMapQ / (double)numClustersParsed, 2);
-            averageReadQ = Math.Round(totalReadQ / (double)numClustersParsed, 2);
+        #endregion
 
-            averageDirtGood = (goodCount > 0) ? Math.Round(totalDirtGood / (double)goodCount, 2) : 0;
-            averageMapQGood = (goodCount > 0) ? Math.Round(totalMapQGood / (double)goodCount, 2) : 0;
-            averageReadQGood = (goodCount > 0) ? Math.Round(totalReadQGood / (double)goodCount, 2) : 0;
-        }
+        #region fields from gui form
+        /// <summary>
+        /// Field from GUI form. Should a new filtered bam file be created
+        /// </summary>
+        private bool writeToFilteredBam = true;
 
+        /// <summary>
+        /// Field from GUI form. Should a metric file be created for the input file
+        /// </summary>
+        private bool writeClusterMetricOriginal = true;
 
+        /// <summary>
+        /// Field from GUI form. Should a metric file be created for the filtered output file
+        /// </summary>
+        private bool writeClusterMetricFiltered = true;
+
+        /// <summary>
+        /// Field from GUI form. Should an overview metric file be created for the input file
+        /// </summary>
+        private bool writeOverviewMetricOriginal = true;
+
+        /// <summary>
+        /// Field from GUI form. Should an overview metric file be created for the filtered output file
+        /// </summary>
+        private bool writeOverviewMetricFiltered = true;
+
+        #endregion
+
+        #region good/bad filter cutoffs
+
+        /// <summary>
+        /// Max allowed dirt
+        /// </summary>
+        private double dirtCutoff = 1;
+
+        /// <summary>
+        /// Min allowed alignment qualtiy (as average per cluster)
+        /// </summary>
+        private double alignQualCutoff = 0;
+
+        /// <summary>
+        /// Min allowed read qualtiy (as average per cluster)
+        /// </summary>
+        private double readQualCutoff = 0;
+
+        /// <summary>
+        /// Min allowed population percentage within each cluster
+        /// </summary>
+        private double popPercent = 0;
+
+        /// <summary>
+        /// The number of samples to expect for the current input file
+        /// </summary>
+        private int numSamples = 0;
+
+        #endregion
+
+        #region running totals and averages
+
+        /// <summary>
+        /// Number of clusters parsed so far
+        /// </summary>
+        private int numClustersParsed = 0;
+
+        /// <summary>
+        /// Number of good clusters so far
+        /// </summary>
+        private int goodCount = 0;
+
+        /// <summary>
+        /// Max number of samples found in a cluster so far
+        /// </summary>
+        private int maxSampleCount = 0;
+
+        /// <summary>
+        /// Max mapping quality found in a cluster so far
+        /// </summary>
+        private double maxMapQ = 0;
+
+        /// <summary>
+        /// Max read quality found in a cluster so far
+        /// </summary>
+        private double maxReadQ = 0;
+
+        /// <summary>
+        /// Running total for dirt (all clusters)
+        /// </summary>
+        private double totalDirt = 0;
+
+        /// <summary>
+        /// Running total for mapping qualtiy (all clusters)
+        /// </summary>
+        private double totalMapQ = 0;
+
+        /// <summary>
+        /// Running total for read quality (all clusters)
+        /// </summary>
+        private double totalReadQ = 0;
+
+        /// <summary>
+        /// Running total for dirt (good clusters)
+        /// </summary>
+        private double totalDirtGood = 0;
+
+        /// <summary>
+        /// Running total for mapping qualtiy (good clusters)
+        /// </summary>
+        private double totalMapQGood = 0;
+
+        /// <summary>
+        /// Running total for read quality (good clusters)
+        /// </summary>
+        private double totalReadQGood = 0;
+
+        /// <summary>
+        /// Average dirt (so far) for all clusters
+        /// </summary>
+        private double averageDirt = 0;
+
+        /// <summary>
+        /// Average mapping quality (so far) for all clusters
+        /// </summary>
+        private double averageMapQ = 0;
+
+        /// <summary>
+        /// Average read qualtiy (so far) for all clusters
+        /// </summary>
+        private double averageReadQ = 0;
+
+        /// <summary>
+        /// Average dirt (so far) for good clusters
+        /// </summary>
+        private double averageDirtGood = 0;
+
+        /// <summary>
+        /// Average mapping quality (so far) for good clusters
+        /// </summary>
+        private double averageMapQGood = 0;
+
+        /// <summary>
+        /// Average read quality (so far) for good clusters
+        /// </summary>
+        private double averageReadQGood = 0;
+
+        #endregion
+
+        
         #endregion
 
         #region Constructors
 
         /// <summary>
-        /// The default constructor.
+        /// Default constructor.
         /// </summary>
-        public ClusterMetricHandlerPloidulator()
-        {
-            //throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Non-default constructor, used to set the file name
-        /// </summary>
-        /// <param name="clusterFileName">Name of the file metric data is to be written to.</param>
-        public ClusterMetricHandlerPloidulator(string clusterFileName)
-            : this()
-        {
-            FileName = clusterFileName;
-        }
+        public ClusterMetricHandlerPloidulator() { }
 
         /// <summary>
         /// Non-default constructor, used to set the file name
         /// </summary>
         /// <param name="clusterFileName">Name of the file metric data is to be written to.</param>
         public ClusterMetricHandlerPloidulator(string clusterFileName, int ploidy, 
-            double dirtCutoff, double alignQualCutoff, double readQualCutoff, double popPercent, int numSamples, bool? outputToFile,
-            Dispatcher d, WrapPanel p)
+            double dirtCutoff, double alignQualCutoff, double readQualCutoff, double popPercent, int numSamples, bool? outputToFile)
             : this()
         {
-            FileName = clusterFileName;
-            expectedPloidy = ploidy;
-            dispatcher = d;
-            panel = p;
-
+            this.fileName = clusterFileName;
+            this.expectedPloidy = ploidy;
             this.dirtCutoff = dirtCutoff;
             this.alignQualCutoff = alignQualCutoff;
             this.readQualCutoff = readQualCutoff;
             this.popPercent = popPercent;
             this.numSamples = numSamples;
             this.writeToFilteredBam = (outputToFile.HasValue) ? outputToFile.Value : false;
-
-        }
-
-
-
-        /// <summary>
-        /// Non-default constructor, used to set the file name and also add a list of sequences
-        /// </summary>
-        /// <param name="clusterFileName">Name of the file metric data is to be written to.</param>
-        /// <param name="sequences">List of sequences.</param>
-        public ClusterMetricHandlerPloidulator(string clusterFileName, Collection<SAMAlignedSequence> sequences)
-            : this(clusterFileName)
-        {
-            AddRange(sequences);
         }
 
         #endregion
@@ -277,90 +362,117 @@ namespace Ploidulator
         #region Properties
 
         /// <summary>
-        /// Name of file to which metric data will be written.
-        /// </summary>
-        public string FileName
-        {
-            get { return fileName; }
-            set { this.fileName = value; }
-        }
-
-        /// <summary>
         /// Id of the cluster to which current sequences belong.
         /// </summary>
-        public string CurrCluster
-        {
-            get { return currCluster; }
-        }
+        public string CurrCluster { get { return currCluster; } }
 
         /// <summary>
         /// number of clusters which have been parsed
         /// </summary>
-        public int ClusterCount
-        {
-            get { return clusterCount; }
-        }
-
+        public int ClusterCount { get { return clusterCount; } }
 
         /// <summary>
-        /// Sequences stored, not yet processed.
+        /// The header for the bam input file
         /// </summary>
-        public List<SAMAlignedSequence> Sequences
-        {
-            get { return sequences; }
-        }
-
-        /// <summary>
-        /// Average frequencies for each sequence, calculated per sample per cluster and averaged
-        /// out to cluster
-        /// </summary>
-        public List<double[]> ClustSeqFrequencies
-        {
-            get { return clustSeqFrequencies; }
-        }
-
-
-        public SAMAlignmentHeader Header
-        {
-            get { return header; }
-            set { header = value; }
-        }
-
-
+        public SAMAlignmentHeader InputHeader { get { return header; } set { header = value; } }
         
+        #region output files
 
+        /// <summary>
+        /// Field from GUI form. Should a new filtered bam file be created
+        /// </summary>
+        public bool WriteToFilteredBam { get { return writeToFilteredBam; } set { writeToFilteredBam = value; } }
+
+        /// <summary>
+        /// Field from GUI form. Should a metric file be created for the input file
+        /// </summary>
+        public bool WriteClusterMetricOriginal { get { return writeClusterMetricOriginal; } set { writeClusterMetricOriginal = value; } }
+        
+        /// <summary>
+        /// Field from GUI form. Should a metric file be created for the filtered output file
+        /// </summary>
+        public bool WriteClusterMetricFiltered { get { return writeClusterMetricFiltered; } set { writeClusterMetricFiltered = value; } }
+        
+        /// <summary>
+        /// Field from GUI form. Should an overview metric file be created for the input file
+        /// </summary>
+        public bool WriteOverviewMetricOriginal { get { return writeOverviewMetricOriginal; } set { writeOverviewMetricOriginal = value; } }
+        
+        /// <summary>
+        /// Field from GUI form. Should an overview metric file be created for the filtered output file
+        /// </summary>
+        public bool WriteOverviewMetricFiltered { get { return writeOverviewMetricFiltered; } set { writeOverviewMetricFiltered = value; } }
+
+        #endregion
+
+        #region running totals and averages
+
+        /// <summary>
+        /// Number of good clusters so far
+        /// </summary>
         public int GoodCount { get { return goodCount; } }
+
+        /// <summary>
+        /// Max number of samples found in a cluster so far
+        /// </summary>
         public int MaxSampleCount { get { return maxSampleCount; } }
+
+        /// <summary>
+        /// Max mapping quality found in a cluster so far
+        /// </summary>
         public double MaxMapQ { get { return maxMapQ; } }
+
+        /// <summary>
+        /// Max read quality found in a cluster so far
+        /// </summary>
         public double MaxReadQ { get { return maxReadQ; } }
+
+        /// <summary>
+        /// Average dirt (so far) for all clusters
+        /// </summary>
         public double AverageDirt { get { return averageDirt; } }
+
+        /// <summary>
+        /// Average mapping quality (so far) for all clusters
+        /// </summary>
         public double AverageMapQ { get { return averageMapQ; } }
+
+        /// <summary>
+        /// Average read qualtiy (so far) for all clusters
+        /// </summary>
         public double AverageReadQ { get { return averageReadQ; } }
 
+        /// <summary>
+        /// Average dirt (so far) for good clusters
+        /// </summary>
         public double AverageDirtGood { get { return averageDirtGood; } }
+
+        /// <summary>
+        /// Average mapping quality (so far) for good clusters
+        /// </summary>
         public double AverageMapQGood { get { return averageMapQGood; } }
+
+        /// <summary>
+        /// Average read quality (so far) for good clusters
+        /// </summary>
         public double AverageReadQGood { get { return averageReadQGood; } }
 
-        private bool aborted = false;
+        #endregion
 
-        public void Abort()
-        {
-            aborted = true;
-        }
+        #endregion
+
+        #region Delegates
+
+        /// <summary>
+        /// Delegate for performing cluster processing
+        /// </summary>
+        private delegate System.Delegate ClusterDelegate();
 
         #endregion
 
         #region Public Methods
 
-        // this needs a couple more params 
-        // -- one to specify whether to write to bam or sam
-        // -- another param which is the filter criteria (filter reads out based on cluster dirt at what cutoff)
-        /// <param name="writeToFile">Whether the SAMAlignedSequences, filtered by the ClusterMetric, should
-        /// be written back out to a new SAM/BAM file.</param>
-        public void WriteToFile(bool writeToFile)
-        {
-            this.writeToFilteredBam = writeToFile;
-        }
+        #region add
 
         /// <summary>
         /// Add a list of sequences. For each sequence, if the sequence belongs to the current cluster, 
@@ -371,7 +483,6 @@ namespace Ploidulator
         /// <returns>Always returns true</returns>
         public bool AddRange(IEnumerable<SAMAlignedSequence> sequences)
         {
-            
             foreach (SAMAlignedSequence seq in sequences)
             {
                 Add(seq); 
@@ -388,15 +499,24 @@ namespace Ploidulator
         /// <returns>Returns true if the sequence could be added, false if the handler has been closed</returns>
         public bool Add(SAMAlignedSequence sequence)
         {
+            if (sequences == null)
+            {
+                sequences = new List<SAMAlignedSequence>();
+            }
+
             if (!finished)
             {
                 string thisSeqCluster = sequence.RName; // Cluster the sequence we just added belongs to
 
+                // This is the first sequence for the first cluster
                 if (currCluster == null)
                 {
                     currCluster = thisSeqCluster;
                 }
-                else if (!currCluster.Equals(thisSeqCluster)) // This sequence belongs to a different cluster from the ones currently stored in sequences
+
+                // This sequence belongs to a different cluster from the ones currently stored by this handler
+                // (Process currently stored sequences before adding the new sequence)
+                else if (!currCluster.Equals(thisSeqCluster)) 
                 {
                     ++numClustersParsed; // mark off another cluster
                     ProcessSequences();
@@ -404,24 +524,46 @@ namespace Ploidulator
                     currCluster = thisSeqCluster;
                     sequences = new List<SAMAlignedSequence>();
                 }
-
-                if (sequences == null)
-                {
-                    sequences = new List<SAMAlignedSequence>();
-                }
+                
                 sequences.Add(sequence);
                 return true;
             }
-            // we should be finished but we are still outputting to the bam file
-            else if(!canWriteToBam)
+
+            // Processing of sequences should be finished but we are still outputting to the bam file
+            // Or we are supposed to write to a bam file and the header and body files have not yet been merged
+            // Wait for output to the bam file to complete
+            else if ((!canWriteToBam && writeToFilteredBam) || (!bamFilesMerged && writeToFilteredBam))
             {
-                Thread.Sleep(5000); // sleep 5 seconds
+                while (!canWriteToBam || !bamFilesMerged)
+                {
+                    Thread.Sleep(20000); // sleep 20 seconds
+                }
                 return true;
             }
-            return false;
+
+            // finished == true, bam file is writable and bam files have been merged (or no bam file was ever written to)
+            // returning false indicates to calling process that no more sequences will be accepted
+            else 
+            {
+                return false;
+            }
         }
 
-        
+        #endregion
+
+        #region modify behaviour
+
+        /// <summary>
+        /// Abort the handler when safe to do so (after the current cluster has finished processing)
+        /// </summary>
+        public void Abort()
+        {
+            aborted = true;
+        }
+
+        #endregion
+
+        #region processing
 
         /// <summary>
         /// Calculate metric for a single cluser of sequences (all stored sequences), 
@@ -429,160 +571,305 @@ namespace Ploidulator
         /// </summary>
         public void ProcessSequences()
         {
-            if (sequences != null && sequences.Count > 0)
+            bool isGood = true;
+            if (sequences != null && sequences.Count > 0 && !isComplete) // do the following only if there are sequences to be processed
             {
-                //if ((metric == null || metric.Id != "142919") && (clusterCount < numClustersToParse)) 
-                //{
-                    clusterCount++;
-                    Console.Write("a");
+                clusterCount++;
+                ClusterMetricPloidulator metric = new ClusterMetricPloidulator(expectedPloidy, numSamples);
+                                
+                // Initialise metric output file/s
+                InitMetricOutputFiles();
+
+                // Initialise bam output file/s
+                InitBamOutputFiles();
+
+                // Perform core metric calculations on cluster sequences
+                metric.Calculate(sequences);
+                isGood = GoodOrBad(metric);
+
+                // Get statistics from the metric for this new cluster
+                CreateSummaryArrays(metric);
+                SetOverviewStats(metric, isGood);
                 
-                    /*if (metric == null)
-                    {
-                        metric = new ClusterMetricPloidulator(expectedPloidy, numSamples, dispatcher, panel);
-                    }*/
+                // Output sequences to metric file/s and/or filtered bam file
+                WriteToMetricOutputFiles(metric, isGood);
+                AddToOutputBamQueue(metric, isGood);
 
-                    ClusterMetricPloidulator tempMetric = new ClusterMetricPloidulator(expectedPloidy, numSamples, dispatcher, panel);
-
-                    if (writeClusterMetricOriginal && formatterOriginalFile == null)
-                    {
-                        formatterOriginalFile = new MetricFormatter(FileName + "_orig.metr");
-                    }
-                    if (writeClusterMetricFiltered && formatterFilteredFile == null)
-                    {
-                        formatterFilteredFile = new MetricFormatter(FileName + "_filtered.metr");
-                    }
-                    Console.Write("b");
-                    if (writeToFilteredBam && bamWriter == null)
-                    {
-                        bamWriter = File.Create(FileName + "_filtered.bam");
-                        bamFormatter = new BAMFormatter();   
-                        bamFormatter.WriteHeader(header, bamWriter);
-                        bamOutputQueue = new Queue<List<SAMAlignedSequence>>();
-
-                    }
-                    Console.Write("c");
-                    // calculate metric
-                    //metric.Calculate(sequences);
-
-                    
-
-
-                    tempMetric.Calculate(sequences);
-
-                    Console.Write("d");
-                    // read and/or store some values from the metric
-                    clustSeqFrequencies.Add(tempMetric.ClustSeqFrequencies);
-                    Console.Write("e");
-                    SetThisDictValueCounts(graphDataAllReads, tempMetric.CountAll);
-                    Console.Write("f");
-                    SetThisDictValueCounts(graphDataDistinctReads, tempMetric.CountDistinct);
-                    Console.Write("g");
-                    SetThisDictValueCounts(graphDataIndividualsCounts, tempMetric.CountSamples);
-                    Console.Write("h");
-                    int key = (int)Math.Round(tempMetric.SampleReadCountsDistinct.Average(), 1);
-                    SetThisDictValueCounts(graphDataIndividualsDistinctReadcounts, key);
-                    Console.Write("i");
-                    key = (int)Math.Round(tempMetric.SampleReadCountsAll.Average(), 1);
-                    SetThisDictValueCounts(graphDataIndividualsTotalReadcounts, key);
-                    Console.Write("j");
-                    bool isOk = true;
-                    Console.Write("k");
-                    Console.WriteLine(tempMetric.PopulationPercentage + "********************");
-                    if (tempMetric.Dirt > dirtCutoff 
-                        || tempMetric.AlignmentQualities[0] < alignQualCutoff 
-                        || tempMetric.ReadQualities[0] < readQualCutoff
-                        || tempMetric.PopulationPercentage < popPercent)
-                    {
-                        isOk = false;
-                    }
-                    if (isOk)
-                    {
-                        ++goodCount;
-                        Console.WriteLine("GOOD "+goodCount);
-                    }
-                    else
-                    {
-                        Console.WriteLine("BAD");
-                    }
-                    tempMetric.Good = isOk;
-                    SetStats(tempMetric);
-
-                    Console.Write("<l>");
-                    // write metric out to metric file
-                    if (writeClusterMetricOriginal)
-                    {
-                        formatterOriginalFile.Write(tempMetric);
-                    }
-                    if (writeClusterMetricFiltered && isOk)
-                    {
-                        formatterFilteredFile.Write(tempMetric);
-                    }
-                    
-                    Console.Write("m");
-
-                    
-                    
-
-                    // if cluster is good, write aligned reads out to another sam/bam file for downstream analysis
-                    if (writeToFilteredBam && isOk)
-                    {
-                        Console.WriteLine("writing good cluster to file for sequences: " + sequences.Count);
-                        while (bamOutputQueue.Count > 100)
-                        {
-                            // Gives the slow bamWriter a chance to catch up 
-                            // fixme - some better way of checking this.
-                            Thread.Sleep(20000); // sleep 20 seconds
-                        }
-                        bamOutputQueue.Enqueue(sequences);
-                    } 
-                    // we might be writing these to file later, so store them
-                    // we might be changing the parameters for isOk later, so for now all is ok
-                    else if(!writeToFilteredBam)
-                    {
-                        if(clusterBucket == null)
-                        {
-                            clusterBucket = new List<ClusterMetricPloidulator>();
-                        }
-                        StoreMetric(tempMetric);
-                    }
-                    if (writeToFilteredBam && canWriteToBam && bamOutputQueue.Count > 0)
-                    {
-                        canWriteToBam = false;
-                        runner = new SequenceDelegate(WriteToBam);
-                        runner.BeginInvoke(null, null);
-                    }
-                    
-                    
-                //}
-                //else if (numClustersToParse != -1 || metric.Id == "142919") // for debugging pretend this is the end of the file if numClustersToParse is not -1
-                //{
-                  //  PrintAllCluserMetrics();
-                //}
+                // If the bam file is not currently being written to, and there are sequences in the queue ready to be
+                // written, launch a new thread to perform the writing to file
+                if (writeToFilteredBam && canWriteToBam && bamOutputQueue.Count > 0)
+                {
+                    canWriteToBam = false;
+                    ClusterDelegate runner = new ClusterDelegate(WriteToBam);
+                    runner.BeginInvoke(null, null);
+                }        
             }
+
+            // Now that all processing has been performed for the current cluster, if the handler has been 
+            // aborted, perform any final file outputs
             if(aborted)
             {
-                // todo this might not quite tidy it up the way we want it to
-                PrintAllCluserMetrics();
+                SetComplete(false);
             }
         }
-        private bool canWriteToBam = true;
-        private bool finished = false;
-        private void StoreMetric(ClusterMetricPloidulator tempMetric)
+
+        #endregion
+
+        #region completion
+        /// <summary>
+        /// Process any/all remaining sequences.
+        /// </summary>
+        public void SetComplete()
         {
-            Console.Write("o");
-            tempMetric.Shrink();
-            Console.Write("p");
-            clusterBucket.Add(tempMetric);
-            Console.Write("q");
+            SetComplete(true);
         }
 
         /// <summary>
-        /// this is the poisson-graphing type integer dict
-        /// all values are rounded to the nearest whole numbers
+        /// Set complete but do not process any more sequences
         /// </summary>
-        /// <param name="dict"></param>
-        /// <param name="key"></param>
-        private void SetThisDictValueCounts(Dictionary<int, int> dict, int key)
+        public void SetComplete(bool checkSequences)
+        {
+            if (!isComplete)
+            {
+                if (checkSequences)
+                {
+                    ProcessSequences();
+                }
+
+                PrintFinalCluserMetrics();
+
+                if (writeToFilteredBam)
+                {
+                    concatFiles();
+                }
+                isComplete = true;
+            }
+            // Any other cleanup required that doesn't fit into Dispose()? todo
+        }
+
+        /// <summary>
+        /// Disposes all formatters
+        /// </summary>
+        public void Dispose()
+        {
+            //SetComplete();
+            // todo fixme i have probably done this wrong. there will be some other checking and stuff
+            // that i also need to do or other stuff I need to clean up
+            if (formatterOriginalFile != null)
+            {
+                formatterOriginalFile.Close();
+            }
+            if (formatterFilteredFile != null)
+            {
+                formatterFilteredFile.Close();
+            }
+            if (bamStream != null)
+            {
+                bamStream.Close();
+            }
+        }
+
+#endregion
+
+        #endregion
+
+        #region Private Methods
+
+        /// <summary>
+        /// If metric is good, add it to the output queue (ready to be written to new BAM file)
+        /// </summary>
+        private void AddToOutputBamQueue(ClusterMetricPloidulator metric, bool isGood)
+        {
+            if (writeToFilteredBam && isGood)
+            {
+                Console.WriteLine("Writing good cluster to file for # sequences: " + sequences.Count);
+
+                // If the output queue has too many sequences in it, wait for the bam writer to catch up
+                // and prevent memory fault
+                while (bamOutputQueue.Count >= OUTPUT_QUEUE_SIZE)
+                {
+                    Thread.Sleep(30000); // sleep 30 seconds
+                }
+
+                // Add sequences to output file queue and output file header
+                bamOutputQueue.Enqueue(sequences);
+                AddToHeader(sequences[0]);
+            } 
+        }
+
+        /// <summary>
+        /// Add a sequence to the filtered output file header
+        /// </summary>
+        private void AddToHeader(SAMAlignedSequence seq)
+        {
+            // for each good clust
+            SAMRecordField sq = new SAMRecordField("SQ");
+            sq.Tags.Add(new SAMRecordFieldTag("SN", seq.RName));
+            sq.Tags.Add(new SAMRecordFieldTag("LN", "45")); // todo fixme this dataset only
+            newHeader.RecordFields.Add(sq);
+
+            Console.Write("before add count is " + newHeader.ReferenceSequences.Count);
+            newHeader.ReferenceSequences.Add(new ReferenceSequenceInfo(seq.RName, 45)); // todo fixme this dataset only
+            Console.Write("after add count is " + newHeader.ReferenceSequences.Count);
+        }
+
+        /// <summary>
+        /// Write metrics to all per-cluster metric files
+        /// </summary>
+        private void WriteToMetricOutputFiles(ClusterMetricPloidulator metric, bool isGood)
+        {
+            if (writeClusterMetricOriginal)
+            {
+                formatterOriginalFile.Write(metric);
+            }
+            if (writeClusterMetricFiltered && isGood)
+            {
+                formatterFilteredFile.Write(metric);
+            }
+        }
+
+        /// <summary>
+        /// Given a populated and calculated metric, determine based on handler's filter criteria whether
+        /// that cluster is good or bad. Returns true for good, false for bad
+        /// </summary>
+        private bool GoodOrBad(ClusterMetricPloidulator tempMetric)
+        {
+            if (tempMetric.Dirt > dirtCutoff
+                    || tempMetric.AlignmentQualities[0] < alignQualCutoff
+                    || tempMetric.ReadQualities[0] < readQualCutoff
+                    || tempMetric.PopulationPercentage < popPercent)
+            {
+                Console.WriteLine("BAD CLUSTER");
+                tempMetric.Good = false;
+            }
+            else
+            {
+                Console.WriteLine("GOOD CLUSTER");
+                ++goodCount;
+                tempMetric.Good = true;
+            }
+            return tempMetric.Good;
+        }
+
+        /// <summary>
+        /// Initialise all metric output files, if required and if not already initialised
+        /// </summary>
+        private void InitMetricOutputFiles()
+        {
+            if (writeClusterMetricOriginal && formatterOriginalFile == null)
+            {
+                formatterOriginalFile = new MetricFormatter(fileName + "_orig.metr");
+            }
+            if (writeClusterMetricFiltered && formatterFilteredFile == null)
+            {
+                formatterFilteredFile = new MetricFormatter(fileName + "_filtered.metr");
+            }
+        }
+
+        /// <summary>
+        /// Initialise bam output file, if required and if not already initialised
+        /// </summary>
+        private void InitBamOutputFiles()
+        {
+            if (writeToFilteredBam && bamStream == null && bamFormatter == null)
+            {
+                bamFormatter = new BAMFormatter();
+                newHeader = new SAMAlignmentHeader();
+                bamOutputQueue = new Queue<List<SAMAlignedSequence>>();
+
+                // Create a new directory for output files if it does not already exist
+                if (!Directory.Exists(OUTPUT_FOLDER))
+                {
+                    Directory.CreateDirectory(OUTPUT_FOLDER);
+                }
+
+                // Create the output file for filtered sequences
+                string file = OUTPUT_FOLDER + "\\sequences.bam";
+                bamStream = File.Create(file);
+            }
+        }
+
+        /// <summary>
+        /// Get various data arrays from metric, representing summary details for all clusters so far
+        /// </summary>
+        /// <param name="metric"></param>
+        private void CreateSummaryArrays(ClusterMetricPloidulator metric) {
+                    
+            clustSeqFrequencies.Add(metric.ClustSeqFrequencies);
+                    
+            SetDictValueCounts(graphDataAllReads, metric.CountAll);
+                    
+            SetDictValueCounts(graphDataDistinctReads, metric.CountDistinct);
+                    
+            SetDictValueCounts(graphDataIndividualsCounts, metric.CountSamples);
+                    
+            int key = (int)Math.Round(metric.SampleReadCountsDistinct.Average(), 1);
+            SetDictValueCounts(graphDataIndividualsDistinctReadcounts, key);
+                    
+            key = (int)Math.Round(metric.SampleReadCountsAll.Average(), 1);
+            SetDictValueCounts(graphDataIndividualsTotalReadcounts, key);
+        }
+
+        /// <summary>
+        /// Set or update overview stats
+        /// (Totals are used to enable easy obtaining of average without iterating through lists to count each time)
+        /// </summary>
+        private void SetOverviewStats(ClusterMetricPloidulator metric, bool isGood)
+        {
+            // greatest number of samples found so far in any one cluster
+            maxSampleCount = (metric.CountSamples > maxSampleCount) ? metric.CountSamples : maxSampleCount;
+
+            // maximum quality value found so far in any one cluster
+            maxMapQ = (metric.AlignmentQualities[0] > maxMapQ) ? metric.AlignmentQualities[0] : maxMapQ;
+            maxReadQ = (metric.ReadQualities[0] > maxReadQ) ? metric.ReadQualities[0] : maxReadQ;
+
+            // set totals for all clusters
+            totalDirt += metric.Dirt;
+            totalMapQ += metric.AlignmentQualities[0];
+            totalReadQ += metric.ReadQualities[0];
+
+            // set totals for good clusters
+            totalDirtGood = (isGood) ? totalDirtGood + metric.Dirt : totalDirtGood;
+            totalMapQGood += (isGood) ? metric.AlignmentQualities[0] : 0;
+            totalReadQGood += (isGood) ? metric.ReadQualities[0] : 0;
+
+            // running averages for all clusters
+            averageDirt = Math.Round(totalDirt / (double)numClustersParsed, 2);
+            averageMapQ = Math.Round(totalMapQ / (double)numClustersParsed, 2);
+            averageReadQ = Math.Round(totalReadQ / (double)numClustersParsed, 2);
+
+            // running averages for good clusters
+            averageDirtGood = (goodCount > 0) ? Math.Round(totalDirtGood / (double)goodCount, 2) : 0;
+            averageMapQGood = (goodCount > 0) ? Math.Round(totalMapQGood / (double)goodCount, 2) : 0;
+            averageReadQGood = (goodCount > 0) ? Math.Round(totalReadQGood / (double)goodCount, 2) : 0;
+        }
+
+        /// <summary>
+        /// Concatenate together the header and sequence bam output files
+        /// </summary>
+        private void concatFiles()
+        {
+            Console.WriteLine("Concatenating bam header and sequence output files");
+            Process process = new Process();
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+
+            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            startInfo.FileName = "cmd.exe";
+            startInfo.Arguments = "/C copy /b " + OUTPUT_FOLDER + "\\header.bam+" + OUTPUT_FOLDER + "\\sequences.bam " + OUTPUT_FOLDER + "\\filtered.bam /y";
+            process.StartInfo = startInfo;
+            process.Start();
+            
+            bamFilesMerged = true;
+            Console.WriteLine("Finished concatenating");
+        }
+        
+
+        /// <summary>
+        /// For the given key-count dictionary, if it has key, increment the value to reflect that it contains
+        /// another instance. If it does not yet have that key, add a first instance with that key reference
+        /// Dict values are rounded to the nearest whole number (int)
+        /// </summary>
+        private void SetDictValueCounts(Dictionary<int, int> dict, int key)
         {
             if (dict.ContainsKey(key))
             {
@@ -593,15 +880,14 @@ namespace Ploidulator
                 dict[key] = 1;
             }
         }
-
-        private void PrintAllCluserMetrics()
+        
+        /*
+         I haven't cleaned this method up because it needs to be significantly rewritten
+         */
+        private void PrintFinalCluserMetrics()
         {
             if (!finished)
             {
-
-
-                // this assumes at the moment that no clusters have been filtered out
-
 
                 // writes to a separate file for each significant all-clusters metric
 
@@ -696,95 +982,47 @@ namespace Ploidulator
                 #endregion
 
                 Console.WriteLine("finished");
+
                 finished = true;
             }
             while (!canWriteToBam) // background thread is currently writing
             {
                 Thread.Sleep(5000); // sleep 5 seconds
             }
+            if(writeToFilteredBam){
+                canWriteToBam = false;
+                //string folderName = @"E:\Harvard\ploidulator_output";
+                string f = OUTPUT_FOLDER + "\\header.bam";
+                using (Stream writer = File.OpenWrite(f))
+                {
+                    Console.WriteLine("num seq before writing: "+newHeader.ReferenceSequences.Count);
+                    new BAMFormatter().WriteHeader(newHeader, writer);
+                }
+                Thread.Sleep(5000); // sleep 5 seconds
+                canWriteToBam = true;
+            }
         }
 
-        public delegate System.Delegate OneArgDelegate(double[] data);
-        public delegate System.Delegate MetricDelegate(ClusterMetricPloidulator metric);
-        public delegate System.Delegate SequenceDelegate();
-
-        public SequenceDelegate runner;
-        private Queue<List<SAMAlignedSequence>> bamOutputQueue;
-
-        private int numChartsDisplayed = 0;
-        private int maxNumCharts = 10;
-        public int MaxNumCharts
-        {
-            get { return maxNumCharts; }
-            set { this.maxNumCharts = value; }
-        }
-        private static int CHART_INCREMENT = 10; // syntax?
-
-
-        public System.Delegate WriteToBam()
+        /// <summary>
+        /// Write sequences from output queue into filtered bam output file
+        /// </summary>
+        /// <returns></returns>
+        private System.Delegate WriteToBam()
         {
             while (bamOutputQueue.Count > 0)
             {
-                int i = 0;
                 foreach (SAMAlignedSequence seq in bamOutputQueue.Dequeue())
                 {
-                    //Console.Write("-"+(i++)+"-");
-                    bamFormatter.WriteAlignedSequence(header, seq, bamWriter);
+                    bamFormatter.WriteAlignedSequence(header, seq, bamStream);
                 }
             }
-
-            // signal to next thread runner that it can now process
+            // signal to next thread runner that it can now process sequences from the queue
             canWriteToBam = true;
             return null;
         }
 
-        
-
-
-
-        /// <summary>
-        /// Process any/all remaining sequences.
-        /// </summary>
-        public void SetComplete()
-        {
-            ProcessSequences();
-
-            PrintAllCluserMetrics();
-            Console.WriteLine("im finished that, so what else do you want to do?");
-            // Any other cleanup required that doesn't fit into Dispose()? todo
-        }
-
-        /// <summary>
-        /// Disposes all formatters
-        /// </summary>
-        public void Dispose()
-        {
-            //SetComplete();
-            // todo fixme i have probably done this wrong. there will be some other checking and stuff
-            // that i also need to do or other stuff I need to clean up
-            if (formatterOriginalFile != null)
-            {
-                formatterOriginalFile.Close();
-            }
-            if (formatterFilteredFile != null)
-            {
-                formatterFilteredFile.Close();
-            }
-            if (samWriter != null)
-            {
-                samWriter.Close();
-            }
-            if (bamWriter != null)
-            {
-                bamWriter.Close();
-            }
-            if (bamFormatter != null)
-            {
-                //bamFormatter.Close();
-            }
-        }
-
         #endregion
+
 
     }
 }

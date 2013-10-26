@@ -142,6 +142,7 @@
     <Compile Include="ClusterMetricPloidulator.cs" />
     <Compile Include="Em.cs" />
     <Compile Include="FromAccord.cs" />
+    <Compile Include="headercode.cs" />
     <Compile Include="Magnolya.cs" />
     <Compile Include="Ploidulator.xaml.cs">
       <DependentUpon>Ploidulator.xaml</DependentUpon>

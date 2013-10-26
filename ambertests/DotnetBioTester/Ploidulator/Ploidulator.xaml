@@ -7,7 +7,7 @@
     <DockPanel LastChildFill="True">
 
         <DockPanel DockPanel.Dock="Top" Background="{DynamicResource {x:Static SystemColors.AppWorkspaceBrushKey}}">
-            <Label DockPanel.Dock="Left" HorizontalAlignment="Left">Ploidulator BAM CLUSTER ANALYSIS TOOL</Label>
+            <Label DockPanel.Dock="Left" HorizontalAlignment="Left">Ploidulator BAM cluster analysis and filtering tool</Label>
 
             <Label DockPanel.Dock="Right" HorizontalAlignment="Right">Powered by .NET Bio</Label>
         </DockPanel>
@@ -312,8 +312,8 @@
                         
                    Height="330" Width="200" HorizontalAlignment="Right" Visibility="Visible">
 
-               
-                    <Expander x:Name="MenuExpander0" Header="DETECTED SO FAR" FontSize="10" IsExpanded="False" 
+
+                <Expander x:Name="OverviewFileStats" Header="DETECTED SO FAR" FontSize="10" IsExpanded="False" 
                             ExpandDirection="Down" Grid.ColumnSpan="2" Width="auto">
                     <Border BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}" BorderThickness="1,0,1,1">
                         <Grid HorizontalAlignment="Right" >
@@ -348,7 +348,7 @@
                     </Border>
                     </Expander>
 
-                <Expander x:Name="MenuExpander1" Header="ALL CLUSTERS" FontSize="10" IsExpanded="False" 
+                <Expander x:Name="OverviewAllClustersStats" Header="ALL CLUSTERS" FontSize="10" IsExpanded="False" 
                             ExpandDirection="Down" Grid.ColumnSpan="2" Width="auto" >
                     <Border BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"  BorderThickness="1,0,1,1">
                     <Grid HorizontalAlignment="Right" >
@@ -389,7 +389,7 @@
                     </Border>
                 </Expander>
 
-                <Expander x:Name="MenuExpander2" Header="GOOD CLUSTERS" FontSize="10" IsExpanded="False" 
+                <Expander x:Name="OverviewGoodClustersStats" Header="GOOD CLUSTERS" FontSize="10" IsExpanded="False" 
                             ExpandDirection="Down" Grid.ColumnSpan="2" Width="auto"
                           ToolTip="These will be the averages for your filtered BAM output file">
                     <Border BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"  BorderThickness="1,0,1,1">

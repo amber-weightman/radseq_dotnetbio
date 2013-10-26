@@ -1,6 +1,7 @@
 ﻿using Bio.Algorithms.Metric;
 using Bio.IO.BAM;
 using Bio.IO.SAM;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -29,34 +30,36 @@ namespace Ploidulator
     /// </summary>
     public partial class MainWindow : Window
     {
+        private delegate System.Delegate QuickDelegate();
+        private delegate System.Delegate IntDelegate(int a);
+        private delegate System.Delegate HandlerDelegate(string a, string b, string c, string d, 
+            string e, string f, string f2,bool? g, bool? h, bool? i, bool? j, bool? k);
+        private delegate System.Delegate StatsDelegate(int a, int b, int c, double d, double e, 
+            double f, double g, double h, double i, double j, double k);
 
-        public delegate System.Delegate MyDelegate(string a, string b, string c, string d, string e, string f, string f2,
-            bool? g, bool? h, bool? i, bool? j, bool? k);
-        public delegate System.Delegate QuickDelegate();
-        public delegate System.Delegate IntDelegate(int a);
-        public delegate System.Delegate StatsDelegate(int a, int b, int c, double d, double e, double f, double g, double h, double i, double j, double k);
-        ClusterMetricHandlerPloidulator handler = null;
+        private DispatcherTimer dispatcherTimer;
+        private bool isProcessingFile = false;
+        
+        private ClusterMetricHandlerPloidulator handler = null;
 
-
+        private DateTime startedTime;
 
         public MainWindow()
         {
             InitializeComponent();
         }
 
-     
+        #region button actions
 
-
-
-        
-
-        // On click of GO button, begin ploidulation process
+        /// <summary>
+        /// On click of GO button, begin ploidulation process
+        /// </summary>
         private void Button_Click_Go(object sender, RoutedEventArgs e)
         {
             if (DataFileATextbox.Text != null)
             {
-                // parse the user inputs here
-                MyDelegate handler = ParseBAMMetric;
+                // Launch ParseBAMMetric in a new thread
+                HandlerDelegate handler = ParseBAMMetric;
                 handler.BeginInvoke(DataFileATextbox.Text, ExpectedPloidyTextbox.Text, 
                     DirtCutoffTextbox.Text, AlignmentQualCutoffTextbox.Text,
                     ReadQualCutoffTextbox.Text, PopPercentTextbox.Text, NumSamplesTextbox.Text, OutputToFile.IsChecked, 
@@ -65,74 +68,43 @@ namespace Ploidulator
             }
         }
 
+        /// <summary>
+        /// On click of X button, finish processing the current cluster and do not process any more
+        /// </summary>
         private void Button_Click_Abort(object sender, RoutedEventArgs e)
         {
-            AbortingMessage.Visibility = System.Windows.Visibility.Visible;
+            // when the final handler thread finishes executing, it will hide this message
+            AbortingMessage.Visibility = System.Windows.Visibility.Visible; 
+
             handler.Abort();
         }
 
-        private void Button_Click_Preview(object sender, RoutedEventArgs e)
-        {
-            // not implemented
-        }
-
-
-
-        // Open file selector window and fetch selected file path
+        
+        /// <summary>
+        /// Open file selector window and fetch selected file path
+        /// </summary>
         private void Button_Click_GetFile(object sender, RoutedEventArgs e)
         {
-            Microsoft.Win32.OpenFileDialog dialog = new Microsoft.Win32.OpenFileDialog();
+            OpenFileDialog dialog = new OpenFileDialog();
             dialog.DefaultExt = ".bam";
             dialog.Filter = "BAM files (*.bam)|*.bam";
             if ((bool)dialog.ShowDialog())
             {
-                DataFileATextbox.Text = dialog.FileName;
+                // Hide timer (may still be visible from previous ploidulation)
                 TimerLabel.Visibility = System.Windows.Visibility.Hidden;
+
+                // Display selected filename
+                DataFileATextbox.Text = dialog.FileName;
             } 
         }
-        private System.Delegate ProcessInputSequences()
-        {
-            if (inputQueue.Count == 0)
-            {
-                Thread.Sleep(5000); // sleep 5 seconds
-            }
-            else if (inputQueue.Count > 100)
-            {
-                Thread.Sleep(20000); // sleep 20 seconds
-            }
-            else
-            {
-                // do processing
 
-            }
-            return null;
-        }
+        #endregion
 
-        private System.Delegate UpdateGui_BeganParsing()
-        {
-            isProcessingFile = true;
+        #region timer
 
-            // Disable running new job
-            ToggleSearchable(false);
-
-            // Show stats panel
-            StatsPanel.Visibility = System.Windows.Visibility.Visible;
-
-            // Show progress bar
-            ProgressStatusBar.Visibility = System.Windows.Visibility.Visible;
-            AbortButton.Visibility = System.Windows.Visibility.Visible;
-
-            MenuExpander0.IsExpanded = true;
-            MenuExpander1.IsExpanded = true;
-            MenuExpander2.IsExpanded = false;
-            
-
-            StartTimer();
-
-            return null;
-        }
-
-        private System.Windows.Threading.DispatcherTimer dispatcherTimer;
+        /// <summary>
+        /// Set/reset and display count-up timer
+        /// </summary>
         private void StartTimer()
         {
             TimerLabel.Content = "";
@@ -144,21 +116,59 @@ namespace Ploidulator
             TimerLabel.Visibility = System.Windows.Visibility.Visible;
         }
 
+        /// <summary>
+        /// Pause/stop count-up timer
+        /// </summary>
         private void StopTimer()
         {
             dispatcherTimer.Stop();
-            //TimerLabel.Visibility = System.Windows.Visibility.Hidden;
         }
-        private DateTime startedTime;
 
+        /// <summary>
+        /// Update count-up timer label on dispatcher timer tick
+        /// </summary>
         private void dispatcherTimer_Tick(object sender, EventArgs e)
         {
             TimeSpan time = DateTime.Now - startedTime;
-            TimerLabel.Content = "Time elapsed: " + time.Hours.ToString() + ":" + time.Minutes.ToString("00") + ":" + time.Seconds.ToString("00");
-            // todo probably a better way?
+            TimerLabel.Content = "Time elapsed: " + time.Hours.ToString() + ":" 
+                + time.Minutes.ToString("00") + ":" + time.Seconds.ToString("00");
+            // TODO is there a better C# way of doing this?
+        }
+        #endregion
+
+        #region update gui
+
+        /// <summary>
+        /// Input file processing has begun. Update GUI to reflect this
+        /// </summary>
+        private System.Delegate UpdateGui_BeganParsing()
+        {
+            isProcessingFile = true;
+
+            // Disable running any other new jobs
+            ToggleSearchable(false);
+
+            // Show stats panel
+            StatsPanel.Visibility = System.Windows.Visibility.Visible;
+
+            // Show progress bar and abort button
+            ProgressStatusBar.Visibility = System.Windows.Visibility.Visible;
+            AbortButton.Visibility = System.Windows.Visibility.Visible;
+
+            // Show overview menus
+            OverviewFileStats.IsExpanded = true;
+            OverviewAllClustersStats.IsExpanded = true;
+            OverviewGoodClustersStats.IsExpanded = false;
+
+            StartTimer();
+
+            return null;
         }
 
-        private bool isProcessingFile = false;
+        /// <summary>
+        /// Ploidulation for current input file has completed. Update GUI to reflect this
+        /// </summary>
+        /// <returns></returns>
         private System.Delegate UpdateGui_FinishedParsing()
         {
             // Enable running new job
@@ -180,6 +190,9 @@ namespace Ploidulator
             return null;
         }
 
+        /// <summary>
+        /// Enable or disable all search related fields
+        /// </summary>
         private void ToggleSearchable(bool isSearchable)
         {
             FileExpander.IsExpanded = isSearchable;
@@ -195,18 +208,17 @@ namespace Ploidulator
             LaunchButton.IsEnabled = isSearchable;
         }
 
-        
+        /// <summary>
+        /// Update stats panels with data from handler
+        /// </summary>
         private System.Delegate UpdateStatsPanel(int numGoodClusters, int numClustersParsed, int maxSampleCount,
             double maxMapq, double maxReadq, double avgDirt, double avgMapq, double avgReadq, 
             double avgDirtGood, double avgMapqGood, double avgReadqGood)
         {
             if (numClustersParsed != 0)
             {
-
-
                 UpdateProgress(numClustersParsed);
 
-                Console.Write("-begin upd stats panel-");
                 SamplesDisplay.Content = maxSampleCount.ToString();
                 MAPQdisplay.Content = maxMapq.ToString();
                 READQdisplay.Content = maxReadq.ToString();
@@ -219,7 +231,6 @@ namespace Ploidulator
                 AvgMAPQDisplayGood.Content = avgMapqGood.ToString();
                 AvgREADQDisplayGood.Content = avgReadqGood.ToString();
 
-
                 double numGood = Math.Round(numGoodClusters / (double)numClustersParsed * 100, 2);
                 double numBad = 100 - numGood;
                 GoodBadProgressBar.Value = numGood;
@@ -228,16 +239,13 @@ namespace Ploidulator
 
                 string plural = numGoodClusters == 1 ? "" : "s";
                 string plural2 = (numClustersParsed - numGoodClusters) == 1 ? "" : "s";
-
                 GoodCountLabel.ToolTip = numGood + "% of clusters are good (" + numGoodClusters + " cluster" + plural + ")";
                 BadCountLabel.ToolTip = numBad + "% of clusters are bad (" + (numClustersParsed - numGoodClusters) + " cluster" + plural2 + ")";
-                Console.Write("-end upd panel-");
 
                 int a = Convert.ToInt32(maxSampleCount);
                 int b = Convert.ToInt32(NumSamplesTextbox.Text);
                 if ((int)a < (int)b && (int)a != 0)
                 {
-                    Console.Write("WRONG NUMBER OF SAMPLES");
                     SamplesDisplay.Foreground = Brushes.Red;
                     SamplesDisplayLabel.Foreground = Brushes.Red;
                 }
@@ -245,26 +253,37 @@ namespace Ploidulator
                 {
                     SamplesDisplay.Foreground = Brushes.Black;
                     SamplesDisplayLabel.Foreground = Brushes.Black;
-                    Console.Write("num samples ok for " + a + " and " + b);
-
                 }
 
                 if (numGoodClusters > 0)
                 {
-                    MenuExpander2.IsExpanded = true;
+                    OverviewGoodClustersStats.IsExpanded = true;
                 }
 
             }
             return null;
         }
 
+        /// <summary>
+        /// Set initial progress bar values (0 to max) based on number of clusters in input file
+        /// </summary>
+        /// <param name="max"></param>
         private System.Delegate SetProgressBar(int max)
         {
             ProgressBar.IsEnabled = true;
             ProgressBar.Minimum = 0;
             ProgressBar.Maximum = max;
-            ProgressBar.IsIndeterminate = false;
-            ProgressBar.ToolTip = "Found " + max.ToString() + " clusters to analyse ...";
+
+            if(max != 0)
+            {    
+                ProgressBar.IsIndeterminate = false;
+                ProgressBar.ToolTip = "Found " + max.ToString() + " clusters to analyse ...";
+            }
+            else
+            {
+                ProgressBar.IsIndeterminate = true;
+                ProgressBar.ToolTip = "Processing clusters...";
+            }
             ProgressBar.Visibility = System.Windows.Visibility.Visible;
             AbortButton.Visibility = System.Windows.Visibility.Visible;
             LoadingBarLabel.Visibility = System.Windows.Visibility.Visible;
@@ -272,131 +291,190 @@ namespace Ploidulator
             return null;
         }
 
+        /// <summary>
+        /// Update the progress bar value
+        /// </summary>
+        private System.Delegate UpdateProgress(int index)
+        {
+            if (index >= ProgressBar.Minimum && index <= ProgressBar.Maximum)
+            {
+                ProgressBar.Value = index;
+                double percent = Math.Round((index / (double)ProgressBar.Maximum * 100), 2);
+                ProgressBar.ToolTip = "Analysed " + index.ToString() + " out of " + ProgressBar.Maximum.ToString() + " clusters (" + percent.ToString() + "%)";
+                LoadingBarLabel.Content = ProgressBar.ToolTip;
+            }
+            else if (ProgressBar.Maximum == 0)
+            {
+                ProgressBar.ToolTip = "Analysed " + index.ToString() + " clusters";
+                LoadingBarLabel.Content = ProgressBar.ToolTip;
+            }
+            return null;
+        }
 
-        private System.Delegate ParseBAMMetric(string filename, string ploidy, string dirtCutoff, string alignQualCutoff, 
-            string readQualCutoff, string popPercent, string numSamples, bool? outputToFile, bool? metricFileParent, 
+        #endregion
+
+        #region process sequences
+
+        /// <summary>
+        /// Initialise handler and handler settings based on user's input
+        /// </summary>
+        private void InitHandler(string filename, string ploidy, string dirtCutoff, string alignQualCutoff,
+            string readQualCutoff, string popPercent, string numSamples, bool? outputToFile, bool? metricFileParent,
             bool? metricFileChild, bool? outputOverviewParent, bool? outputOverviewChild)
         {
             // Check user input
-            string newName = filename.Split(new char[]{'.'})[0];
+            string newName = filename.Split(new char[] { '.' })[0];
 
             // Set up the handler
             handler = new ClusterMetricHandlerPloidulator(newName + "_pl", Convert.ToInt32(ploidy), Convert.ToDouble(dirtCutoff),
-                Convert.ToDouble(alignQualCutoff), Convert.ToDouble(readQualCutoff), Convert.ToDouble(popPercent), Convert.ToInt32(numSamples), outputToFile, Dispatcher, wpMain);
+                Convert.ToDouble(alignQualCutoff), Convert.ToDouble(readQualCutoff), Convert.ToDouble(popPercent), Convert.ToInt32(numSamples), outputToFile);
 
             handler.WriteToFilteredBam = outputToFile == true;
             handler.WriteClusterMetricOriginal = metricFileParent == true;
             handler.WriteClusterMetricFiltered = metricFileChild == true;
             handler.WriteOverviewMetricOriginal = outputOverviewParent == true;
             handler.WriteOverviewMetricFiltered = outputOverviewChild == true;
+        }
 
-
-            // Start the parser
-            BAMParser parser = new BAMParser();
-            int clusters = 0;
+        /// <summary>
+        /// Read input file header and set progress bar based on number of sequences in input file
+        /// </summary>
+        private void ReadHeader(string filename, BAMParser parser, int numClustersInInputFile)
+        {
             using (Stream readStream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                SAMAlignmentHeader header = parser.GetHeader(readStream);
-                handler.Header = header;
-                clusters = header.ReferenceSequences.Count();
-            }
-
-            Dispatcher.BeginInvoke(
-                System.Windows.Threading.DispatcherPriority.Normal,
-                new IntDelegate(SetProgressBar), clusters);
-
-            // Everything appears ok, so close the GUI window
-            Dispatcher.BeginInvoke(
-                System.Windows.Threading.DispatcherPriority.Normal,
-                new QuickDelegate(UpdateGui_BeganParsing));
-
-
-
-            // Pass each sequence to the handler to be processed
-            double incrementOne = 1; // the progress bar will update every [incrementOne] many clusters
-            double incrementTwo = 5; // the progress bar will update every [incrementTwo] many clusters
-            int increaseIncrementAfter = 100; // after this many clusters, increase the increment at which we update the gui
-            double increment;
-
-            int updFor = -1, count = -1; // whether we have already updated the gui for this cluster
-
-            inputQueue = new Queue<SAMAlignedSequence>();
-
-            // new thread which sleeps and checks whether inpuq q has items
-            Dispatcher.BeginInvoke(
-                System.Windows.Threading.DispatcherPriority.Normal,
-                new QuickDelegate(ProcessInputSequences));
-
-            /*foreach (SAMAlignedSequence se in parser.ParseSequence(filename))
-            {
-                inputQueue.Enqueue(se);
-            }*/
-
-                foreach (SAMAlignedSequence se in parser.ParseSequence(filename))
+                handler.InputHeader = parser.GetHeader(readStream);
+                numClustersInInputFile = handler.InputHeader.ReferenceSequences.Count;
+                Console.WriteLine("header has clust count " + numClustersInInputFile);
+                /*foreach(ReferenceSequenceInfo cluster in header.ReferenceSequences)
                 {
-                    if (handler.Add(se))
-                    {
-                        count = handler.ClusterCount; 
-                        increment = (count < increaseIncrementAfter) ? incrementOne : incrementTwo;
-                        if ((count == 1 || (double)count % increment == 0) && count != updFor)
-                        {
-                            updFor = count;
-
-                            Dispatcher.BeginInvoke(
-                                System.Windows.Threading.DispatcherPriority.Normal,
-                                new StatsDelegate(UpdateStatsPanel), handler.GoodCount, count,
-                                    handler.MaxSampleCount, handler.MaxMapQ, handler.MaxReadQ,
-                                    handler.AverageDirt, handler.AverageMapQ, handler.AverageReadQ,
-                                    handler.AverageDirtGood, handler.AverageMapQGood, handler.AverageReadQGood);
-                            Console.WriteLine("---------------------"+handler.AverageDirtGood + "--------------------");
-                        }
-                    }
-                    else
-                    {
-                        // do not parse any more sequences, do not collect $500
-                        Console.WriteLine("sequence loop aborted, will not parse any more");
-                        break;
-                    }
+                    Console.Write(cluster.Name + " - ");
+                }*/
+                //header.RecordFields["RG"];
             }
-            Dispatcher.BeginInvoke(
-                System.Windows.Threading.DispatcherPriority.Normal,
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal,
+                new IntDelegate(SetProgressBar), numClustersInInputFile);
+        }
+
+        /// <summary>
+        /// Create handler and initialise handler settings, then process sequences
+        /// </summary>
+        private System.Delegate ParseBAMMetric(string filename, string ploidy, string dirtCutoff, string alignQualCutoff, 
+            string readQualCutoff, string popPercent, string numSamples, bool? outputToFile, bool? metricFileParent, 
+            bool? metricFileChild, bool? outputOverviewParent, bool? outputOverviewChild)
+        {
+            BAMParser parser = new BAMParser();
+            int numClustersInInputFile = 0;
+            
+            // Initialise the metric handler
+            InitHandler(filename, ploidy, dirtCutoff, alignQualCutoff, readQualCutoff, popPercent, numSamples, 
+                outputToFile, metricFileParent, metricFileChild, outputOverviewParent, outputOverviewChild);
+
+            ReadHeader(filename, parser, numClustersInInputFile);
+
+            // Begin parsing sequences
+            Dispatcher.BeginInvoke( System.Windows.Threading.DispatcherPriority.Normal,
+                new QuickDelegate(UpdateGui_BeganParsing)); // updates GUI to indicate that parsing has begun
+            ProcessSequences(filename, parser);
+                
+            // Finished sequences for this input file
+            Dispatcher.BeginInvoke( System.Windows.Threading.DispatcherPriority.Normal,
                 new QuickDelegate(UpdateGui_FinishedParsing));
 
             // Close handler and return
-            Console.WriteLine("finished, no more seqs");
-            handler.SetComplete(); // this should block until ok to finish
-            // there might be a background thread still doing stuff
+            Console.WriteLine("FINISHED");
             handler.Dispose();
             parser.Dispose();
-            
             return null;
         }
 
-        private Queue<SAMAlignedSequence> inputQueue;
-
-        private System.Delegate UpdateProgress(int index)
+        /// <summary>
+        /// For each sequence read by the parser, pass it to the metric handler. Also update GUI summary panels
+        /// </summary>
+        private void ProcessSequences(string filename, BAMParser parser)
         {
-            if(index >= ProgressBar.Minimum && index <= ProgressBar.Maximum)
+            double incrementOne = 1; // the progress bar will update every [incrementOne] many clusters
+            double incrementTwo = 5; // the progress bar will update every [incrementTwo] many clusters
+            int increaseIncrementAfter = 100; // after this many clusters, increase the increment at which we update the gui
+            double increment;       // the current increment at which progress bar will update
+            int updateDisplayForClusterIndex = -1, clusterCount = -1; // whether we have already updated the gui for this cluster
+            foreach (SAMAlignedSequence se in parser.ParseSequence(filename))
             {
-                ProgressBar.Value = index;
-                double percent = Math.Round((index / (double)ProgressBar.Maximum * 100), 2);
-                ProgressBar.ToolTip = "Analysed " + index.ToString() + " out of " + ProgressBar.Maximum.ToString() + " sequences ("+percent.ToString() + "%)";
-                //Console.WriteLine("**********TT:"+ProgressBar.ToolTip);
-                LoadingBarLabel.Content = ProgressBar.ToolTip;
+                if (handler.Add(se))
+                {
+                    // optionalFields["RG"]
+                    clusterCount = handler.ClusterCount;
+                    increment = (clusterCount < increaseIncrementAfter) ? incrementOne : incrementTwo;
+                    if ((clusterCount == 1 || (double)clusterCount % increment == 0) && clusterCount != updateDisplayForClusterIndex)
+                    {
+                        updateDisplayForClusterIndex = clusterCount;
+
+                        Dispatcher.BeginInvoke(
+                            System.Windows.Threading.DispatcherPriority.Normal,
+                            new StatsDelegate(UpdateStatsPanel), handler.GoodCount, clusterCount,
+                                handler.MaxSampleCount, handler.MaxMapQ, handler.MaxReadQ,
+                                handler.AverageDirt, handler.AverageMapQ, handler.AverageReadQ,
+                                handler.AverageDirtGood, handler.AverageMapQGood, handler.AverageReadQGood);
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Handler has finished processing sequences");
+                    break;
+                }
             }
-            else
+            // Tell the handler that there are no more sequences to receive
+            handler.SetComplete(); 
+        }
+      
+        #endregion
+
+        #region window and controls
+
+        /// <summary>
+        /// If user attempts to close GUI window while data is still being written to file,
+        /// give warning
+        /// </summary>
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if(isProcessingFile)
             {
-                throw new Exception("Invalid progress bar value: "+ProgressBar.Minimum + " : " + ProgressBar.Maximum);
+                MessageBoxResult result = MessageBox.Show("Data is currently being output to file. \nIf you close this window the output file will be incomplete.\n\nAre you sure you want to close this window?",
+                "Warning", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                if (result == MessageBoxResult.No)
+                {
+                    e.Cancel = true;
+                }
             }
-            if (index == ProgressBar.Maximum)
-            {
-                ProgressBar.Visibility = System.Windows.Visibility.Hidden;
-                AbortButton.Visibility = System.Windows.Visibility.Hidden;
-                LoadingBarLabel.Visibility = System.Windows.Visibility.Hidden;
-            }
-            return null; 
         }
 
+        /// <summary>
+        /// Prevent non-numeric input in a textbox
+        /// </summary>
+        private void NumericOnly_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            // todo fixme - multiple ways of doing this, this is probably not the most efficient
+            TextBox t = sender as TextBox;
+            string s = "";
+            int dec = 0;
+            foreach (Char c in t.Text.ToCharArray())
+            {
+                s += Char.IsDigit(c) || (c == '.' && dec == 0)? c.ToString() : "";
+                if (c == '.')
+                {
+                    dec++;
+                }
+            }
+            t.Text = s;
+        }
+
+        #endregion
+
+        #region visualisation
+
+        /// <summary>
+        /// Draws a piechart. Not currently in use
+        /// </summary>
         public System.Delegate DrawChart(double[] data)
         {
             SolidColorBrush myTransparentBrush = new SolidColorBrush();
@@ -445,37 +523,7 @@ namespace Ploidulator
             return null;
         }
 
-
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            if(isProcessingFile)
-            {
-                MessageBoxResult result = MessageBox.Show("Data is currently being output to file. \nIf you close this window the output file will be incomplete.\n\nAre you sure you want to close this window?",
-                "Warning", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-                if (result == MessageBoxResult.No)
-                {
-                    e.Cancel = true;
-                }
-            }
-        }
-
-        private void NumericOnly_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            // todo fixme - multiple ways of doing this, this is probably not the most efficient
-            TextBox t = sender as TextBox;
-            string s = "";
-            int dec = 0;
-            foreach (Char c in t.Text.ToCharArray())
-            {
-                s += Char.IsDigit(c) || (c == '.' && dec == 0)? c.ToString() : "";
-                if (c == '.')
-                {
-                    dec++;
-                }
-            }
-            t.Text = s;
-            
-        }       
+        #endregion
 
     }
 }

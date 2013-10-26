@@ -7,14 +7,14 @@
     <framework targetVersion="4.5" profile="Full" supportedRuntime="4.0.30319" />
   </compatibleFrameworks>
   <dependency>
-    <dependentAssembly dependencyType="install" codebase="Ploidulator.exe.manifest" size="22311">
+    <dependentAssembly dependencyType="install" codebase="Ploidulator.exe.manifest" size="22309">
       <assemblyIdentity name="Ploidulator.exe" version="1.0.0.1" publicKeyToken="0000000000000000" language="neutral" processorArchitecture="amd64" type="win32" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>MM4x1om/4+Vzf1P/OSpB3or9fbJojii7MFjTO58TlOM=</dsig:DigestValue>
+        <dsig:DigestValue>D497ybg6rGOT6IGmQsZf6MFeAWZejL1s8s+KnNYA43w=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
