@@ -30,7 +30,7 @@ namespace Ploidulator
     {
         #region Private Static Fields
         private static string OUTPUT_FOLDER = @"E:\Harvard\pl_output";
-        private static int OUTPUT_QUEUE_SIZE = 5000; // max number of sequences that can be stored in the
+        private static int OUTPUT_QUEUE_SIZE = 7; // max number of sequences that can be stored in the
                                                      // output queue (to prevent too many being held in memory)
         #endregion
 
@@ -219,6 +219,11 @@ namespace Ploidulator
         private double dirtCutoff = 1;
 
         /// <summary>
+        /// Max allowed 'g dirt'
+        /// </summary>
+        private double gDirtCutoff = double.MaxValue;
+
+        /// <summary>
         /// Min allowed alignment qualtiy (as average per cluster)
         /// </summary>
         private double alignQualCutoff = 0;
@@ -375,7 +380,16 @@ namespace Ploidulator
         /// The header for the bam input file
         /// </summary>
         public SAMAlignmentHeader InputHeader { get { return header; } set { header = value; } }
-        
+
+        #region filters
+
+        /// <summary>
+        /// Maximum allowed 'g dirt' cutoff
+        /// </summary>
+        public double GDirtCutoff { get { return gDirtCutoff; } set { gDirtCutoff = value; } }
+
+        #endregion
+
         #region output files
 
         /// <summary>
@@ -593,7 +607,7 @@ namespace Ploidulator
                 
                 // Output sequences to metric file/s and/or filtered bam file
                 WriteToMetricOutputFiles(metric, isGood);
-                AddToOutputBamQueue(metric, isGood);
+                AddToOutputBamQueueOrDispose(metric, isGood);
 
                 // If the bam file is not currently being written to, and there are sequences in the queue ready to be
                 // written, launch a new thread to perform the writing to file
@@ -611,6 +625,9 @@ namespace Ploidulator
             {
                 SetComplete(false);
             }
+
+            Console.Write("here goes");
+            TestPhase();
         }
 
         #endregion
@@ -678,7 +695,7 @@ namespace Ploidulator
         /// <summary>
         /// If metric is good, add it to the output queue (ready to be written to new BAM file)
         /// </summary>
-        private void AddToOutputBamQueue(ClusterMetricPloidulator metric, bool isGood)
+        private void AddToOutputBamQueueOrDispose(ClusterMetricPloidulator metric, bool isGood)
         {
             if (writeToFilteredBam && isGood)
             {
@@ -686,15 +703,25 @@ namespace Ploidulator
 
                 // If the output queue has too many sequences in it, wait for the bam writer to catch up
                 // and prevent memory fault
-                while (bamOutputQueue.Count >= OUTPUT_QUEUE_SIZE)
+                if (bamOutputQueue.Count >= OUTPUT_QUEUE_SIZE)
                 {
-                    Thread.Sleep(30000); // sleep 30 seconds
+                    Console.WriteLine("Parser/processer thread must pause to let bam writer thread catch up");
+                    while (bamOutputQueue.Count >= OUTPUT_QUEUE_SIZE / 2)
+                    {
+                        Thread.Sleep(10000); // sleep 10 seconds
+                    }
                 }
 
                 // Add sequences to output file queue and output file header
                 bamOutputQueue.Enqueue(sequences);
                 AddToHeader(sequences[0]);
-            } 
+            }
+            else
+            {
+                metric.Reset();
+                metric = null;
+                GC.Collect();
+            }
         }
 
         /// <summary>
@@ -702,15 +729,13 @@ namespace Ploidulator
         /// </summary>
         private void AddToHeader(SAMAlignedSequence seq)
         {
+            newHeader.ReferenceSequences.Add(new ReferenceSequenceInfo(seq.RName, 45)); // todo fixme this dataset only
+
             // for each good clust
             SAMRecordField sq = new SAMRecordField("SQ");
             sq.Tags.Add(new SAMRecordFieldTag("SN", seq.RName));
             sq.Tags.Add(new SAMRecordFieldTag("LN", "45")); // todo fixme this dataset only
             newHeader.RecordFields.Add(sq);
-
-            Console.Write("before add count is " + newHeader.ReferenceSequences.Count);
-            newHeader.ReferenceSequences.Add(new ReferenceSequenceInfo(seq.RName, 45)); // todo fixme this dataset only
-            Console.Write("after add count is " + newHeader.ReferenceSequences.Count);
         }
 
         /// <summary>
@@ -785,6 +810,10 @@ namespace Ploidulator
 
                 // Create the output file for filtered sequences
                 string file = OUTPUT_FOLDER + "\\sequences.bam";
+                if(File.Exists(file))
+                {
+                    File.Delete(file);
+                }
                 bamStream = File.Create(file);
             }
         }
@@ -845,22 +874,101 @@ namespace Ploidulator
         }
 
         /// <summary>
+        /// ...
+        /// </summary>
+        private void TestPhase()
+        {
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.CreateNoWindow = false;
+            startInfo.UseShellExecute = false;
+            startInfo.FileName = "e:\\src\\phase\\PHASE.exe";
+            startInfo.ErrorDialog = false;
+            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            startInfo.Arguments = "e:\\src\\phase\\test.inp e:\\src\\phase\\testpig.out";
+
+            try
+            {
+                // Start the process with the info we specified.
+                // Call WaitForExit and then the using statement will close.
+                using (Process exeProcess = Process.Start(startInfo))
+                {
+                    exeProcess.WaitForExit();
+                }
+            }
+            catch
+            {
+                // Log error.
+            }
+            Console.WriteLine("DONE");
+
+        }
+
+        private void TestPhaseNew()
+        {
+            Console.WriteLine("Concatenating bam header and sequence output files");
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+
+            startInfo.CreateNoWindow = true;
+            startInfo.FileName = "cmd.exe";
+            startInfo.Arguments = "e:\\src\\phase.exe e:\\src\\phase\\test.inp e:\\src\\phase\\testpig.out";
+            Console.WriteLine("Executing cmd " + startInfo.Arguments);
+            startInfo.Verb = "runas";
+            startInfo.UseShellExecute = true;
+            startInfo.RedirectStandardOutput = true;
+
+
+            try
+            {
+                // Start the process with the info we specified.
+                // Call WaitForExit and then the using statement will close.
+                using (Process exeProcess = Process.Start(startInfo))
+                {
+                    exeProcess.WaitForExit();
+                }
+            }
+            catch
+            {
+                // Log error.
+            }
+
+            bamFilesMerged = true;
+            Console.WriteLine("Finished concatenating");
+
+            //Process.Start(OUTPUT_FOLDER);
+        }
+
+        /// <summary>
         /// Concatenate together the header and sequence bam output files
         /// </summary>
         private void concatFiles()
         {
             Console.WriteLine("Concatenating bam header and sequence output files");
-            Process process = new Process();
             ProcessStartInfo startInfo = new ProcessStartInfo();
 
-            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            startInfo.CreateNoWindow = true;
             startInfo.FileName = "cmd.exe";
             startInfo.Arguments = "/C copy /b " + OUTPUT_FOLDER + "\\header.bam+" + OUTPUT_FOLDER + "\\sequences.bam " + OUTPUT_FOLDER + "\\filtered.bam /y";
-            process.StartInfo = startInfo;
-            process.Start();
+            Console.WriteLine("Executing cmd "+startInfo.Arguments);
             
+            startInfo.UseShellExecute = false;
+            startInfo.RedirectStandardOutput = true;
+            
+
+            using (Process proc = Process.Start(startInfo))
+            {
+                using (StreamReader reader = proc.StandardOutput)
+                {
+                    string result = reader.ReadToEnd();
+                    Console.WriteLine(result);
+                }
+                proc.WaitForExit();
+
+            }
+
             bamFilesMerged = true;
             Console.WriteLine("Finished concatenating");
+
+            //Process.Start(OUTPUT_FOLDER);
         }
         
 
@@ -991,14 +1099,16 @@ namespace Ploidulator
             }
             if(writeToFilteredBam){
                 canWriteToBam = false;
-                //string folderName = @"E:\Harvard\ploidulator_output";
                 string f = OUTPUT_FOLDER + "\\header.bam";
+                if (File.Exists(f))
+                {
+                    File.Delete(f);
+                }
                 using (Stream writer = File.OpenWrite(f))
                 {
-                    Console.WriteLine("num seq before writing: "+newHeader.ReferenceSequences.Count);
                     new BAMFormatter().WriteHeader(newHeader, writer);
                 }
-                Thread.Sleep(5000); // sleep 5 seconds
+                //Thread.Sleep(5000); // sleep 5 seconds
                 canWriteToBam = true;
             }
         }
@@ -1011,10 +1121,15 @@ namespace Ploidulator
         {
             while (bamOutputQueue.Count > 0)
             {
-                foreach (SAMAlignedSequence seq in bamOutputQueue.Dequeue())
+                List<SAMAlignedSequence> seqs = bamOutputQueue.Dequeue();
+                foreach (SAMAlignedSequence seq in seqs)
                 {
                     bamFormatter.WriteAlignedSequence(header, seq, bamStream);
                 }
+                seqs.Clear();
+                seqs = null;
+                GC.Collect();
+                
             }
             // signal to next thread runner that it can now process sequences from the queue
             canWriteToBam = true;

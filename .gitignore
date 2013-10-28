@@ -10191,3 +10191,449 @@ ambertests/DotnetBioTester/Ploidulator/obj/Debug/Ploidulator.application
 ambertests/DotnetBioTester/Ploidulator/obj/Debug/Ploidulator.exe.manifest
 ambertests/DotnetBioTester/Ploidulator/bin/Debug/Ploidulator.application
 ambertests/DotnetBioTester/Ploidulator/bin/Debug/Ploidulator.application
+ambertests/DotnetBioTester/Ploidulator/headercode.cs
+ambertests/DotnetBioTester/Ploidulator/Ploidulator.csproj
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/Ploidulator.application
+ambertests/DotnetBioTester/Debug/PhaseEx.dll
+ambertests/DotnetBioTester/Debug/PhaseEx.ilk
+ambertests/DotnetBioTester/Debug/PhaseEx.pdb
+ambertests/DotnetBioTester/Debug/Phaseold.exe
+ambertests/DotnetBioTester/Debug/Phaseold.ilk
+ambertests/DotnetBioTester/Debug/Phaseold.pdb
+ambertests/DotnetBioTester/Debug/Phaseworks.exe
+ambertests/DotnetBioTester/Debug/Phaseworks.ilk
+ambertests/DotnetBioTester/Debug/Phaseworks.pdb
+ambertests/DotnetBioTester/ipch/phase2-dbea7a2c/phase-357300dd.ipch
+ambertests/DotnetBioTester/ipch/phase2-dbea7a2c/phase2-e3f7848f.ipch
+ambertests/DotnetBioTester/ipch/phaselib-39d17c56/phase-357300dd.ipch
+ambertests/DotnetBioTester/ipch/phaselib-39d17c56/phaselib-b922cd34.ipch
+ambertests/DotnetBioTester/Phase/Debug/arrayCC.obj
+ambertests/DotnetBioTester/Phase/Debug/arrayDiffCount.obj
+ambertests/DotnetBioTester/Phase/Debug/arrayDiffProb.obj
+ambertests/DotnetBioTester/Phase/Debug/arrayDiploidDiffProb.obj
+ambertests/DotnetBioTester/Phase/Debug/arrayFF.obj
+ambertests/DotnetBioTester/Phase/Debug/arrayQ.obj
+ambertests/DotnetBioTester/Phase/Debug/classpop.obj
+ambertests/DotnetBioTester/Phase/Debug/HapList2.obj
+ambertests/DotnetBioTester/Phase/Debug/Haplotype.obj
+ambertests/DotnetBioTester/Phase/Debug/HapPairList.obj
+ambertests/DotnetBioTester/Phase/Debug/indnode.obj
+ambertests/DotnetBioTester/Phase/Debug/mt19937ar.obj
+ambertests/DotnetBioTester/Phase/Debug/pacb.lookup.obj
+ambertests/DotnetBioTester/Phase/Debug/Phase.log
+ambertests/DotnetBioTester/Phase/Debug/phase.obj
+ambertests/DotnetBioTester/Phase/Debug/Phase.tlog/cl.command.1.tlog
+ambertests/DotnetBioTester/Phase/Debug/Phase.tlog/CL.read.1.tlog
+ambertests/DotnetBioTester/Phase/Debug/Phase.tlog/CL.write.1.tlog
+ambertests/DotnetBioTester/Phase/Debug/Phase.tlog/link.command.1.tlog
+ambertests/DotnetBioTester/Phase/Debug/Phase.tlog/link.read.1.tlog
+ambertests/DotnetBioTester/Phase/Debug/Phase.tlog/link.write.1.tlog
+ambertests/DotnetBioTester/Phase/Debug/Phase.tlog/Phase.lastbuildstate
+ambertests/DotnetBioTester/Phase/Debug/recom.obj
+ambertests/DotnetBioTester/Phase/Debug/Summary.obj
+ambertests/DotnetBioTester/Phase/Debug/utility.obj
+ambertests/DotnetBioTester/Phase/Debug/vc120.idb
+ambertests/DotnetBioTester/Phase/Debug/vc120.pdb
+ambertests/DotnetBioTester/Ploidulator/obj/Release/App.g.cs
+ambertests/DotnetBioTester/Ploidulator/obj/Release/App.g.i.cs
+ambertests/DotnetBioTester/Ploidulator/obj/Release/DesignTimeResolveAssemblyReferences.cache
+ambertests/DotnetBioTester/Ploidulator/obj/Release/DesignTimeResolveAssemblyReferencesInput.cache
+ambertests/DotnetBioTester/Ploidulator/obj/Release/Ploidulator.application
+ambertests/DotnetBioTester/Ploidulator/obj/Release/Ploidulator.baml
+ambertests/DotnetBioTester/Ploidulator/obj/Release/Ploidulator.csproj.FileListAbsolute.txt
+ambertests/DotnetBioTester/Ploidulator/obj/Release/Ploidulator.csproj.GenerateResource.Cache
+ambertests/DotnetBioTester/Ploidulator/obj/Release/Ploidulator.csprojResolveAssemblyReference.cache
+ambertests/DotnetBioTester/Ploidulator/obj/Release/Ploidulator.exe
+ambertests/DotnetBioTester/Ploidulator/obj/Release/Ploidulator.exe.manifest
+ambertests/DotnetBioTester/Ploidulator/obj/Release/Ploidulator.g.cs
+ambertests/DotnetBioTester/Ploidulator/obj/Release/Ploidulator.g.i.cs
+ambertests/DotnetBioTester/Ploidulator/obj/Release/Ploidulator.g.resources
+ambertests/DotnetBioTester/Ploidulator/obj/Release/Ploidulator.pdb
+ambertests/DotnetBioTester/Ploidulator/obj/Release/Ploidulator.Properties.Resources.resources
+ambertests/DotnetBioTester/Ploidulator/obj/Release/Ploidulator_Content.g.cs
+ambertests/DotnetBioTester/Ploidulator/obj/Release/Ploidulator_Content.g.i.cs
+ambertests/DotnetBioTester/Ploidulator/obj/Release/Ploidulator_MarkupCompile.cache
+ambertests/DotnetBioTester/Ploidulator/obj/Release/Ploidulator_MarkupCompile.i.cache
+ambertests/DotnetBioTester/Ploidulator/obj/Release/TemporaryGeneratedFile_036C0B5B-1481-4323-8D20-8F5ADCB23D92.cs
+ambertests/DotnetBioTester/Ploidulator/obj/Release/TemporaryGeneratedFile_5937a670-0e60-4077-877b-f7221da3dda1.cs
+ambertests/DotnetBioTester/Ploidulator/obj/Release/TemporaryGeneratedFile_E7A71F73-0F8D-4B9B-B56E-8E70B10BC5D3.cs
+ambertests/DotnetBioTester/Ploidulator/obj/Release/TempPE/Properties.Resources.Designer.cs.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/Phase.exe
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/Phase.ilk
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/Phase.pdb
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/Phase.v12.suo
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/Ploidulator.application
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/test.inp
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/test.out
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/test.out_freqs
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/test.out_hbg
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/test.out_monitor
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/test.out_probs
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/testingmore.out
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/testingmore.out_freqs
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/testingmore.out_hbg
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/testingmore.out_monitor
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/testingmore.out_probs
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Accord.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Accord.MachineLearning.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Accord.MachineLearning.pdb
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Accord.MachineLearning.xml
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Accord.Math.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Accord.Math.pdb
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Accord.Math.xml
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Accord.pdb
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Accord.Statistics.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Accord.Statistics.pdb
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Accord.Statistics.xml
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Accord.xml
+ambertests/DotnetBioTester/Ploidulator/bin/Release/AForge.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/AForge.Math.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/AForge.Math.xml
+ambertests/DotnetBioTester/Ploidulator/bin/Release/AForge.xml
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Bio.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Bio.pdb
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Bio.xml
+ambertests/DotnetBioTester/Ploidulator/bin/Release/de/Xceed.Wpf.AvalonDock.resources.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/es/Xceed.Wpf.AvalonDock.resources.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/fr/Xceed.Wpf.AvalonDock.resources.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/hu/Xceed.Wpf.AvalonDock.resources.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/it/Xceed.Wpf.AvalonDock.resources.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Microsoft.Owin.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Microsoft.Owin.xml
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Owin.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Phase.exe
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Phase.ilk
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Phase.pdb
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Ploidulator.application
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Ploidulator.exe
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Ploidulator.exe.config
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Ploidulator.exe.manifest
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Ploidulator.pdb
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Ploidulator.vshost.application
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Ploidulator.vshost.exe
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Ploidulator.vshost.exe.config
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Ploidulator.vshost.exe.manifest
+ambertests/DotnetBioTester/Ploidulator/bin/Release/pt-BR/Xceed.Wpf.AvalonDock.resources.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/ro/Xceed.Wpf.AvalonDock.resources.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/ru/Xceed.Wpf.AvalonDock.resources.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/sv/Xceed.Wpf.AvalonDock.resources.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/System.Windows.Controls.DataVisualization.Toolkit.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/System.Windows.Controls.DataVisualization.Toolkit.pdb
+ambertests/DotnetBioTester/Ploidulator/bin/Release/test.inp
+ambertests/DotnetBioTester/Ploidulator/bin/Release/WPFToolkit.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/WPFToolkit.pdb
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Xceed.Wpf.AvalonDock.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Xceed.Wpf.AvalonDock.Themes.Aero.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Xceed.Wpf.AvalonDock.Themes.Metro.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Xceed.Wpf.AvalonDock.Themes.VS2010.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Xceed.Wpf.DataGrid.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/Xceed.Wpf.Toolkit.dll
+ambertests/DotnetBioTester/Ploidulator/bin/Release/zh-Hans/Xceed.Wpf.AvalonDock.resources.dll
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/Accord.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/Accord.MachineLearning.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/Accord.Math.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/Accord.Statistics.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/AForge.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/AForge.Math.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/Bio.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/de/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/es/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/fr/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/hu/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/it/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/Microsoft.Owin.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/Owin.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/Ploidulator.application
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/Ploidulator.exe.config.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/Ploidulator.exe.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/Ploidulator.exe.manifest
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/pt-BR/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/ro/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/ru/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/sv/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/System.Windows.Controls.DataVisualization.Toolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/WPFToolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/Xceed.Wpf.AvalonDock.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/Xceed.Wpf.AvalonDock.Themes.Aero.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/Xceed.Wpf.AvalonDock.Themes.Metro.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/Xceed.Wpf.AvalonDock.Themes.VS2010.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/Xceed.Wpf.DataGrid.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/Xceed.Wpf.Toolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_1/zh-Hans/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/Accord.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/Accord.MachineLearning.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/Accord.Math.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/Accord.Statistics.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/AForge.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/AForge.Math.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/Bio.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/de/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/es/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/fr/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/hu/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/it/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/Microsoft.Owin.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/Owin.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/Ploidulator.application
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/Ploidulator.exe.config.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/Ploidulator.exe.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/Ploidulator.exe.manifest
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/pt-BR/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/ro/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/ru/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/sv/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/System.Windows.Controls.DataVisualization.Toolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/WPFToolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/Xceed.Wpf.AvalonDock.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/Xceed.Wpf.AvalonDock.Themes.Aero.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/Xceed.Wpf.AvalonDock.Themes.Metro.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/Xceed.Wpf.AvalonDock.Themes.VS2010.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/Xceed.Wpf.DataGrid.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/Xceed.Wpf.Toolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_2/zh-Hans/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/Accord.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/Accord.MachineLearning.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/Accord.Math.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/Accord.Statistics.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/AForge.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/AForge.Math.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/Bio.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/de/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/es/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/fr/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/hu/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/it/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/Microsoft.Owin.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/Owin.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/PHASE.exe.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/Ploidulator.application
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/Ploidulator.exe.config.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/Ploidulator.exe.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/Ploidulator.exe.manifest
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/pt-BR/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/ro/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/ru/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/sv/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/System.Windows.Controls.DataVisualization.Toolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/test.inp
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/WPFToolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/Xceed.Wpf.AvalonDock.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/Xceed.Wpf.AvalonDock.Themes.Aero.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/Xceed.Wpf.AvalonDock.Themes.Metro.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/Xceed.Wpf.AvalonDock.Themes.VS2010.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/Xceed.Wpf.DataGrid.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/Xceed.Wpf.Toolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_3/zh-Hans/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/Accord.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/Accord.MachineLearning.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/Accord.Math.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/Accord.Statistics.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/AForge.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/AForge.Math.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/Bio.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/de/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/es/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/fr/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/hu/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/it/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/Microsoft.Owin.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/Owin.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/PHASE.exe.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/Ploidulator.application
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/Ploidulator.exe.config.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/Ploidulator.exe.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/Ploidulator.exe.manifest
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/pt-BR/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/ro/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/ru/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/sv/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/System.Windows.Controls.DataVisualization.Toolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/WPFToolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/Xceed.Wpf.AvalonDock.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/Xceed.Wpf.AvalonDock.Themes.Aero.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/Xceed.Wpf.AvalonDock.Themes.Metro.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/Xceed.Wpf.AvalonDock.Themes.VS2010.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/Xceed.Wpf.DataGrid.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/Xceed.Wpf.Toolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_4/zh-Hans/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Release/Phase.exe
+ambertests/DotnetBioTester/Release/Phase.pdb
+ambertests/DotnetBioTester/Release/test.inp
+ambertests/PhaseImpl/PhaseImpl.sdf
+ambertests/PhaseImpl/PhaseImpl.sln
+ambertests/PhaseImpl/PhaseImpl.v12.suo
+ambertests/PhaseImpl/PhaseImpl/Debug/arrayCC.obj
+ambertests/PhaseImpl/PhaseImpl/Debug/arrayDiffCount.obj
+ambertests/PhaseImpl/PhaseImpl/Debug/arrayDiffProb.obj
+ambertests/PhaseImpl/PhaseImpl/Debug/arrayDiploidDiffProb.obj
+ambertests/PhaseImpl/PhaseImpl/Debug/arrayFF.obj
+ambertests/PhaseImpl/PhaseImpl/Debug/arrayQ.obj
+ambertests/PhaseImpl/PhaseImpl/Debug/classpop.obj
+ambertests/PhaseImpl/PhaseImpl/Debug/HapList2.obj
+ambertests/PhaseImpl/PhaseImpl/Debug/Haplotype.obj
+ambertests/PhaseImpl/PhaseImpl/Debug/HapPairList.obj
+ambertests/PhaseImpl/PhaseImpl/Debug/indnode.obj
+ambertests/PhaseImpl/PhaseImpl/Debug/mt19937ar.obj
+ambertests/PhaseImpl/PhaseImpl/Debug/pacb.lookup.obj
+ambertests/PhaseImpl/PhaseImpl/Debug/phase.obj
+ambertests/PhaseImpl/PhaseImpl/Debug/PhaseImpl.log
+ambertests/PhaseImpl/PhaseImpl/Debug/PhaseImpl.tlog/cl.command.1.tlog
+ambertests/PhaseImpl/PhaseImpl/Debug/PhaseImpl.tlog/CL.read.1.tlog
+ambertests/PhaseImpl/PhaseImpl/Debug/PhaseImpl.tlog/CL.write.1.tlog
+ambertests/PhaseImpl/PhaseImpl/Debug/PhaseImpl.tlog/link.command.1.tlog
+ambertests/PhaseImpl/PhaseImpl/Debug/PhaseImpl.tlog/link.read.1.tlog
+ambertests/PhaseImpl/PhaseImpl/Debug/PhaseImpl.tlog/link.write.1.tlog
+ambertests/PhaseImpl/PhaseImpl/Debug/PhaseImpl.tlog/PhaseImpl.lastbuildstate
+ambertests/PhaseImpl/PhaseImpl/Debug/recom.obj
+ambertests/PhaseImpl/PhaseImpl/Debug/Summary.obj
+ambertests/PhaseImpl/PhaseImpl/Debug/utility.obj
+ambertests/PhaseImpl/PhaseImpl/Debug/vc120.idb
+ambertests/PhaseImpl/PhaseImpl/Debug/vc120.pdb
+ambertests/PhaseImpl/PhaseImpl/PhaseImpl.vcxproj
+ambertests/PhaseImpl/PhaseImpl/PhaseImpl.vcxproj.filters
+ambertests/PhaseImpl/PhaseImpl/PhaseImpl.vcxproj.user
+phase.2.1.1.source.tar.gz
+phase.2.1.1.source/phase.2.1.1.source/arrayCC.cpp
+phase.2.1.1.source/phase.2.1.1.source/arrayCC.hpp
+phase.2.1.1.source/phase.2.1.1.source/arrayDiffCount.cpp
+phase.2.1.1.source/phase.2.1.1.source/arrayDiffCount.hpp
+phase.2.1.1.source/phase.2.1.1.source/arrayDiffProb.cpp
+phase.2.1.1.source/phase.2.1.1.source/arrayDiffProb.hpp
+phase.2.1.1.source/phase.2.1.1.source/arrayDiploidDiffProb.cpp
+phase.2.1.1.source/phase.2.1.1.source/arrayDiploidDiffProb.hpp
+phase.2.1.1.source/phase.2.1.1.source/arrayFF.cpp
+phase.2.1.1.source/phase.2.1.1.source/arrayFF.hpp
+phase.2.1.1.source/phase.2.1.1.source/arrayQ.cpp
+phase.2.1.1.source/phase.2.1.1.source/arrayQ.hpp
+phase.2.1.1.source/phase.2.1.1.source/classpop.cpp
+phase.2.1.1.source/phase.2.1.1.source/classpop.hpp
+phase.2.1.1.source/phase.2.1.1.source/constants.hpp
+phase.2.1.1.source/phase.2.1.1.source/errcheck.hpp
+phase.2.1.1.source/phase.2.1.1.source/HapList2.cpp
+phase.2.1.1.source/phase.2.1.1.source/HapList2.hpp
+phase.2.1.1.source/phase.2.1.1.source/Haplotype.cpp
+phase.2.1.1.source/phase.2.1.1.source/Haplotype.hpp
+phase.2.1.1.source/phase.2.1.1.source/HapPairList.cpp
+phase.2.1.1.source/phase.2.1.1.source/HapPairList.hpp
+phase.2.1.1.source/phase.2.1.1.source/indnode.cpp
+phase.2.1.1.source/phase.2.1.1.source/indnode.hpp
+phase.2.1.1.source/phase.2.1.1.source/Makefile
+phase.2.1.1.source/phase.2.1.1.source/mt19937ar.c
+phase.2.1.1.source/phase.2.1.1.source/pacb.lookup.cpp
+phase.2.1.1.source/phase.2.1.1.source/pacb.lookup.hpp
+phase.2.1.1.source/phase.2.1.1.source/phase.cpp
+phase.2.1.1.source/phase.2.1.1.source/recom.cpp
+phase.2.1.1.source/phase.2.1.1.source/Summary.cpp
+phase.2.1.1.source/phase.2.1.1.source/Summary.hpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/cholesky.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/cmat.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/CVS/Entries
+phase.2.1.1.source/phase.2.1.1.source/tnt/CVS/Repository
+phase.2.1.1.source/phase.2.1.1.source/tnt/CVS/Root
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/A10x10.dat
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/AB10x10.dat
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/AB5x5.dat
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/ccomplex.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/cmatreg.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/ctimemm.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/ctransp.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/ctriang.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/cvec.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/CVS/Entries
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/CVS/Repository
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/CVS/Root
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/fchol.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/fcomplex.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/fmatreg.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/ftimemm.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/ftransp.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/ftriang.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/fvec.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/lu.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/qr.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/SPD10x10.dat
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/tcmat.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/tfmat.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/tmult.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/tvecadaptor.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/examples/vecinit.cpp
+phase.2.1.1.source/phase.2.1.1.source/tnt/fcscmat.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/fmat.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/fortran.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/fspvec.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/index.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/lapack.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/lu.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/qr.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/region1d.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/region2d.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/stopwatch.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/subscript.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/tnt.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/tnt.zip
+phase.2.1.1.source/phase.2.1.1.source/tnt/tntmath.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/tntreqs.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/transv.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/triang.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/trisolve.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/vec.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/vecadaptor.h
+phase.2.1.1.source/phase.2.1.1.source/tnt/version.h
+phase.2.1.1.source/phase.2.1.1.source/utility.cpp
+phase.2.1.1.source/phase.2.1.1.source/utility.hpp
+phase/test.inp
+phase/test.out
+phase/test.out_freqs
+phase/test.out_hbg
+phase/test.out_monitor
+phase/test.out_pairs
+phase/test.out_probs
+phase/test.out_recom
+phase/test.outgrrr
+phase/test.outgrrr_freqs
+phase/test.outgrrr_hbg
+phase/test.outgrrr_monitor
+phase/test.outgrrr_pairs
+phase/test.outgrrr_probs
+phase/test.outgrrr_recom
+phase/testapple.out
+phase/testapple.out_freqs
+phase/testapple.out_hbg
+phase/testapple.out_monitor
+phase/testapple.out_pairs
+phase/testapple.out_probs
+phase/testapple.out_recom
+phase/testfrog.out
+phase/testfrog.out_freqs
+phase/testfrog.out_hbg
+phase/testfrog.out_monitor
+phase/testfrog.out_probs
+phase/testpig.out
+phase/testpig.out_freqs
+phase/testpig.out_hbg
+phase/testpig.out_monitor
+phase/testpig.out_pairs
+phase/testpig.out_probs
+phase/testpig.out_recom
+phase/testrabbit.out
+phase/testrabbit.out_freqs
+phase/testrabbit.out_hbg
+phase/testrabbit.out_monitor
+phase/testrabbit.out_pairs
+phase/testrabbit.out_probs
+phase/testrabbit.out_recom
+phase/out.out
+phase/out.out_freqs
+phase/out.out_hbg
+phase/out.out_monitor
+phase/out.out_pairs
+phase/out.out_probs
+phase/out.out_recom
+phase/PHASE.exe
+ambertests/DotnetBioTester/test2.inp
+ambertests/PhaseImpl/Debug/PhaseImpl.exe
+ambertests/PhaseImpl/Debug/PhaseImpl.ilk
+ambertests/PhaseImpl/Debug/PhaseImpl.pdb
+ambertests/DotnetBioTester/Phase/Phase.vcxproj
+ambertests/DotnetBioTester/Phase/Phase.vcxproj.filters
+ambertests/DotnetBioTester/Phase/Phase.vcxproj.user

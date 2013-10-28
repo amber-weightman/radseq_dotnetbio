@@ -24,7 +24,7 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>1</ApplicationRevision>
+    <ApplicationRevision>5</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -77,9 +77,6 @@
     <Reference Include="Accord.Statistics, Version=2.10.0.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\Accord.NET\Framework\Release\Accord.Statistics.dll</HintPath>
-    </Reference>
-    <Reference Include="AForge">
-      <HintPath>..\..\..\..\AForge.NET\Release\AForge.dll</HintPath>
     </Reference>
     <Reference Include="Bio, Version=1.1.5032.1615, Culture=neutral, PublicKeyToken=13335e9abfbf69d0, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -142,7 +139,6 @@
     <Compile Include="ClusterMetricPloidulator.cs" />
     <Compile Include="Em.cs" />
     <Compile Include="FromAccord.cs" />
-    <Compile Include="headercode.cs" />
     <Compile Include="Magnolya.cs" />
     <Compile Include="Ploidulator.xaml.cs">
       <DependentUpon>Ploidulator.xaml</DependentUpon>
@@ -194,6 +190,9 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Phase.exe" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -19,7 +19,7 @@
         <DockPanel DockPanel.Dock="Top" Panel.ZIndex="100">
             
         <WrapPanel Orientation="Vertical" Margin="5" DockPanel.Dock="Left"  
-                   Height="350" HorizontalAlignment="Left" VerticalAlignment="Top">
+                   Height="383" HorizontalAlignment="Left" VerticalAlignment="Top">
 
 
                 <Expander x:Name="FileExpander" Header="INPUT FILE AND PARAMETERS" Margin="0" IsExpanded="True" 
@@ -147,12 +147,21 @@
                                 <ListBoxItem Content="0.9"/>
                                 <ListBoxItem Content="1" ToolTip="All sampled individuals must be present in every cluster"/>
                             </ComboBox>
-                            
-                            
-                            
+
+
+
+                            <Label Content="G dirt max:" ToolTip="Total number of genotypes per individual which are unlikely/impossible for an individual of the expected ploidy. For each locus, if it contains an impossible genotype, the total percentage of impossible genotypes is calculated. These are then added up across all loci."
+                               Grid.Row="5"  Grid.Column="0"/>
+                            <TextBox x:Name="GDirtCutoffTextbox" Text="1" 
+                                 ToolTip="Clusters with an average 'G dirt' greater than this will be excluded from output file"
+                                  Margin="0,2"
+                                 Grid.Column="1" Grid.Row="5" TextChanged="NumericOnly_TextChanged" />
+
+
+
                             <Button x:Name="LaunchButton" Content="Go" ToolTip="Go forth and ploidulate" HorizontalAlignment="Right" 
                                 Width="48"  Click="Button_Click_Go" Height="22"
-                                Grid.Row="5" Grid.Column="3"/>
+                                Grid.Row="6" Grid.Column="3"/>
 
 
 

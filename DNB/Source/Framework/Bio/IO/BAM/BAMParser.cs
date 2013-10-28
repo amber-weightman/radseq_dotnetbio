@@ -692,7 +692,7 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
                 }
             }
             else
-            {// todo aw this doesnt work
+            {
                 using (FileStream bamStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
                     string bamIndexFileName = getBAMIndexFileName(fileName);
@@ -1406,6 +1406,7 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
             // 8th bytes
             int queryNameLen = (int)(UnsignedValue & 0x000000FF);
 
+
             // 12 - 16 bytes
             UnsignedValue = Helper.GetUInt32(alignmentBlock, 12);
             // 14-16 bytes
@@ -1421,7 +1422,7 @@ public class BAMParser : IDisposable, ISequenceAlignmentParser
             int mateRefSeqIndex = Helper.GetInt32(alignmentBlock, 20);
             if (mateRefSeqIndex != -1)
             {
-                alignedSeq.MRNM = refSeqNames[mateRefSeqIndex];
+                alignedSeq.MRNM = refSeqNames[mateRefSeqIndex]; 
             }
             else
             {

@@ -32,7 +32,7 @@ namespace Ploidulator
     {
         private delegate System.Delegate QuickDelegate();
         private delegate System.Delegate IntDelegate(int a);
-        private delegate System.Delegate HandlerDelegate(string a, string b, string c, string d, 
+        private delegate System.Delegate HandlerDelegate(string a, string b, string c, string d, string d2,
             string e, string f, string f2,bool? g, bool? h, bool? i, bool? j, bool? k);
         private delegate System.Delegate StatsDelegate(int a, int b, int c, double d, double e, 
             double f, double g, double h, double i, double j, double k);
@@ -62,8 +62,10 @@ namespace Ploidulator
                 HandlerDelegate handler = ParseBAMMetric;
                 handler.BeginInvoke(DataFileATextbox.Text, ExpectedPloidyTextbox.Text, 
                     DirtCutoffTextbox.Text, AlignmentQualCutoffTextbox.Text,
-                    ReadQualCutoffTextbox.Text, PopPercentTextbox.Text, NumSamplesTextbox.Text, OutputToFile.IsChecked, 
-                    MetricFileParent.IsChecked, MetricFileChild.IsChecked, OutputOverviewParent.IsChecked, OutputOverviewChild.IsChecked,
+                    ReadQualCutoffTextbox.Text, PopPercentTextbox.Text, GDirtCutoffTextbox.Text,
+                    NumSamplesTextbox.Text, OutputToFile.IsChecked, 
+                    MetricFileParent.IsChecked, MetricFileChild.IsChecked, OutputOverviewParent.IsChecked, 
+                    OutputOverviewChild.IsChecked,
                     null, null);
             }
         }
@@ -319,7 +321,7 @@ namespace Ploidulator
         /// Initialise handler and handler settings based on user's input
         /// </summary>
         private void InitHandler(string filename, string ploidy, string dirtCutoff, string alignQualCutoff,
-            string readQualCutoff, string popPercent, string numSamples, bool? outputToFile, bool? metricFileParent,
+            string readQualCutoff, string popPercent, string gDirtCutoff, string numSamples, bool? outputToFile, bool? metricFileParent,
             bool? metricFileChild, bool? outputOverviewParent, bool? outputOverviewChild)
         {
             // Check user input
@@ -329,6 +331,7 @@ namespace Ploidulator
             handler = new ClusterMetricHandlerPloidulator(newName + "_pl", Convert.ToInt32(ploidy), Convert.ToDouble(dirtCutoff),
                 Convert.ToDouble(alignQualCutoff), Convert.ToDouble(readQualCutoff), Convert.ToDouble(popPercent), Convert.ToInt32(numSamples), outputToFile);
 
+            handler.GDirtCutoff = Convert.ToDouble(gDirtCutoff);
             handler.WriteToFilteredBam = outputToFile == true;
             handler.WriteClusterMetricOriginal = metricFileParent == true;
             handler.WriteClusterMetricFiltered = metricFileChild == true;
@@ -360,14 +363,14 @@ namespace Ploidulator
         /// Create handler and initialise handler settings, then process sequences
         /// </summary>
         private System.Delegate ParseBAMMetric(string filename, string ploidy, string dirtCutoff, string alignQualCutoff, 
-            string readQualCutoff, string popPercent, string numSamples, bool? outputToFile, bool? metricFileParent, 
-            bool? metricFileChild, bool? outputOverviewParent, bool? outputOverviewChild)
+            string readQualCutoff, string popPercent, string gDirtCutoff, string numSamples, bool? outputToFile, 
+            bool? metricFileParent, bool? metricFileChild, bool? outputOverviewParent, bool? outputOverviewChild)
         {
             BAMParser parser = new BAMParser();
             int numClustersInInputFile = 0;
             
             // Initialise the metric handler
-            InitHandler(filename, ploidy, dirtCutoff, alignQualCutoff, readQualCutoff, popPercent, numSamples, 
+            InitHandler(filename, ploidy, dirtCutoff, alignQualCutoff, readQualCutoff, popPercent, gDirtCutoff, numSamples, 
                 outputToFile, metricFileParent, metricFileChild, outputOverviewParent, outputOverviewChild);
 
             ReadHeader(filename, parser, numClustersInInputFile);
@@ -394,7 +397,7 @@ namespace Ploidulator
         private void ProcessSequences(string filename, BAMParser parser)
         {
             double incrementOne = 1; // the progress bar will update every [incrementOne] many clusters
-            double incrementTwo = 5; // the progress bar will update every [incrementTwo] many clusters
+            double incrementTwo = 1; // the progress bar will update every [incrementTwo] many clusters
             int increaseIncrementAfter = 100; // after this many clusters, increase the increment at which we update the gui
             double increment;       // the current increment at which progress bar will update
             int updateDisplayForClusterIndex = -1, clusterCount = -1; // whether we have already updated the gui for this cluster

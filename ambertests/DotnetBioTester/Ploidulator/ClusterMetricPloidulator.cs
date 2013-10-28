@@ -40,6 +40,8 @@ namespace Ploidulator
         /// </summary>
         private int numSamples;
         
+        private List<Tuple<char, char>> genotype = null;
+
 
         // buckets of everything
         private List<SAMAlignedSequence> readsInPloidyForIndividuals = null;
@@ -343,8 +345,32 @@ namespace Ploidulator
                 //double rqAll = FindReadQualities(sequences); (OCCURS BUT I HAVE IGNORED IT FOR NOW)
                 // base frequencies (UNUSED BUT HERE)
             
+            foreach (List<SAMAlignedSequence> seqList in sampleDict.Values)
+            {
+                Dictionary<char, double>[] fxx = BaseFrequencies(seqList, (double)expectedPloidy);
+            }
+
+            Dictionary<char, double>[] fx = BaseFrequencies(sequences, (double)expectedPloidy + 1);
+
+
+
+            /*Tuple<char, char>[] geno = new Tuple<char, char>[GetSequence(sequences[0]).Length];
+
+            for (int i = 0; i < geno.Length; i++ )
+            {
+               // AddGenotype(geno[i], seq.ch);
+                
+            }*/
+            
         }
 
+        private class BasePair<T1, T2>
+        {
+            public T1 First { get; set; }
+            public T2 Second { get; set; }
+        }
+
+      
 
         private string SetId(List<SAMAlignedSequence> sequences)
         {
@@ -360,71 +386,82 @@ namespace Ploidulator
         }
 
         // THIS METHOD IS CURRENTLY UNUSED BUT THERE MAY BE A PURPOSE FOR IT LATER
-        private List<Dictionary<char, double>> BaseFrequencies()
+        private Dictionary<char, double>[] BaseFrequencies(List<SAMAlignedSequence> seqs, double dirtCutoff)
         {
-            //Dictionary<double, int> freqDict = new Dictionary<double, int>();
-            List<Dictionary<char, double>> freqList = new List<Dictionary<char, double>>();
+            double totalGDirt = 0;
+            // length of REFERENCE
+            Dictionary<char, double>[] freqList = new Dictionary<char, double>[GetSequence(seqs[0]).Length];
 
-            //double A = 0, T = 0, C = 0, G = 0;
-            foreach (SAMAlignedSequence seq in Sequences)
+            //For each position, get each nucleotide and its relative frequency
+            foreach (SAMAlignedSequence seq in seqs)
             {
-                string seqStr = Regex.Split(seq.QuerySequence.ToString(), "\r\n")[0];
+                string seqStr = GetSequence(seq);
                 int count = 0;
                 foreach (char c in seqStr.ToUpper().ToCharArray())
                 {
-                    // 5 // ok to index 4
-                    if (count >= freqList.Count)
-                    {
-                        freqList.Add(new Dictionary<char, double>());
-                    }
-                    if (freqList[count].ContainsKey(c))
+                    if (freqList[count] != null && freqList[count].ContainsKey(c))
                     {
                         ++freqList[count][c];
                     }
                     else
                     {
+                        if (freqList[count] == null)
+                        {
+                            freqList[count] = new Dictionary<char, double>();
+                        }
                         freqList[count].Add(c, 1);
                     }
-
                     count++;
                 }
             }
 
-            foreach (Dictionary<char, double> bases in freqList)
+            // for each position
+            for (int i = 0; i < freqList.Length; i++ )
             {
-                double numBases = bases.Values.Sum();
-                if (bases.ContainsKey('A'))
+                double numBases = freqList[i].Values.Sum();
+                char[] chars = freqList[i].Keys.ToArray();
+                foreach (char c in chars)
                 {
-                    bases['A'] = Math.Round((bases['A'] / numBases), 2);
-                    if (bases['A'] == 0) { bases.Remove('A'); }
-                }
-                if (bases.ContainsKey('T'))
-                {
-                    bases['T'] = Math.Round((bases['T'] / numBases), 2);
-                    if (bases['T'] == 0) { bases.Remove('T'); }
-                }
-                if (bases.ContainsKey('C'))
-                {
-                    bases['C'] = Math.Round((bases['C'] / numBases), 2);
-                    if (bases['C'] == 0) { bases.Remove('C'); }
-                }
-                if (bases.ContainsKey('G'))
-                {
-                    bases['G'] = Math.Round((bases['G'] / numBases), 2);
-                    if (bases['G'] == 0) { bases.Remove('G'); }
+                    freqList[i][c] = Math.Round((freqList[i][c] / numBases), 2);
+                    if (freqList[i][c] == 0) { freqList[i].Remove(c); }
                 }
 
-
-                /*var sortedSequenceDict = (from b in bases
-                                          orderby b.Key ascending
+                var sorted = (from b in freqList[i]
+                                          orderby b.Value descending
                                           select b)
                     .ToDictionary(pair => pair.Key, pair => pair.Value);
-                bases = sortedSequenceDict;*/
+                freqList[i] = sorted;
+
+
+
+                int j = 0;
+                double gDirt = 0;
+
+                foreach (char c in freqList[i].Keys)
+                {
+                    //Console.Write("(" + c + ", " + freqList[i][c] + "), ");
+                    if(j++ >= dirtCutoff)
+                    {
+                        gDirt += freqList[i][c];
+                        
+                    }
+
+                }
+                if(gDirt > 0)
+                {
+                    totalGDirt += gDirt;
+                    //Console.Write("\t[" + gDirt + "] ");
+                }
+                //Console.WriteLine("");
+                
 
             }
-
+            //Console.WriteLine("--------------------" + totalGDirt + "--------------------");
+            
+            
             return freqList;
         }
+
         #endregion
 
         #region anySequenceList
