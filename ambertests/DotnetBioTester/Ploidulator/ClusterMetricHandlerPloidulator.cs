@@ -29,6 +29,7 @@ namespace Ploidulator
     public class ClusterMetricHandlerPloidulator : IMetricHandler
     {
         #region Private Static Fields
+
         private static string OUTPUT_FOLDER = @"E:\Harvard\pl_output";
         private static int OUTPUT_QUEUE_SIZE = 7; // max number of sequences that can be stored in the
                                                      // output queue (to prevent too many being held in memory)
@@ -601,6 +602,22 @@ namespace Ploidulator
                 metric.Calculate(sequences);
                 isGood = GoodOrBad(metric);
 
+                // Get haplotype information
+                int numHap;
+                if(isGood){
+                    WritePhaseGenotypeInput(metric);
+                    numHap = TestPhase(metric);
+                    if(numHap > 4)
+                    {
+                        Console.WriteLine("Hap count means cluster is not good");
+                        isGood = false;
+                    }
+                } else {
+                    numHap = -1;
+                }
+                
+                Console.Write("Cluster has "+numHap + " haplotypes");
+
                 // Get statistics from the metric for this new cluster
                 CreateSummaryArrays(metric);
                 SetOverviewStats(metric, isGood);
@@ -625,9 +642,6 @@ namespace Ploidulator
             {
                 SetComplete(false);
             }
-
-            Console.Write("here goes");
-            TestPhase();
         }
 
         #endregion
@@ -753,6 +767,62 @@ namespace Ploidulator
             }
         }
 
+        // should prob go within the metric instead
+        private void WritePhaseGenotypeInput(ClusterMetricPloidulator metric)
+        {
+            int numIndividuals = metric.CountSamples;
+            string locusType = metric.PhaseLoci; // S for a biallelic (SNP) locus; M for microsatellite, or other multi-allelic locus (eg tri-allelic SNP, or HLA allele).
+            int numLoci = locusType.Length; // only the snps?
+            string data = metric.PhaseData;
+            //locusType = Regex.Split(locusType, "-").ToString();
+
+
+
+            string lines = numIndividuals + "\r\n" +
+                numLoci + "\r\n" +
+                //"P 300 1313 1500 2023 5635\r\n"+ // position. this is optional and does not apply for sample dataset
+                locusType + "\r\n" +
+                data;
+
+            //Console.Write(lines);
+
+            System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\genotypes.inp");
+            file.WriteLine(lines);
+            file.Close();
+        }
+
+
+
+        private void WritePhaseGenotypeInputTemplate(ClusterMetricPloidulator metric)
+        {
+            int numIndividuals = 3;
+            int numLoci = 5;
+            string locusType = "MSSSM"; // S for a biallelic (SNP) locus; M for microsatellite, or other multi-allelic locus (eg tri-allelic SNP, or HLA allele).
+
+            string indivA = "#1\r\n" +
+                "12 1 0 1 3\r\n" +
+                "11 0 1 0 3\r\n";
+
+            string indivB = "#2\n12 1 1 1 2\r\n" +
+                "12 0 0 0 3\r\n";
+
+            string indivC = "#3\r\n" +
+                "-1 ? 0 0 2\r\n" +
+                "-1 ? 1 1 13";
+
+            string lines = numIndividuals + "\r\n" +
+                numLoci + "\r\n" +
+                //"P 300 1313 1500 2023 5635\r\n"+ // position. this is optional and does not apply for sample dataset
+                locusType + "\r\n" +
+                indivA +
+                indivB +
+                indivC;
+
+            System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\genotypes.inp");
+            file.WriteLine(lines);
+            file.Close();
+        }
+
         /// <summary>
         /// Given a populated and calculated metric, determine based on handler's filter criteria whether
         /// that cluster is good or bad. Returns true for good, false for bad
@@ -783,11 +853,11 @@ namespace Ploidulator
         {
             if (writeClusterMetricOriginal && formatterOriginalFile == null)
             {
-                formatterOriginalFile = new MetricFormatter(fileName + "_orig.metr");
+                formatterOriginalFile = new MetricFormatter(fileName + "\\orig.metr");
             }
             if (writeClusterMetricFiltered && formatterFilteredFile == null)
             {
-                formatterFilteredFile = new MetricFormatter(fileName + "_filtered.metr");
+                formatterFilteredFile = new MetricFormatter(fileName + "\\filtered.metr");
             }
         }
 
@@ -803,13 +873,13 @@ namespace Ploidulator
                 bamOutputQueue = new Queue<List<SAMAlignedSequence>>();
 
                 // Create a new directory for output files if it does not already exist
-                if (!Directory.Exists(OUTPUT_FOLDER))
+                if (!Directory.Exists(fileName))
                 {
-                    Directory.CreateDirectory(OUTPUT_FOLDER);
+                    Directory.CreateDirectory(fileName);
                 }
 
                 // Create the output file for filtered sequences
-                string file = OUTPUT_FOLDER + "\\sequences.bam";
+                string file = fileName + "\\sequences.bam";
                 if(File.Exists(file))
                 {
                     File.Delete(file);
@@ -874,67 +944,82 @@ namespace Ploidulator
         }
 
         /// <summary>
-        /// ...
+        /// returns the number of haplotypes
         /// </summary>
-        private void TestPhase()
+        private int TestPhase(ClusterMetricPloidulator metric)
         {
-            ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.CreateNoWindow = false;
-            startInfo.UseShellExecute = false;
-            startInfo.FileName = "e:\\src\\phase\\PHASE.exe";
-            startInfo.ErrorDialog = false;
-            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            startInfo.Arguments = "e:\\src\\phase\\test.inp e:\\src\\phase\\testpig.out";
-
-            try
+            Console.WriteLine("TOTAL G DIRT IS " + metric.TotalGDirt);
+            if(metric.TotalGDirt == 0) // no alleles are outside the top 3
             {
-                // Start the process with the info we specified.
-                // Call WaitForExit and then the using statement will close.
-                using (Process exeProcess = Process.Start(startInfo))
+                Console.WriteLine("Running PHASE to calculate haplotypes. Please wait...");
+                ProcessStartInfo startInfo = new ProcessStartInfo();
+                //startInfo.CreateNoWindow = false;
+                startInfo.UseShellExecute = true;
+                startInfo.FileName = "PHASE.exe";
+                startInfo.ErrorDialog = false;
+                startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                startInfo.Arguments = "-d1 "+fileName+"\\genotypes.inp "+fileName+"\\haplotypes.out";
+
+                try
                 {
-                    exeProcess.WaitForExit();
+                    // Start the process and wait for it to finish
+                    using (Process exeProcess = Process.Start(startInfo))
+                    {
+                        exeProcess.WaitForExit();
+                    }
                 }
+                catch
+                {
+                    // Log error todo
+                }
+                Console.WriteLine("DONE");
+                return GetPhaseNumHaplotypes(fileName + "\\haplotypes.out");
             }
-            catch
+            else
             {
-                // Log error.
+                Console.WriteLine("Unable to get haplotypes, too many errors in data (gdirt " + metric.TotalGDirt + ")");
             }
-            Console.WriteLine("DONE");
 
+            return -1;
         }
 
-        private void TestPhaseNew()
+        private int GetPhaseNumHaplotypes(string file)
         {
-            Console.WriteLine("Concatenating bam header and sequence output files");
-            ProcessStartInfo startInfo = new ProcessStartInfo();
-
-            startInfo.CreateNoWindow = true;
-            startInfo.FileName = "cmd.exe";
-            startInfo.Arguments = "e:\\src\\phase.exe e:\\src\\phase\\test.inp e:\\src\\phase\\testpig.out";
-            Console.WriteLine("Executing cmd " + startInfo.Arguments);
-            startInfo.Verb = "runas";
-            startInfo.UseShellExecute = true;
-            startInfo.RedirectStandardOutput = true;
-
-
+            string hapIndex = "0";
+            bool inHapBlock = false;
             try
             {
-                // Start the process with the info we specified.
-                // Call WaitForExit and then the using statement will close.
-                using (Process exeProcess = Process.Start(startInfo))
+                using (StreamReader sr = new StreamReader(file))
                 {
-                    exeProcess.WaitForExit();
+                    while (!sr.EndOfStream)
+                    {
+                        string thisStr = sr.ReadLine().Trim();
+                        if (thisStr == "BEGIN LIST_SUMMARY")
+                        {
+                            inHapBlock = true;
+                            thisStr = sr.ReadLine().Trim();
+                        }
+                        if(inHapBlock)
+                        {
+                            if (thisStr != "END LIST_SUMMARY")
+                            {
+                                hapIndex = thisStr.Split(' ')[0];
+                            }
+                            else
+                            {
+                                Console.WriteLine("Best haplotype count for this cluster is " + hapIndex);
+                                return Convert.ToInt32(hapIndex);
+                            }
+                        }
+                    }
                 }
             }
-            catch
+            catch (Exception e)
             {
-                // Log error.
+                Console.WriteLine("The file could not be read:");
+                Console.WriteLine(e.Message);
             }
-
-            bamFilesMerged = true;
-            Console.WriteLine("Finished concatenating");
-
-            //Process.Start(OUTPUT_FOLDER);
+            return -1;
         }
 
         /// <summary>
@@ -947,7 +1032,7 @@ namespace Ploidulator
 
             startInfo.CreateNoWindow = true;
             startInfo.FileName = "cmd.exe";
-            startInfo.Arguments = "/C copy /b " + OUTPUT_FOLDER + "\\header.bam+" + OUTPUT_FOLDER + "\\sequences.bam " + OUTPUT_FOLDER + "\\filtered.bam /y";
+            startInfo.Arguments = "/C copy /b " + fileName + "\\header.bam+" + fileName + "\\sequences.bam " + fileName + "\\filtered.bam /y";
             Console.WriteLine("Executing cmd "+startInfo.Arguments);
             
             startInfo.UseShellExecute = false;
@@ -1099,7 +1184,7 @@ namespace Ploidulator
             }
             if(writeToFilteredBam){
                 canWriteToBam = false;
-                string f = OUTPUT_FOLDER + "\\header.bam";
+                string f = fileName + "\\header.bam";
                 if (File.Exists(f))
                 {
                     File.Delete(f);

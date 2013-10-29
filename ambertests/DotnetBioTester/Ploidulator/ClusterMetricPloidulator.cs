@@ -116,6 +116,18 @@ namespace Ploidulator
         public string Id { get { return id; } }
         private string id;
 
+        public string ReferenceSequence { get { return referenceSequence; } }
+        private string referenceSequence;
+
+        public string PhaseLoci { get { return loci; } }
+        private string loci;
+
+        public string PhaseData { get { return phaseData; } }
+        private string phaseData;
+
+        public double TotalGDirt { get { return totalGDirt; } }
+        private double totalGDirt;
+
         /// <summary>
         /// Total number of all sequences in the cluster
         /// </summary>
@@ -303,25 +315,17 @@ namespace Ploidulator
             
             
             // Iterate through each structure the minimum number of times to calculate as many values as we can from it
-            Console.Write("a");
             IterateSequences();
-            Console.Write("b");
             IterateSequenceDict();
-            Console.Write("c");
             IterateSampleDict();
-            Console.Write("d");
             IterateSequenceSampleDict();
-            Console.Write("e");
             IterateSampleSequenceDict();
-            Console.Write("f");
 
             // Simple things that do not need to iterate to get their values
             populationPercentage = Math.Round(CountSamples / (double)numSamples, 2);
-            Console.Write("g");
 
             // At this point every value should be set and nothing more should need to be done
             readQualities = FindReadQualities(); // takes a long time
-            Console.Write("h");
 
             // CHECK WHICH DIRT CALC IS MORE ACCURATE
             dirt = Math.Round(1 - GetCountInPloidy(expectedPloidy, clustSeqFrequencies), 2);
@@ -329,46 +333,185 @@ namespace Ploidulator
 
 
 
-            Console.Write("i");
-            
-
             //clustAlignmentQualities = FindAlignmentQualities(sequenceDict); // quality; quantity
 
             Console.WriteLine(this.ToFileString()); // todo fixme this line of course should be removed
         }
 
         #region iterateSequences
+
+        private char[] GetAllelesAtLocusForIndiv(Dictionary<char, double>[] alleleFxThisIndiv, int locusIndex)
+        {
+            char[] allelesThisIndiv = alleleFxThisIndiv[locusIndex].Keys.ToArray();
+            for (int j = 0; j < allelesThisIndiv.Length; j++)
+            {
+                if (!alleles.ContainsKey(allelesThisIndiv[j]))
+                {
+                    allelesThisIndiv[j] = '?';
+                }
+            }
+            return allelesThisIndiv;
+        }
+
+        // Dictionary of all possible allele values
+        private Dictionary<char, string> alleles = new Dictionary<char, string>()
+            {
+                {'A', "1"},
+                {'T', "2"},
+                {'C', "3"},
+                {'G', "4"},
+                {'?', "-1"}
+            };
+
+
+
+        private void GetIndivBiAllelicLocusAlleles(char[] allelesThisIndiv, int numSeqsThisIndivHas, ref string chr1, ref string chr2)
+        {
+            switch (allelesThisIndiv.Length)
+            {
+                case 0:
+                    // This individual has no alleles at this position
+                    chr1 += ("? ");
+                    chr2 += ("? ");
+                    break;
+
+                case 1:
+                    if (numSeqsThisIndivHas > 1)
+                    {
+                        // This individual has one distinct allele at this position, but more than one instance of it occurring,
+                        // so we assume it may be on different chromosomes
+                        chr1 += allelesThisIndiv[0] + " ";
+                        chr2 += allelesThisIndiv[0] + " ";
+                    }
+                    else
+                    {
+                        // Indiv only has one sequence in this cluster. Not enough information to infer that chr2 == chr1 at this position
+                        chr1 += allelesThisIndiv[0] + " ";
+                        chr2 += "? ";
+                    }
+                    break;
+
+                case 2:
+                    // Indiv has two sequences, both with different alleles at this position
+                    chr1 += allelesThisIndiv[0] + " ";
+                    chr2 += allelesThisIndiv[1] + " ";
+                    break;
+                
+                default:
+                    throw new Exception("More than two alleles at a position impossible for GetIndivBiAllelicLocusAlleles");
+            }
+        }
+
+
+
+
+        private void GetIndivMultiAllelicLocusAlleles(char[] allelesThisIndiv, int numSeqsThisIndivHas, ref string chr1, ref string chr2)
+        {
+            switch (allelesThisIndiv.Length)
+            {
+                case 0:
+                    // This individual has no alleles at this position
+                    chr1 += ("-1 ");
+                    chr2 += ("-1 ");
+                    break;
+
+                case 1:
+                    if (numSeqsThisIndivHas > 1)
+                    {
+                        // This individual has one distinct allele at this position, but more than one instance of it occurring,
+                        // so we assume it may be on different chromosomes
+                        chr1 += alleles[allelesThisIndiv[0]] + " ";
+                        chr2 += alleles[allelesThisIndiv[0]] + " ";
+                    }
+                    else
+                    {
+                        // Indiv only has one sequence in this cluster. Not enough information to infer that chr2 == chr1 at this position
+                        chr1 += alleles[allelesThisIndiv[0]] + " ";
+                        chr2 += "-1 ";
+                    }
+                    break;
+
+                case 2:
+                    // Indiv has two sequences, both with different alleles at this position
+                    chr1 += alleles[allelesThisIndiv[0]] + " ";
+                    chr2 += alleles[allelesThisIndiv[1]] + " ";
+                    break;
+
+                default:
+                    // todo fixme - hardcoded ploidy assumption below
+                    throw new Exception("More than two alleles at a position impossible for GetIndivMultiAllelicLocusAlleles (while only top 2 sequences are being considered)");
+            }
+        }
+
+
+
+
+        //double rqAll = FindReadQualities(sequences); (OCCURS BUT I HAVE IGNORED IT FOR NOW)
         private void IterateSequences()
         {
-            // set id (at the moment this doesn't iterate but in the future it should)
-            id = SetId(sequences); 
-                //double rqAll = FindReadQualities(sequences); (OCCURS BUT I HAVE IGNORED IT FOR NOW)
-                // base frequencies (UNUSED BUT HERE)
+            // Set reference ID and sequence
+            id = SetId(sequences);
+            referenceSequence = GetSequence(sequences[0]);
+
+
+            // Generates "S--SS-SM---MSSMMS-MMM--MSSSMS" identifying snp locations - populates phaseLoci with that string
+            // Also sets the value of totalGDirt (because the final parameter is true)
+            loci = "";
             
-            foreach (List<SAMAlignedSequence> seqList in sampleDict.Values)
+            Dictionary<char, double>[] fx = BaseFrequencies(readsInPloidyForIndividualsDict.Keys.ToArray(), 
+                (double)expectedPloidy + 1, ref loci, true);
+
+
+            // Generates the data for each individual for the phase file
+            string phaseFileData = "";
+            foreach (Dictionary<string, List<SAMAlignedSequence>> seqList in sampleSequenceDict.Values) 
             {
-                Dictionary<char, double>[] fxx = BaseFrequencies(seqList, (double)expectedPloidy);
-            }
+                string[] ff = readsInPloidyForIndividualsDict.Keys.ToArray();
+                string tmp = "";
+                Dictionary<char, double>[] alleleFxThisIndiv = BaseFrequencies(seqList.Keys.ToArray(), (double)expectedPloidy, ref tmp);
 
-            Dictionary<char, double>[] fx = BaseFrequencies(sequences, (double)expectedPloidy + 1);
+                string indivId = "#" + seqList.Values.ToArray()[0][0].QName;
+                string chr1 = "", chr2 = "";
+                int locusCount = 0;
+                foreach (char allele in loci) // for each allele at this locus, where loci is in the format "S--SS-SM---MSSMMS-MMM--MSSSMS"
+                    // we will iterate through looking at one physical locus at a time and examining all sequences that align to that locus
+                {
+                    // Get an array of all alleles which appear at this locus for this individual
+                    // If any of these allele characters are not in the dictionary of recognised alleles, replace them with '?' 
+                    char[] allelesThisIndiv = GetAllelesAtLocusForIndiv(alleleFxThisIndiv, locusCount++);
+                        
+                    // Between all samples, there are two alleles at this position
+                    if (allele == 'S')
+                    {
+                        GetIndivBiAllelicLocusAlleles(allelesThisIndiv, seqList.Count, ref chr1, ref chr2);
+                    }
 
+                    // Between all samples, there are three or four alleles at this position (although this particular individual
+                    // will still only have 2)
+                    else if (allele == 'M')
+                    {
+                        GetIndivMultiAllelicLocusAlleles(allelesThisIndiv, seqList.Count, ref chr1, ref chr2);
+                    }
+                }
 
-
-            /*Tuple<char, char>[] geno = new Tuple<char, char>[GetSequence(sequences[0]).Length];
-
-            for (int i = 0; i < geno.Length; i++ )
-            {
-               // AddGenotype(geno[i], seq.ch);
+                // Add this individual's genotype information to the phase file data string
+                phaseFileData += (indivId + "\r\n" + chr1 + "\r\n" + chr2 + "\r\n");
                 
-            }*/
-            
+            }
+            phaseData = phaseFileData;
+
+            // Finally remove the '-' characters from loci (constrict to "SSSSMMSSMMMMSSM")
+            string theString = loci;
+            var array = theString.Split('-');
+            string restOfArray = string.Join("", array);
+            loci = restOfArray;
+
+            // TODO: refactor = this should not have to be repeated
+            string tmpp = "";
+            BaseFrequencies(readsInPloidyForIndividualsDict.Keys.ToArray(),
+                (double)expectedPloidy + 1, ref tmpp, true);
         }
 
-        private class BasePair<T1, T2>
-        {
-            public T1 First { get; set; }
-            public T2 Second { get; set; }
-        }
 
       
 
@@ -385,17 +528,31 @@ namespace Ploidulator
             }
         }
 
-        // THIS METHOD IS CURRENTLY UNUSED BUT THERE MAY BE A PURPOSE FOR IT LATER
-        private Dictionary<char, double>[] BaseFrequencies(List<SAMAlignedSequence> seqs, double dirtCutoff)
-        {
-            double totalGDirt = 0;
-            // length of REFERENCE
-            Dictionary<char, double>[] freqList = new Dictionary<char, double>[GetSequence(seqs[0]).Length];
+        
 
-            //For each position, get each nucleotide and its relative frequency
-            foreach (SAMAlignedSequence seq in seqs)
+        // THIS METHOD IS CURRENTLY UNUSED BUT THERE MAY BE A PURPOSE FOR IT LATER
+        // precondition seqs is an ordered list
+        private Dictionary<char, double>[] BaseFrequencies(string[] seqs, double topX, ref string phaseLocusTypes, bool all = false)
+        {
+            if (phaseLocusTypes != null)
             {
-                string seqStr = GetSequence(seq);
+                phaseLocusTypes = "";
+            }
+            string biAllelic = "S";
+            string multiAllelic = "M";
+            double totalGDirtTmp = 0;
+            // length of REFERENCE
+            Dictionary<char, double>[] freqList = new Dictionary<char, double>[seqs[0].Length];
+
+            int hello = 0;
+            //For each position, get each nucleotide and its relative frequency
+            foreach (string seq in seqs)
+            {
+                if(hello++ >= topX && !all)
+                {
+                    break;
+                }
+                string seqStr = seq;
                 int count = 0;
                 foreach (char c in seqStr.ToUpper().ToCharArray())
                 {
@@ -423,7 +580,7 @@ namespace Ploidulator
                 foreach (char c in chars)
                 {
                     freqList[i][c] = Math.Round((freqList[i][c] / numBases), 2);
-                    if (freqList[i][c] == 0) { freqList[i].Remove(c); }
+                    //if (freqList[i][c] == 0) { freqList[i].Remove(c); }
                 }
 
                 var sorted = (from b in freqList[i]
@@ -437,27 +594,46 @@ namespace Ploidulator
                 int j = 0;
                 double gDirt = 0;
 
+                int len = freqList[i].Keys.Count;
+
+                if (len == 1 && phaseLocusTypes != null)
+                {
+                    phaseLocusTypes += "-";
+                }
+                else if (len == 2 && phaseLocusTypes != null)
+                {
+                    phaseLocusTypes += biAllelic;
+                }
+                else if (len > 2 && phaseLocusTypes != null)
+                {
+                    phaseLocusTypes += multiAllelic;
+                }
+
+
                 foreach (char c in freqList[i].Keys)
                 {
                     //Console.Write("(" + c + ", " + freqList[i][c] + "), ");
-                    if(j++ >= dirtCutoff)
+
+                    if (j++ >= topX)
                     {
-                        gDirt += freqList[i][c];
-                        
+                        gDirt += freqList[i][c];   
                     }
+                    
 
                 }
                 if(gDirt > 0)
                 {
-                    totalGDirt += gDirt;
+                    totalGDirtTmp += gDirt;
                     //Console.Write("\t[" + gDirt + "] ");
                 }
                 //Console.WriteLine("");
-                
-
             }
-            //Console.WriteLine("--------------------" + totalGDirt + "--------------------");
-            
+            Console.WriteLine(phaseLocusTypes);
+            //Console.WriteLine("-- " + totalGDirt + " --");
+            if(all)
+            {
+                totalGDirt = totalGDirtTmp;
+            }
             
             return freqList;
         }

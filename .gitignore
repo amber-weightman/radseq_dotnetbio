@@ -10637,3 +10637,5 @@ ambertests/PhaseImpl/Debug/PhaseImpl.pdb
 ambertests/DotnetBioTester/Phase/Phase.vcxproj
 ambertests/DotnetBioTester/Phase/Phase.vcxproj.filters
 ambertests/DotnetBioTester/Phase/Phase.vcxproj.user
+ambertests/DotnetBioTester/DotnetBioTester.opensdf
+ambertests/DotnetBioTester/Phase/Debug/Phase.Build.CppClean.log
