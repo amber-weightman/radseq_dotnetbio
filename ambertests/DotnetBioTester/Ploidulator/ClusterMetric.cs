@@ -1,25 +1,14 @@
 ﻿using Accord.Statistics.Distributions.Univariate;
-using Accord.Statistics.Models.Markov;
 using Accord.Statistics.Models.Regression;
 using Accord.Statistics.Models.Regression.Fitting;
 using Bio;
-using Bio.Algorithms.Alignment;
 using Bio.Algorithms.Metric;
-using Bio.IO.BAM;
 using Bio.IO.SAM;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Media;
-using System.Windows.Shapes;
-using System.Windows.Threading;
 
 namespace Ploidulator
 {
@@ -28,7 +17,7 @@ namespace Ploidulator
     /// list of sequences belongs to a cluster. Clusters are determined based on sequence similarity, 
     /// e.g. as calculated by an MCL graph clustering algorithm, or any other clustering approach
     /// </summary>
-    public class ClusterMetricPloidulator : IMetric
+    public class ClusterMetric : IMetric
     {
 
         #region Private Fields
@@ -82,6 +71,11 @@ namespace Ploidulator
         /// </summary>
         private List<SAMAlignedSequence> sequences = null;
 
+        /// <summary>
+        /// The number of haplotypes in this cluster
+        /// </summary>
+        private int numHaplotpes = -1;
+
         //private SequenceAlignmentMap sequenceMap = null;
 
         #endregion
@@ -91,12 +85,12 @@ namespace Ploidulator
         /// <summary>
         /// The default constructor.
         /// </summary>
-        public ClusterMetricPloidulator()
+        public ClusterMetric()
         {
             //throw new NotImplementedException();
         }
 
-        public ClusterMetricPloidulator(int ploidy, int samples)
+        public ClusterMetric(int ploidy, int samples)
         {
             expectedPloidy = ploidy;
             numSamples = samples;
@@ -127,6 +121,11 @@ namespace Ploidulator
 
         public double TotalGDirt { get { return totalGDirt; } }
         private double totalGDirt;
+
+        /// <summary>
+        /// The number of haplotypes in this cluster
+        /// </summary>
+        public int NumHaplotpes { get { return numHaplotpes; } set { numHaplotpes = value; } }
 
         /// <summary>
         /// Total number of all sequences in the cluster
@@ -260,6 +259,7 @@ namespace Ploidulator
         {
             // PRINT THIS OUT TO SHOW DAD
             // for each in samplereadcountsAll, i want to know how much it deviates from the average
+            // the degree of deviation would show that individuals are unevenly reprsented
             // this requires some sort of frequency distribution
             // the array of nums that applies for fx dist is below
             /*string ss = "\nSamplereadcountsAll: ";
@@ -269,14 +269,14 @@ namespace Ploidulator
             // MAYBE ALSO SHOW DAD PRINTOUT FOR clustSeqFrequencies
 
             // todo update
-            string header = (this.Id == "0") ? "cluster_id\tcount_all_reads\tcount_distinct_reads\tnum_individuals\tdirt\talignment_qualities_all:in:out\tploidy_disagreement_unnormalised\tread_qualities_all:in:out\tpopulation_percentage" : "";
+            string header = (this.Id == "0") ? "#cluster_id\tcount_all_reads\tcount_distinct_reads\tnum_individuals\tdirt\talignment_qualities_all\tploidy_disagreement_unnormalised\tread_qualities_all\tpopulation_percentage\tavg_read_count_per_indiv_all\tavg_read_count_per_indiv_distinct\tnum_haplotypes" + Environment.NewLine : "";
 
-            return header + Environment.NewLine + Id + "\t" + CountAll + "\t" +
+            return header  + Id + "\t" + CountAll + "\t" +
                 CountDistinct + "\t" +
                 CountSamples + 
-                "\t" + Dirt + "\t" + AlignmentQualities[0] + " : " + AlignmentQualities[1] + " : " + AlignmentQualities[2] + "\t(" + ploidyDisagreement + ")\t" +
-                ReadQualities[0] + " : " + ReadQualities[1] + " : " + ReadQualities[2] + "\t" + PopulationPercentage + "\t" + Math.Round(SampleReadCountsAll.Average(), 2)
-                //+ ss + Environment.NewLine
+                "\t" + Dirt + "\t" + AlignmentQualities[0] /*+ " : " + AlignmentQualities[1] + " : " + AlignmentQualities[2]*/ + "\t(" + ploidyDisagreement + ")\t" +
+                ReadQualities[0] /*+ " : " + ReadQualities[1] + " : " + ReadQualities[2]*/ + "\t" + PopulationPercentage + "\t" + Math.Round(SampleReadCountsAll.Average(), 2) + " \t " + Math.Round(SampleReadCountsDistinct.Average(), 2)  + "\t"
+                + numHaplotpes
                 ;
             ;
         }
@@ -300,7 +300,7 @@ namespace Ploidulator
 
         public void Calculate(List<SAMAlignedSequence> sequences)
         {
-            Console.Write(Id+"-");
+            //Console.Write(Id+"-");
             // Create various structures to store or index the sequence data in different ways
             this.sequences = sequences;
             sequenceDict = MakeSequenceDict(sequences);
@@ -335,7 +335,7 @@ namespace Ploidulator
 
             //clustAlignmentQualities = FindAlignmentQualities(sequenceDict); // quality; quantity
 
-            Console.WriteLine(this.ToFileString()); // todo fixme this line of course should be removed
+            //Console.WriteLine(this.ToFileString()); // todo fixme this line of course should be removed
         }
 
         #region iterateSequences
@@ -362,6 +362,8 @@ namespace Ploidulator
                 {'G', "4"},
                 {'?', "-1"}
             };
+
+
 
 
 
@@ -453,22 +455,58 @@ namespace Ploidulator
             id = SetId(sequences);
             referenceSequence = GetSequence(sequences[0]);
 
+            masterPhaseLocusTypes = new char[referenceSequence.Length]; // new blank string for sss, mmm
 
-            // Generates "S--SS-SM---MSSMMS-MMM--MSSSMS" identifying snp locations - populates phaseLoci with that string
-            // Also sets the value of totalGDirt (because the final parameter is true)
-            loci = "";
-            
-            Dictionary<char, double>[] fx = BaseFrequencies(readsInPloidyForIndividualsDict.Keys.ToArray(), 
-                (double)expectedPloidy + 1, ref loci, true);
-
+            Dictionary<char, double>[] alleleFxAllIndiv = new Dictionary<char, double>[referenceSequence.Length];
+            List<Dictionary<char, double>[]> alleleFxAllIndivFull = new List<Dictionary<char, double>[]>();
 
             // Generates the data for each individual for the phase file
             string phaseFileData = "";
             foreach (Dictionary<string, List<SAMAlignedSequence>> seqList in sampleSequenceDict.Values) 
             {
-                string[] ff = readsInPloidyForIndividualsDict.Keys.ToArray();
-                string tmp = "";
-                Dictionary<char, double>[] alleleFxThisIndiv = BaseFrequencies(seqList.Keys.ToArray(), (double)expectedPloidy, ref tmp);
+                //string[] ff = readsInPloidyForIndividualsDict.Keys.ToArray();
+                Dictionary<char, double>[] alleleFxThisIndiv = BaseFrequenciesBetter(seqList.Keys.ToArray(), (double)expectedPloidy, ref alleleFxAllIndiv);
+                alleleFxAllIndivFull.Add(alleleFxThisIndiv);
+            }
+
+            loci = "";
+            string biAllelic = "S";
+            string multiAllelic = "M";
+            foreach (Dictionary<char, double> i in alleleFxAllIndiv)
+            {
+                if(i.Keys.Count == 0 || i.Keys.Count == 1)
+                {
+                    loci += "-";
+                } 
+                else if(i.Keys.Count == 2)
+                {
+                    loci += biAllelic;
+                }
+                else
+                {
+                    loci += multiAllelic;
+                }
+
+                /*if (i.Keys.Count > 1)
+                {
+                    Console.Write("(");
+                }
+                foreach (char c in i.Keys)
+                {
+                    Console.Write(c + ", ");
+                }
+                if (i.Keys.Count > 1)
+                {
+                    Console.Write("),");
+                }*/
+            }
+
+            //Console.WriteLine(loci);
+
+            int j = 0;
+            foreach (Dictionary<string, List<SAMAlignedSequence>> seqList in sampleSequenceDict.Values)
+            {
+                // need to construct another dict for each snp pos which exists, to record s or m
 
                 string indivId = "#" + seqList.Values.ToArray()[0][0].QName;
                 string chr1 = "", chr2 = "";
@@ -476,44 +514,50 @@ namespace Ploidulator
                 foreach (char allele in loci) // for each allele at this locus, where loci is in the format "S--SS-SM---MSSMMS-MMM--MSSSMS"
                     // we will iterate through looking at one physical locus at a time and examining all sequences that align to that locus
                 {
-                    // Get an array of all alleles which appear at this locus for this individual
-                    // If any of these allele characters are not in the dictionary of recognised alleles, replace them with '?' 
-                    char[] allelesThisIndiv = GetAllelesAtLocusForIndiv(alleleFxThisIndiv, locusCount++);
-                        
-                    // Between all samples, there are two alleles at this position
-                    if (allele == 'S')
+                    if (allele != '-')
                     {
-                        GetIndivBiAllelicLocusAlleles(allelesThisIndiv, seqList.Count, ref chr1, ref chr2);
-                    }
 
-                    // Between all samples, there are three or four alleles at this position (although this particular individual
-                    // will still only have 2)
-                    else if (allele == 'M')
-                    {
-                        GetIndivMultiAllelicLocusAlleles(allelesThisIndiv, seqList.Count, ref chr1, ref chr2);
+                        // Get an array of all alleles which appear at this locus for this individual
+                        // If any of these allele characters are not in the dictionary of recognised alleles, replace them with '?' 
+                        char[] allelesThisIndiv = GetAllelesAtLocusForIndiv(alleleFxAllIndivFull[j], locusCount);
+
+                        // Between all samples, there are two alleles at this position
+                        if (allele == 'S')
+                        {
+                            GetIndivBiAllelicLocusAlleles(allelesThisIndiv, seqList.Count, ref chr1, ref chr2);
+                        }
+
+                        // Between all samples, there are three or four alleles at this position (although this particular individual
+                        // will still only have 2)
+                        else if (allele == 'M')
+                        {
+                            GetIndivMultiAllelicLocusAlleles(allelesThisIndiv, seqList.Count, ref chr1, ref chr2);
+                        }
                     }
+                    locusCount++;
                 }
 
                 // Add this individual's genotype information to the phase file data string
                 phaseFileData += (indivId + "\r\n" + chr1 + "\r\n" + chr2 + "\r\n");
-                
+                //Console.WriteLine((indivId + "\r\n" + chr1 + "\r\n" + chr2 + "\r\n"));
+                j++;
             }
+
             phaseData = phaseFileData;
 
-            // Finally remove the '-' characters from loci (constrict to "SSSSMMSSMMMMSSM")
-            string theString = loci;
-            var array = theString.Split('-');
-            string restOfArray = string.Join("", array);
-            loci = restOfArray;
+            string locii = "";
+            for (int k = 0; k < loci.Length; k++ )
+            {
+                if(loci[k] != '-')
+                {
+                    locii += loci[k];
+                }
+            }
+            loci = locii;
+            //Console.WriteLine("trimmed loci "+ loci);
 
-            // TODO: refactor = this should not have to be repeated
-            string tmpp = "";
-            BaseFrequencies(readsInPloidyForIndividualsDict.Keys.ToArray(),
-                (double)expectedPloidy + 1, ref tmpp, true);
         }
 
-
-      
 
         private string SetId(List<SAMAlignedSequence> sequences)
         {
@@ -530,7 +574,6 @@ namespace Ploidulator
 
         
 
-        // THIS METHOD IS CURRENTLY UNUSED BUT THERE MAY BE A PURPOSE FOR IT LATER
         // precondition seqs is an ordered list
         private Dictionary<char, double>[] BaseFrequencies(string[] seqs, double topX, ref string phaseLocusTypes, bool all = false)
         {
@@ -628,7 +671,7 @@ namespace Ploidulator
                 }
                 //Console.WriteLine("");
             }
-            Console.WriteLine(phaseLocusTypes);
+            //Console.WriteLine(phaseLocusTypes); // the ssm output
             //Console.WriteLine("-- " + totalGDirt + " --");
             if(all)
             {
@@ -637,6 +680,109 @@ namespace Ploidulator
             
             return freqList;
         }
+
+
+        // precondition seqs is an ordered list
+        private Dictionary<char, double>[] BaseFrequenciesBetter(string[] seqs, double topX, ref Dictionary<char, double>[] masterFreqList)
+        {
+            
+            // A dictionary of char:double for each base pair position
+            Dictionary<char, double>[] freqList = new Dictionary<char, double>[seqs[0].Length];
+
+            //int timesThisPositionConsidered = 0;
+            //For each position, get each nucleotide and its relative frequency
+            foreach (string seq in seqs)
+            {
+                
+                string seqStr = seq;
+                int count = 0;
+                foreach (char c in seqStr.ToUpper().ToCharArray()) // for a, then t, then c, then g, increment or add to that position
+                {
+                    if (freqList[count] != null && freqList[count].ContainsKey(c))
+                    {
+                        ++freqList[count][c];
+                    }
+                    else
+                    {
+                        if (freqList[count] == null)
+                        {
+                            freqList[count] = new Dictionary<char, double>();
+                        }
+                        freqList[count].Add(c, 1);
+                    }
+                    count++;
+                }
+            } // end for each position. we have now constructed a dictionary
+
+
+            // for each base position, sort and remove alleles with insufficient q
+            for (int i = 0; i < freqList.Length; i++)
+            {
+                // Sort from most to least frequent
+                freqList[i] = (from b in freqList[i] orderby b.Value descending select b)
+                    .ToDictionary(pair => pair.Key, pair => pair.Value);
+
+                double numBases = freqList[i].Values.Sum();
+                char[] chars = freqList[i].Keys.ToArray();
+
+                for (int k = 0; k < chars.Length; k++)
+                {
+                    // Convert to percentage and emove bases with insufficient qty for determination
+                    char c = chars[k];
+                    freqList[i][c] = (freqList[i][c] / numBases);
+
+                    if (freqList[i][c] < 0.35) { freqList[i].Remove(c); }
+
+                    if (freqList[i].Count == 0)
+                    {
+                        freqList[i].Add('N', 1);
+                    }
+                }
+
+               
+                foreach(KeyValuePair<char,double> p in freqList[i])
+                {
+                    if (p.Key == 'A' || p.Key == 'T' || p.Key == 'C' || p.Key == 'G')
+                    {
+                        if (masterFreqList[i] != null && masterFreqList[i].ContainsKey(p.Key))
+                        {
+                            masterFreqList[i][p.Key] += p.Value;
+                        }
+                        else
+                        {
+                            if (masterFreqList[i] == null)
+                            {
+                                masterFreqList[i] = new Dictionary<char, double>();
+                            }
+                            masterFreqList[i].Add(p.Key, p.Value);
+                        }
+                    }
+                }
+                
+            }
+ 
+
+                //int j = 0;
+
+                //int len = freqList[i].Keys.Count;
+
+                // Construct the SSSSSS--SSS string
+                /*if (len == 1 && phaseLocusTypes != null)
+                {
+                    phaseLocusTypes += "-";
+                }
+                else if (len == 2 && phaseLocusTypes != null)
+                {
+                    phaseLocusTypes += biAllelic;
+                    masterPhaseLocusTypes[phaseLocusTypes.Length-1] = biAllelic.ToCharArray()[0];
+                }*/
+                //Console.WriteLine("");
+            //}
+            //Console.WriteLine(phaseLocusTypes); // the ssm output
+            return freqList;
+        }
+
+        private char[] masterPhaseLocusTypes;
 
         #endregion
 
@@ -650,19 +796,14 @@ namespace Ploidulator
 
         #region IterateSequenceDict
 
-        // todo fixme this fails on clust 101
         private void IterateSequenceDict()
         {
             /*int i = 0;
             foreach(KeyValuePair<string, List<SAMAlignedSequence>> kvp in sequenceDict){
             }*/
-            Console.Write("A");
             frequencyDistributionSequences = GetFrequencyDistribution(SequenceDict);
-            Console.Write("B");
             alignmentQualities = FindAlignmentQualities(/*SequenceDict*/); // quality; quantity
-            Console.Write("C");
             alignmentQual = alignmentQualities[1];
-            Console.Write("D");
         }
 
         // this is used for either seq or sample dict
@@ -814,7 +955,6 @@ namespace Ploidulator
 
         private void IterateSampleDict()
         {
-            Console.Write("1");
             int i = 0;
             /*foreach (KeyValuePair<string, List<SAMAlignedSequence>> kvp in sampleDict)
             {
@@ -830,9 +970,7 @@ namespace Ploidulator
                 // for each sample, the total number of reads it has
                 sampleReadCountsAll[i++] = seqList.Count;
             }
-            Console.Write("2");
             frequencyDistributionSamples = GetFrequencyDistribution(SampleDict);
-            Console.Write("3");
         }
         private void IterateSequenceSampleDict()
         {
@@ -840,11 +978,8 @@ namespace Ploidulator
         }
         private void IterateSampleSequenceDict()
         {
-            Console.Write("A");
             clustSeqFrequencies = SampleFrequenciesAvg(sampleSequenceDict);
-            Console.Write("B");
             Debug.Assert(Math.Round(clustSeqFrequencies.Sum(), 2) == 1);
-            Console.Write("C");
 
             sampleReadCountsDistinct = new double[CountSamples];
             int i = 0;
@@ -853,7 +988,6 @@ namespace Ploidulator
                 // for each sample, the total number of reads it has
                 sampleReadCountsDistinct[i++] = seqList.Count;
             }
-            Console.Write("D");
         }
         /// <summary>
         /// Reset all values to null and lists to empty.
@@ -876,6 +1010,8 @@ namespace Ploidulator
         #endregion
 
         #region Private Methods
+
+
 
 
         /// <summary>

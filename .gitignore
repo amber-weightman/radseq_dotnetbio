@@ -10639,3 +10639,87 @@ ambertests/DotnetBioTester/Phase/Phase.vcxproj.filters
 ambertests/DotnetBioTester/Phase/Phase.vcxproj.user
 ambertests/DotnetBioTester/DotnetBioTester.opensdf
 ambertests/DotnetBioTester/Phase/Debug/Phase.Build.CppClean.log
+ambertests/DotnetBioTester/Debug/Phase.exe
+ambertests/DotnetBioTester/Debug/Phase.ilk
+ambertests/DotnetBioTester/Debug/Phase.pdb
+ambertests/DotnetBioTester/DotnetBioTester.sdf
+ambertests/DotnetBioTester/Performance.psess
+ambertests/DotnetBioTester/Performance1.psess
+ambertests/DotnetBioTester/Performance2.psess
+ambertests/DotnetBioTester/Ploidulator.psess
+ambertests/DotnetBioTester/Ploidulator/Amber_notes.cs
+ambertests/DotnetBioTester/Ploidulator/bin/Debug/HTMLPage.html
+ambertests/DotnetBioTester/Debug/Phase.exe
+ambertests/DotnetBioTester/Debug/Phase.ilk
+ambertests/DotnetBioTester/Debug/Phase.pdb
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Accord.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Accord.MachineLearning.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Accord.Math.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Accord.Statistics.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/AForge.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/AForge.Math.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Bio.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/de/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/es/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/fr/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/hu/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/it/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Microsoft.Owin.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Owin.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Phase.exe.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Ploidulator.application
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Ploidulator.exe.config.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Ploidulator.exe.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Ploidulator.exe.manifest
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/pt-BR/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/ro/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/ru/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/sv/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/System.Windows.Controls.DataVisualization.Toolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/WPFToolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Xceed.Wpf.AvalonDock.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Xceed.Wpf.AvalonDock.Themes.Aero.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Xceed.Wpf.AvalonDock.Themes.Metro.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Xceed.Wpf.AvalonDock.Themes.VS2010.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Xceed.Wpf.DataGrid.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/Xceed.Wpf.Toolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_5/zh-Hans/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Accord.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Accord.MachineLearning.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Accord.Math.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Accord.Statistics.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/AForge.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/AForge.Math.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Bio.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/de/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/es/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/fr/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/hu/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/it/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Microsoft.Owin.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Owin.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Phase.exe.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Ploidulator.application
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Ploidulator.exe.config.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Ploidulator.exe.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Ploidulator.exe.manifest
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/pt-BR/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/ro/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/ru/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/sv/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/System.Windows.Controls.DataVisualization.Toolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/WPFToolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Xceed.Wpf.AvalonDock.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Xceed.Wpf.AvalonDock.Themes.Aero.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Xceed.Wpf.AvalonDock.Themes.Metro.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Xceed.Wpf.AvalonDock.Themes.VS2010.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Xceed.Wpf.DataGrid.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/Xceed.Wpf.Toolkit.dll.deploy
+ambertests/DotnetBioTester/Ploidulator/publish/Application Files/Ploidulator_1_0_0_6/zh-Hans/Xceed.Wpf.AvalonDock.resources.dll.deploy
+ambertests/DotnetBioTester/Ploidulator1.psess
+ambertests/DotnetBioTester/Ploidulator131110(1).vsp
+ambertests/DotnetBioTester/Ploidulator131110(2).vsp
+ambertests/DotnetBioTester/Ploidulator131110.vsp
+ambertests/DotnetBioTester/Ploidulator2.psess
+ambertests/DotnetBioTester/Ploidulator/obj/Debug/App.baml
+ambertests/DotnetBioTester/Ploidulator/obj/Debug/GeneratedInternalTypeHelper.g.i.cs

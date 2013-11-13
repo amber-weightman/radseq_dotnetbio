@@ -24,7 +24,7 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>5</ApplicationRevision>
+    <ApplicationRevision>7</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -135,11 +135,9 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="ClusterMetricHandlerPloidulator.cs" />
-    <Compile Include="ClusterMetricPloidulator.cs" />
-    <Compile Include="Em.cs" />
-    <Compile Include="FromAccord.cs" />
-    <Compile Include="Magnolya.cs" />
+    <Compile Include="ClusterMetricHandler.cs" />
+    <Compile Include="ClusterMetric.cs" />
+    <Compile Include="Amber_notes.cs" />
     <Compile Include="Ploidulator.xaml.cs">
       <DependentUpon>Ploidulator.xaml</DependentUpon>
       <SubType>Code</SubType>

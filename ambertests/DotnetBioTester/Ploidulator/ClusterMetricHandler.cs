@@ -1,23 +1,13 @@
-﻿using Bio.Algorithms.Alignment;
-using Bio.Algorithms.Metric;
+﻿using Bio.Algorithms.Metric;
 using Bio.IO.BAM;
 using Bio.IO.SAM;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Controls.DataVisualization.Charting;
-using System.Windows.Data;
-using System.Windows.Media;
-using System.Windows.Threading;
 
 namespace Ploidulator
 {
@@ -25,14 +15,19 @@ namespace Ploidulator
     /// An ClusterMetricHandler receives a set of SAMAlignedSequences (as a list or one by one)
     /// and passes them as "clusters" to a ClusterMetric, which performs a number of calculations
     /// on them to calculate the accuracy of the cluster.
+    /// 
+    /// All determination as to whether a cluster is 'good' or 'bad' is managed by ClusterMetricHandlerPloidulator
     /// </summary>
-    public class ClusterMetricHandlerPloidulator : IMetricHandler
+    public class ClusterMetricHandler : IMetricHandler
     {
-        #region Private Static Fields
+        // todo delete this
+        bool haplotypingEnabled = true;
 
-        private static string OUTPUT_FOLDER = @"E:\Harvard\pl_output";
-        private static int OUTPUT_QUEUE_SIZE = 7; // max number of sequences that can be stored in the
-                                                     // output queue (to prevent too many being held in memory)
+        #region Private Static Fields
+        private static int OUTPUT_QUEUE_SIZE = 7;                       // max number of clusters that can be stored in the
+                                                                        // output queue (to prevent too many being held in memory)
+        private static string OUTPUT_DIRECTORY = "orig";                // output directory for metrics relating to original file
+        private static string FILTERED_OUTPUT_DIRECTORY = "filtered";   // output directory for metrics relating to filtered file
         #endregion
 
         #region Private Fields
@@ -46,16 +41,6 @@ namespace Ploidulator
         /// The expected ploidy of the organism being sequenced, e.g. 2 (diploid), 3 (triploid)
         /// </summary>
         private int expectedPloidy;
-
-        /// <summary>
-        /// Whether the handler has been aborted
-        /// </summary>
-        private bool aborted = false;
-
-        /// <summary>
-        /// Whether the handler has done its completion cleanup 
-        /// </summary>
-        private bool isComplete = false;
 
         /// <summary>
         /// Id of the cluster to which current sequences belong
@@ -78,7 +63,17 @@ namespace Ploidulator
         private SAMAlignmentHeader newHeader = null;
 
         #region flags
-        
+
+        /// <summary>
+        /// Whether the handler has been aborted
+        /// </summary>
+        private bool aborted = false;
+
+        /// <summary>
+        /// Whether the handler has done its completion cleanup 
+        /// </summary>
+        private bool isComplete = false;
+
         /// <summary>
         /// Assuming a single bam output file and a single thread writing to this file, this value is true
         /// if it is ok to write to the bam file
@@ -100,7 +95,7 @@ namespace Ploidulator
         #region storage for sequences
 
         /// <summary>
-        /// Sequences stored, not yet processed.
+        /// Sequences stored for the current cluster, not yet processed.
         /// </summary>
         private List<SAMAlignedSequence> sequences = null;
 
@@ -120,9 +115,32 @@ namespace Ploidulator
         private List<double[]> clustSeqFrequencies = new List<double[]>();
 
         /// <summary>
+        /// A single frequency distribution, in the same format as one row from clustSeqFrequencies, intended to give
+        /// an overview of frequency distribution across all clusters
+        /// </summary>
+        private List<double> clustSeqFrequenciesOverview = new List<double>();
+
+        /// <summary>
+        /// A single frequency distribution, in the same format as one row from clustSeqFrequencies, intended to give
+        /// an overview of frequency distribution across all good clusters
+        /// </summary>
+        private List<double> clustSeqFrequenciesOverviewGood = new List<double>();
+
+        /// <summary>
+        /// Average frequencies for each good sequence, calculated per sample per cluster and averaged
+        /// out to cluster
+        /// </summary>
+        private List<double[]> clustSeqFrequenciesGood = new List<double[]>();
+
+        /// <summary>
         /// The data that goes in a poisson graph, being <metric.CountAll, numClusters>
         /// </summary>
         Dictionary<int, int> graphDataAllReads = new Dictionary<int, int>();
+
+        /// <summary>
+        /// The data that goes in a poisson graph, being <metric.CountAll, numClusters>
+        /// </summary>
+        Dictionary<int, int> graphDataAllReadsGood = new Dictionary<int, int>();
 
         /// <summary>
         /// The data that goes in a poisson graph, being <metric.CountDistinct, numClusters>
@@ -130,9 +148,19 @@ namespace Ploidulator
         Dictionary<int, int> graphDataDistinctReads = new Dictionary<int, int>();
 
         /// <summary>
+        /// The data that goes in a poisson graph, being <metric.CountDistinct, numClusters>
+        /// </summary>
+        Dictionary<int, int> graphDataDistinctReadsGood = new Dictionary<int, int>();
+
+        /// <summary>
         /// The data that goes in a poisson graph, being <metric.CountSamples, numClusters>
         /// </summary>
         Dictionary<int, int> graphDataIndividualsCounts = new Dictionary<int, int>();
+
+        /// <summary>
+        /// The data that goes in a poisson graph, being <metric.CountSamples, numClusters>
+        /// </summary>
+        Dictionary<int, int> graphDataIndividualsCountsGood = new Dictionary<int, int>();
 
         /// <summary>
         /// ..
@@ -144,13 +172,19 @@ namespace Ploidulator
         /// ..
         /// average is rounded to the nearest whole number
         /// </summary>
+        Dictionary<int, int> graphDataIndividualsTotalReadcountsGood = new Dictionary<int, int>();
+
+        /// <summary>
+        /// ..
+        /// average is rounded to the nearest whole number
+        /// </summary>
         Dictionary<int, int> graphDataIndividualsDistinctReadcounts = new Dictionary<int, int>();
 
         /// <summary>
-        /// Percentage of the population that is represented in the cluster (i.e. for a population of 48 sampled, 
-        /// 24 would be 0.5)
+        /// ..
+        /// average is rounded to the nearest whole number
         /// </summary>
-        //private List<double[]> clustPercentagePopulation = new List<double[]>();
+        Dictionary<int, int> graphDataIndividualsDistinctReadcountsGood = new Dictionary<int, int>();
 
         /// <summary>
         /// The (unnormalised) total number of reads in each cluster
@@ -185,10 +219,16 @@ namespace Ploidulator
         #endregion
 
         #region fields from gui form
+
         /// <summary>
         /// Field from GUI form. Should a new filtered bam file be created
         /// </summary>
         private bool writeToFilteredBam = true;
+
+        /// <summary>
+        /// Field from GUI form. Should every cluster be haplotyped or only ones which are probably good. False by default
+        /// </summary>
+        private bool onlyHaplotypeGood = false;
 
         /// <summary>
         /// Field from GUI form. Should a metric file be created for the input file
@@ -220,9 +260,9 @@ namespace Ploidulator
         private double dirtCutoff = 1;
 
         /// <summary>
-        /// Max allowed 'g dirt'
+        /// Max allowed haplotypes in a cluster
         /// </summary>
-        private double gDirtCutoff = double.MaxValue;
+        private int hapMaxCutoff = int.MaxValue;
 
         /// <summary>
         /// Min allowed alignment qualtiy (as average per cluster)
@@ -262,6 +302,13 @@ namespace Ploidulator
         /// Max number of samples found in a cluster so far
         /// </summary>
         private int maxSampleCount = 0;
+        
+        // todo aw
+        private int readCountTotal = 0;
+        private int readCountGood = 0;
+        private int readCountDistinctTotal = 0;
+        private int readCountDistinctGood = 0;
+        
 
         /// <summary>
         /// Max mapping quality found in a cluster so far
@@ -335,7 +382,6 @@ namespace Ploidulator
 
         #endregion
 
-        
         #endregion
 
         #region Constructors
@@ -343,13 +389,13 @@ namespace Ploidulator
         /// <summary>
         /// Default constructor.
         /// </summary>
-        public ClusterMetricHandlerPloidulator() { }
+        public ClusterMetricHandler() { }
 
         /// <summary>
         /// Non-default constructor, used to set the file name
         /// </summary>
         /// <param name="clusterFileName">Name of the file metric data is to be written to.</param>
-        public ClusterMetricHandlerPloidulator(string clusterFileName, int ploidy, 
+        public ClusterMetricHandler(string clusterFileName, int ploidy, 
             double dirtCutoff, double alignQualCutoff, double readQualCutoff, double popPercent, int numSamples, bool? outputToFile)
             : this()
         {
@@ -361,11 +407,22 @@ namespace Ploidulator
             this.popPercent = popPercent;
             this.numSamples = numSamples;
             this.writeToFilteredBam = (outputToFile.HasValue) ? outputToFile.Value : false;
+
+            // Create a new output directory with name of input file, if it does not already exist
+            if (!Directory.Exists(fileName))
+            {
+                Directory.CreateDirectory(fileName);
+            }
         }
 
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// Name of the input file/directory
+        /// </summary>
+        public string FileName { get { return fileName; } }
 
         /// <summary>
         /// Id of the cluster to which current sequences belong.
@@ -385,9 +442,9 @@ namespace Ploidulator
         #region filters
 
         /// <summary>
-        /// Maximum allowed 'g dirt' cutoff
+        /// Maximum haplotypes in a cluster
         /// </summary>
-        public double GDirtCutoff { get { return gDirtCutoff; } set { gDirtCutoff = value; } }
+        public int HaplotypesMaxCutoff { get { return hapMaxCutoff; } set { hapMaxCutoff = value; } }
 
         #endregion
 
@@ -397,6 +454,11 @@ namespace Ploidulator
         /// Field from GUI form. Should a new filtered bam file be created
         /// </summary>
         public bool WriteToFilteredBam { get { return writeToFilteredBam; } set { writeToFilteredBam = value; } }
+
+        /// <summary>
+        /// Field from GUI form. Should haplotypes be calculated for all clusters or only those which are probably good
+        /// </summary>
+        public bool OnlyHaplotypeGood { get { return onlyHaplotypeGood; } set { onlyHaplotypeGood = value; } }
 
         /// <summary>
         /// Field from GUI form. Should a metric file be created for the input file
@@ -426,6 +488,18 @@ namespace Ploidulator
         /// Number of good clusters so far
         /// </summary>
         public int GoodCount { get { return goodCount; } }
+
+        // todo aw
+        public int ReadCountTotal { get { return readCountTotal; } }
+        public int ReadCountGood { get { return readCountGood; } }
+        public int ReadCountDistinctTotal { get { return readCountDistinctTotal; } }
+        
+        public int ReadCountDistinctGood { get { return readCountDistinctGood; } }
+        
+        /// <summary>
+        /// Number of clusters parsed so far
+        /// </summary>
+        public int NumClustersParsed { get { return numClustersParsed; } }
 
         /// <summary>
         /// Max number of samples found in a cluster so far
@@ -472,11 +546,89 @@ namespace Ploidulator
         /// </summary>
         public double AverageReadQGood { get { return averageReadQGood; } }
 
-        #endregion
+        /// <summary>
+        /// A single frequency distribution, in the same format as one row from clustSeqFrequencies, intended to give
+        /// an overview of frequency distribution across all clusters
+        /// </summary>
+        public double[] ClustSeqFrequenciesOverview { get { return clustSeqFrequenciesOverview.ToArray(); } }
+
+        /// <summary>
+        /// A single frequency distribution, in the same format as one row from clustSeqFrequencies, intended to give
+        /// an overview of frequency distribution across all good clusters
+        /// </summary>
+        public double[] ClustSeqFrequenciesOverviewGood { get { return clustSeqFrequenciesOverviewGood.ToArray(); } }
+
+        /// <summary>
+        /// The data that goes in a poisson graph, being <metric.CountSamples, numClusters>
+        /// value is the PERCENTge of clusters
+        /// </summary>
+        public KeyValuePair<int, int>[] GraphDataIndividualsCounts 
+        { 
+            get 
+            {
+            return (from datum in graphDataIndividualsCounts orderby datum.Key descending select datum)
+                    .ToDictionary(pair => (int)(pair.Key / (double)numSamples * 100), pair => (int)((double)pair.Value 
+                        / (double)numClustersParsed * (double)100)).ToArray();
+            } 
+        }
+
+        /// <summary>
+        /// The data that goes in a poisson graph, being <metric.CountSamples, numClusters>
+        /// </summary>
+        public KeyValuePair<int, int>[] GraphDataIndividualsCountsGood
+        {
+            get
+            {
+                return (from datum in graphDataIndividualsCountsGood orderby datum.Key descending select datum)
+                    .ToDictionary(pair => (int)(pair.Key / (double)numSamples * 100), pair => (int)(pair.Value / (double)goodCount * 100)).ToArray();
+            }
+        
+        }
+        /// <summary>
+        /// Sorted in descending order of value ...
+        /// </summary>
+        public Dictionary<int, int> GraphDataDistinctReads
+        {
+            get
+            {
+                return (from datum in graphDataDistinctReads orderby datum.Value descending select datum)
+                        .ToDictionary(pair => pair.Key, pair => pair.Value);
+            }
+        }
+
+        public int MinDistinctReadCount
+        {
+            get
+            {
+                return (graphDataDistinctReads.Count > 0) ? graphDataDistinctReads.Keys.Min() : Int32.MinValue;
+            }
+        }
+
+        public int MaxDistinctReadCount
+        {
+            get
+            {
+                return (graphDataDistinctReads.Count > 0) ? graphDataDistinctReads.Keys.Max() : Int32.MaxValue;
+            }
+        }
+
+        /// <summary>
+        /// Sorted in descending order of value ...
+        /// </summary>
+        public Dictionary<int, int> GraphDataDistinctReadsGood
+        {
+            get
+            {
+                return (from datum in graphDataDistinctReadsGood orderby datum.Value descending select datum)
+                        .ToDictionary(pair => pair.Key, pair => pair.Value);
+            }
+        }
 
         #endregion
 
-        #region Delegates
+        #endregion
+
+        #region Delegates (background thread runners)
 
         /// <summary>
         /// Delegate for performing cluster processing
@@ -566,7 +718,7 @@ namespace Ploidulator
 
         #endregion
 
-        #region modify behaviour
+        #region modify behaviour or end process
 
         /// <summary>
         /// Abort the handler when safe to do so (after the current cluster has finished processing)
@@ -590,7 +742,7 @@ namespace Ploidulator
             if (sequences != null && sequences.Count > 0 && !isComplete) // do the following only if there are sequences to be processed
             {
                 clusterCount++;
-                ClusterMetricPloidulator metric = new ClusterMetricPloidulator(expectedPloidy, numSamples);
+                ClusterMetric metric = new ClusterMetric(expectedPloidy, numSamples);
                                 
                 // Initialise metric output file/s
                 InitMetricOutputFiles();
@@ -603,23 +755,16 @@ namespace Ploidulator
                 isGood = GoodOrBad(metric);
 
                 // Get haplotype information
-                int numHap;
-                if(isGood){
-                    WritePhaseGenotypeInput(metric);
-                    numHap = TestPhase(metric);
-                    if(numHap > 4)
-                    {
-                        Console.WriteLine("Hap count means cluster is not good");
-                        isGood = false;
-                    }
-                } else {
-                    numHap = -1;
+                if(haplotypingEnabled)
+                {
+                    GetHaplotypeInfo(ref metric, ref isGood);
                 }
+                if(isGood) { ++goodCount; }
                 
-                Console.Write("Cluster has "+numHap + " haplotypes");
+                Console.WriteLine(metric.ToFileString());
 
                 // Get statistics from the metric for this new cluster
-                CreateSummaryArrays(metric);
+                CreateSummaryArrays(metric, isGood);
                 SetOverviewStats(metric, isGood);
                 
                 // Output sequences to metric file/s and/or filtered bam file
@@ -647,8 +792,9 @@ namespace Ploidulator
         #endregion
 
         #region completion
+
         /// <summary>
-        /// Process any/all remaining sequences.
+        /// Set complete and process all remaining sequences
         /// </summary>
         public void SetComplete()
         {
@@ -656,7 +802,7 @@ namespace Ploidulator
         }
 
         /// <summary>
-        /// Set complete but do not process any more sequences
+        /// Set complete but do not process any more sequences unless true
         /// </summary>
         public void SetComplete(bool checkSequences)
         {
@@ -675,7 +821,6 @@ namespace Ploidulator
                 }
                 isComplete = true;
             }
-            // Any other cleanup required that doesn't fit into Dispose()? todo
         }
 
         /// <summary>
@@ -683,33 +828,35 @@ namespace Ploidulator
         /// </summary>
         public void Dispose()
         {
-            //SetComplete();
-            // todo fixme i have probably done this wrong. there will be some other checking and stuff
-            // that i also need to do or other stuff I need to clean up
             if (formatterOriginalFile != null)
             {
                 formatterOriginalFile.Close();
+                formatterOriginalFile = null;
             }
             if (formatterFilteredFile != null)
             {
                 formatterFilteredFile.Close();
+                formatterFilteredFile = null;
             }
             if (bamStream != null)
             {
                 bamStream.Close();
+                bamStream = null;
             }
         }
 
-#endregion
+        #endregion
 
         #endregion
 
         #region Private Methods
 
+        #region queue sequences for output
+
         /// <summary>
         /// If metric is good, add it to the output queue (ready to be written to new BAM file)
         /// </summary>
-        private void AddToOutputBamQueueOrDispose(ClusterMetricPloidulator metric, bool isGood)
+        private void AddToOutputBamQueueOrDispose(ClusterMetric metric, bool isGood)
         {
             if (writeToFilteredBam && isGood)
             {
@@ -734,28 +881,218 @@ namespace Ploidulator
             {
                 metric.Reset();
                 metric = null;
-                GC.Collect();
             }
         }
+
+        #endregion
+
+        #region phase
+
+        /// <summary>
+        /// If a cluster is good, runs phase to get haplotype count for that cluster. If the number of haplotypes
+        /// found is > hapMaxCutoff, sets isGood to false. The number of haplotypes found is also passed
+        /// to the metric
+        /// </summary>
+        private void GetHaplotypeInfo(ref ClusterMetric metric, ref bool isGood)
+        {
+            int numHap;
+            if (!onlyHaplotypeGood || onlyHaplotypeGood && isGood)
+            {
+                WritePhaseGenotypeInput(metric);
+                numHap = CalculateClusterHaplotypes(metric);
+                if (numHap > hapMaxCutoff)
+                {
+                    Console.WriteLine("Hap count of "+numHap+" means cluster is not good");
+                    isGood = false;
+                    metric.Good = false;
+                }
+            }
+            else
+            {
+                numHap = -1;
+            }
+            metric.NumHaplotpes = numHap;
+        }
+
+        /// <summary>
+        /// Returns the optimum number of haplotypes detected in the cluster, or -1 if G dirt was too high so
+        /// process was not run. Phase output files will also be saved to the output directory
+        /// </summary>
+        private int CalculateClusterHaplotypes(ClusterMetric metric)
+        {
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.UseShellExecute = false; // set to false to display output in console
+            startInfo.FileName = "PHASE.exe";
+            startInfo.ErrorDialog = false;
+            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            startInfo.Arguments = "-d1 " + fileName + "\\genotypes.inp " + fileName + "\\haplotypes.out";
+
+            try
+            {
+                using (Process exeProcess = Process.Start(startInfo))
+                {
+                    exeProcess.WaitForExit();
+                }
+            }
+            catch
+            {
+                Console.WriteLine("Error executing PHASE.exe");
+            }
+            return GetPhaseNumHaplotypes(fileName + "\\haplotypes.out");
+            
+        }
+
+        /// <summary>
+        /// Parse the primary PHASE output file to extract the number of haplotypes. Returns the optimum number of 
+        /// haplotypes detected in the cluster, or -1 if the file could not be read
+        /// </summary>
+        private int GetPhaseNumHaplotypes(string file)
+        {
+            string hapIndex = "0";
+            bool inHapBlock = false;
+            try
+            {
+                using (StreamReader sr = new StreamReader(file))
+                {
+                    while (!sr.EndOfStream)
+                    {
+                        string thisStr = sr.ReadLine().Trim();
+                        if (thisStr == "BEGIN LIST_SUMMARY")
+                        {
+                            inHapBlock = true;
+                            thisStr = sr.ReadLine().Trim();
+                        }
+                        if (inHapBlock)
+                        {
+                            if (thisStr != "END LIST_SUMMARY")
+                            {
+                                hapIndex = thisStr.Split(' ')[0];
+                            }
+                            else
+                            {
+                                return Convert.ToInt32(hapIndex);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("The file could not be read:");
+                Console.WriteLine(e.Message);
+            }
+            return -1;
+        }
+
+        /// <summary>
+        /// Write PHASE input data for metric to file
+        /// </summary>
+        /// <param name="metric"></param>
+        private void WritePhaseGenotypeInput(ClusterMetric metric)
+        {
+            int numIndividuals = metric.CountSamples;
+            string locusType = metric.PhaseLoci; // S for a biallelic (SNP) locus; M for microsatellite, or other multi-allelic locus (eg tri-allelic SNP, or HLA allele).
+            int numLoci = locusType.Length; 
+            string data = metric.PhaseData;
+
+            string lines = numIndividuals + "\r\n" +
+                numLoci + "\r\n" +
+                //"P 300 1313 1500 2023 5635\r\n"+ // position. this is optional and does not apply for sample dataset
+                locusType + "\r\n" +
+                data;
+
+            // While the files cannot be deleted, either the previous phase.exe process is still writing to/reading from
+            // one of these files, or the user has one open
+            while (!DeletePhaseFiles())
+            {
+                Console.WriteLine("Unable to calculate genotypes. Please close any related files then try again.");
+                Thread.Sleep(20000); // sleep 20 seconds before trying again
+            }
+            
+            System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\genotypes.inp");
+            file.WriteLine(lines);
+            file.Close();
+        }
+
+        /// <summary>
+        /// Deletes all PHASE output AND INPUT files.
+        /// </summary>
+        private bool DeletePhaseFiles()
+        {
+            try
+            {
+                File.Delete(fileName + "\\genotypes.inp");
+                File.Delete(fileName + "\\haplotypes.out");
+                File.Delete(fileName + "\\haplotypes.out_freqs");
+                File.Delete(fileName + "\\haplotypes.out_hbg");
+                File.Delete(fileName + "\\haplotypes.out_monitor");
+                File.Delete(fileName + "\\haplotypes.out_pairs");
+                File.Delete(fileName + "\\haplotypes.out_probs");
+                File.Delete(fileName + "\\haplotypes.out_recom");
+                return true;
+            }
+            catch (IOException e)
+            {
+                Console.WriteLine("PHASE was not properly terminated. Please terminate the PHASE.exe process then try again.\n"+e);
+                return false;
+            }
+            
+        }
+
+        #endregion
+
+        #region good or bad
+
+        /// <summary>
+        /// Given a populated and calculated metric, determine based on handler's filter criteria whether
+        /// that cluster is good or bad. Returns true for good, false for bad
+        /// </summary>
+        private bool GoodOrBad(ClusterMetric tempMetric)
+        {
+            if (tempMetric.Dirt > dirtCutoff
+                    || tempMetric.AlignmentQualities[0] < alignQualCutoff
+                    || tempMetric.ReadQualities[0] < readQualCutoff
+                    || tempMetric.PopulationPercentage < popPercent)
+            {
+                Console.Write(" BAD ");
+                tempMetric.Good = false;
+            }
+            else
+            {
+                Console.Write(" GOOD ");
+                tempMetric.Good = true;
+            }
+            return tempMetric.Good;
+        }
+
+        #endregion
+
+        #region output files
 
         /// <summary>
         /// Add a sequence to the filtered output file header
         /// </summary>
         private void AddToHeader(SAMAlignedSequence seq)
         {
-            newHeader.ReferenceSequences.Add(new ReferenceSequenceInfo(seq.RName, 45)); // todo fixme this dataset only
+            newHeader.ReferenceSequences.Add(new ReferenceSequenceInfo(seq.RName, GetSequence(seq).Length)); // todo fixme this dataset only
 
-            // for each good clust
+            // for each good cluster
             SAMRecordField sq = new SAMRecordField("SQ");
             sq.Tags.Add(new SAMRecordFieldTag("SN", seq.RName));
-            sq.Tags.Add(new SAMRecordFieldTag("LN", "45")); // todo fixme this dataset only
+            sq.Tags.Add(new SAMRecordFieldTag("LN", GetSequence(seq).Length.ToString())); 
             newHeader.RecordFields.Add(sq);
+        }
+
+        private string GetSequence(SAMAlignedSequence seq)
+        {
+            String seqStr = seq.QuerySequence.ToString();
+            return Regex.Split(seqStr, "\r\n")[0]; 
         }
 
         /// <summary>
         /// Write metrics to all per-cluster metric files
         /// </summary>
-        private void WriteToMetricOutputFiles(ClusterMetricPloidulator metric, bool isGood)
+        private void WriteToMetricOutputFiles(ClusterMetric metric, bool isGood)
         {
             if (writeClusterMetricOriginal)
             {
@@ -767,83 +1104,25 @@ namespace Ploidulator
             }
         }
 
-        // should prob go within the metric instead
-        private void WritePhaseGenotypeInput(ClusterMetricPloidulator metric)
-        {
-            int numIndividuals = metric.CountSamples;
-            string locusType = metric.PhaseLoci; // S for a biallelic (SNP) locus; M for microsatellite, or other multi-allelic locus (eg tri-allelic SNP, or HLA allele).
-            int numLoci = locusType.Length; // only the snps?
-            string data = metric.PhaseData;
-            //locusType = Regex.Split(locusType, "-").ToString();
-
-
-
-            string lines = numIndividuals + "\r\n" +
-                numLoci + "\r\n" +
-                //"P 300 1313 1500 2023 5635\r\n"+ // position. this is optional and does not apply for sample dataset
-                locusType + "\r\n" +
-                data;
-
-            //Console.Write(lines);
-
-            System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\genotypes.inp");
-            file.WriteLine(lines);
-            file.Close();
-        }
-
-
-
-        private void WritePhaseGenotypeInputTemplate(ClusterMetricPloidulator metric)
-        {
-            int numIndividuals = 3;
-            int numLoci = 5;
-            string locusType = "MSSSM"; // S for a biallelic (SNP) locus; M for microsatellite, or other multi-allelic locus (eg tri-allelic SNP, or HLA allele).
-
-            string indivA = "#1\r\n" +
-                "12 1 0 1 3\r\n" +
-                "11 0 1 0 3\r\n";
-
-            string indivB = "#2\n12 1 1 1 2\r\n" +
-                "12 0 0 0 3\r\n";
-
-            string indivC = "#3\r\n" +
-                "-1 ? 0 0 2\r\n" +
-                "-1 ? 1 1 13";
-
-            string lines = numIndividuals + "\r\n" +
-                numLoci + "\r\n" +
-                //"P 300 1313 1500 2023 5635\r\n"+ // position. this is optional and does not apply for sample dataset
-                locusType + "\r\n" +
-                indivA +
-                indivB +
-                indivC;
-
-            System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\genotypes.inp");
-            file.WriteLine(lines);
-            file.Close();
-        }
-
         /// <summary>
-        /// Given a populated and calculated metric, determine based on handler's filter criteria whether
-        /// that cluster is good or bad. Returns true for good, false for bad
+        /// Write sequences from output queue into filtered bam output file
         /// </summary>
-        private bool GoodOrBad(ClusterMetricPloidulator tempMetric)
+        /// <returns></returns>
+        private System.Delegate WriteToBam()
         {
-            if (tempMetric.Dirt > dirtCutoff
-                    || tempMetric.AlignmentQualities[0] < alignQualCutoff
-                    || tempMetric.ReadQualities[0] < readQualCutoff
-                    || tempMetric.PopulationPercentage < popPercent)
+            while (bamOutputQueue.Count > 0)
             {
-                Console.WriteLine("BAD CLUSTER");
-                tempMetric.Good = false;
+                List<SAMAlignedSequence> seqs = bamOutputQueue.Dequeue();
+                foreach (SAMAlignedSequence seq in seqs)
+                {
+                    bamFormatter.WriteAlignedSequence(header, seq, bamStream);
+                }
+                seqs.Clear();
+                seqs = null;
             }
-            else
-            {
-                Console.WriteLine("GOOD CLUSTER");
-                ++goodCount;
-                tempMetric.Good = true;
-            }
-            return tempMetric.Good;
+            // signal to next thread runner that it can now process sequences from the queue
+            canWriteToBam = true;
+            return null;
         }
 
         /// <summary>
@@ -872,12 +1151,6 @@ namespace Ploidulator
                 newHeader = new SAMAlignmentHeader();
                 bamOutputQueue = new Queue<List<SAMAlignedSequence>>();
 
-                // Create a new directory for output files if it does not already exist
-                if (!Directory.Exists(fileName))
-                {
-                    Directory.CreateDirectory(fileName);
-                }
-
                 // Create the output file for filtered sequences
                 string file = fileName + "\\sequences.bam";
                 if(File.Exists(file))
@@ -889,34 +1162,106 @@ namespace Ploidulator
         }
 
         /// <summary>
+        /// Concatenate together the header and sequence bam output files
+        /// </summary>
+        private void concatFiles()
+        {
+            if (bamStream != null)
+            {
+                bamStream.Close();
+                bamStream = null;
+            }
+
+            Console.WriteLine("Concatenating bam header and sequence output files");
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+
+            startInfo.CreateNoWindow = true;
+            startInfo.FileName = "cmd.exe";
+            startInfo.Arguments = "/C copy /b " + fileName + "\\header.bam+" + fileName + "\\sequences.bam " + fileName + "\\filtered.bam /y";
+            Console.WriteLine("Executing cmd " + startInfo.Arguments);
+
+            startInfo.UseShellExecute = false;
+            startInfo.RedirectStandardOutput = true;
+
+            using (Process proc = Process.Start(startInfo))
+            {
+                using (StreamReader reader = proc.StandardOutput)
+                {
+                    string result = reader.ReadToEnd();
+                    Console.WriteLine(result);
+                }
+                proc.WaitForExit();
+                File.Delete(fileName + "\\header.bam");
+                File.Delete(fileName + "\\sequences.bam");
+            }
+            
+            bamFilesMerged = true;
+            Console.WriteLine("Finished concatenating bam output files");
+        }
+
+        #endregion
+
+        #region summary and stats data
+
+        private void AddFxAverages(List<double> averagesList, double[] frequencies)
+        {
+            while (averagesList.Count < frequencies.Length)
+            {
+                averagesList.Add(0);
+            }
+            int i = 0;
+            foreach(double d in frequencies)
+            {
+                averagesList[i] += frequencies[i];
+                i++;
+            }
+        }
+
+        /// <summary>
         /// Get various data arrays from metric, representing summary details for all clusters so far
         /// </summary>
-        /// <param name="metric"></param>
-        private void CreateSummaryArrays(ClusterMetricPloidulator metric) {
+        private void CreateSummaryArrays(ClusterMetric metric, bool isGood) {
                     
             clustSeqFrequencies.Add(metric.ClustSeqFrequencies);
+            if(isGood) { clustSeqFrequenciesGood.Add(metric.ClustSeqFrequencies); }
+
+            AddFxAverages(clustSeqFrequenciesOverview, metric.ClustSeqFrequencies);
+            if (isGood) { AddFxAverages(clustSeqFrequenciesOverviewGood, metric.ClustSeqFrequencies); }
                     
             SetDictValueCounts(graphDataAllReads, metric.CountAll);
+            if (isGood) { SetDictValueCounts(graphDataAllReadsGood, metric.CountAll); }
                     
             SetDictValueCounts(graphDataDistinctReads, metric.CountDistinct);
+            if (isGood) { SetDictValueCounts(graphDataDistinctReadsGood, metric.CountDistinct); }
                     
             SetDictValueCounts(graphDataIndividualsCounts, metric.CountSamples);
+            if(isGood) { SetDictValueCounts(graphDataIndividualsCountsGood, metric.CountSamples); }
                     
             int key = (int)Math.Round(metric.SampleReadCountsDistinct.Average(), 1);
             SetDictValueCounts(graphDataIndividualsDistinctReadcounts, key);
+            if (isGood) { SetDictValueCounts(graphDataIndividualsDistinctReadcountsGood, key); }
                     
             key = (int)Math.Round(metric.SampleReadCountsAll.Average(), 1);
             SetDictValueCounts(graphDataIndividualsTotalReadcounts, key);
+            if (isGood) { SetDictValueCounts(graphDataIndividualsTotalReadcountsGood, key); }
         }
 
         /// <summary>
         /// Set or update overview stats
         /// (Totals are used to enable easy obtaining of average without iterating through lists to count each time)
         /// </summary>
-        private void SetOverviewStats(ClusterMetricPloidulator metric, bool isGood)
+        private void SetOverviewStats(ClusterMetric metric, bool isGood)
         {
             // greatest number of samples found so far in any one cluster
             maxSampleCount = (metric.CountSamples > maxSampleCount) ? metric.CountSamples : maxSampleCount;
+
+            readCountTotal += metric.CountAll;
+            readCountDistinctTotal += metric.CountDistinct;
+            if(isGood)
+            {
+                readCountGood += metric.CountAll;
+                readCountDistinctGood += metric.CountDistinct;
+            }
 
             // maximum quality value found so far in any one cluster
             maxMapQ = (metric.AlignmentQualities[0] > maxMapQ) ? metric.AlignmentQualities[0] : maxMapQ;
@@ -944,120 +1289,6 @@ namespace Ploidulator
         }
 
         /// <summary>
-        /// returns the number of haplotypes
-        /// </summary>
-        private int TestPhase(ClusterMetricPloidulator metric)
-        {
-            Console.WriteLine("TOTAL G DIRT IS " + metric.TotalGDirt);
-            if(metric.TotalGDirt == 0) // no alleles are outside the top 3
-            {
-                Console.WriteLine("Running PHASE to calculate haplotypes. Please wait...");
-                ProcessStartInfo startInfo = new ProcessStartInfo();
-                //startInfo.CreateNoWindow = false;
-                startInfo.UseShellExecute = true;
-                startInfo.FileName = "PHASE.exe";
-                startInfo.ErrorDialog = false;
-                startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                startInfo.Arguments = "-d1 "+fileName+"\\genotypes.inp "+fileName+"\\haplotypes.out";
-
-                try
-                {
-                    // Start the process and wait for it to finish
-                    using (Process exeProcess = Process.Start(startInfo))
-                    {
-                        exeProcess.WaitForExit();
-                    }
-                }
-                catch
-                {
-                    // Log error todo
-                }
-                Console.WriteLine("DONE");
-                return GetPhaseNumHaplotypes(fileName + "\\haplotypes.out");
-            }
-            else
-            {
-                Console.WriteLine("Unable to get haplotypes, too many errors in data (gdirt " + metric.TotalGDirt + ")");
-            }
-
-            return -1;
-        }
-
-        private int GetPhaseNumHaplotypes(string file)
-        {
-            string hapIndex = "0";
-            bool inHapBlock = false;
-            try
-            {
-                using (StreamReader sr = new StreamReader(file))
-                {
-                    while (!sr.EndOfStream)
-                    {
-                        string thisStr = sr.ReadLine().Trim();
-                        if (thisStr == "BEGIN LIST_SUMMARY")
-                        {
-                            inHapBlock = true;
-                            thisStr = sr.ReadLine().Trim();
-                        }
-                        if(inHapBlock)
-                        {
-                            if (thisStr != "END LIST_SUMMARY")
-                            {
-                                hapIndex = thisStr.Split(' ')[0];
-                            }
-                            else
-                            {
-                                Console.WriteLine("Best haplotype count for this cluster is " + hapIndex);
-                                return Convert.ToInt32(hapIndex);
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("The file could not be read:");
-                Console.WriteLine(e.Message);
-            }
-            return -1;
-        }
-
-        /// <summary>
-        /// Concatenate together the header and sequence bam output files
-        /// </summary>
-        private void concatFiles()
-        {
-            Console.WriteLine("Concatenating bam header and sequence output files");
-            ProcessStartInfo startInfo = new ProcessStartInfo();
-
-            startInfo.CreateNoWindow = true;
-            startInfo.FileName = "cmd.exe";
-            startInfo.Arguments = "/C copy /b " + fileName + "\\header.bam+" + fileName + "\\sequences.bam " + fileName + "\\filtered.bam /y";
-            Console.WriteLine("Executing cmd "+startInfo.Arguments);
-            
-            startInfo.UseShellExecute = false;
-            startInfo.RedirectStandardOutput = true;
-            
-
-            using (Process proc = Process.Start(startInfo))
-            {
-                using (StreamReader reader = proc.StandardOutput)
-                {
-                    string result = reader.ReadToEnd();
-                    Console.WriteLine(result);
-                }
-                proc.WaitForExit();
-
-            }
-
-            bamFilesMerged = true;
-            Console.WriteLine("Finished concatenating");
-
-            //Process.Start(OUTPUT_FOLDER);
-        }
-        
-
-        /// <summary>
         /// For the given key-count dictionary, if it has key, increment the value to reflect that it contains
         /// another instance. If it does not yet have that key, add a first instance with that key reference
         /// Dict values are rounded to the nearest whole number (int)
@@ -1073,153 +1304,162 @@ namespace Ploidulator
                 dict[key] = 1;
             }
         }
-        
-        /*
-         I haven't cleaned this method up because it needs to be significantly rewritten
-         */
-        private void PrintFinalCluserMetrics()
+
+        /// <summary>
+        /// Outputs data to two files. Data represents read count (total, or distinct) and the number of clusters that have that count.
+        /// These data files give us the actual, unnormalised size of each cluster (independent of which individuals the reads come from)
+        /// The data could be used to determien if each cluster is above/below average size and/or the degree of distribution/variation
+        /// in size between clusters
+        /// 
+        /// all_read_counts.tsv
+        ///     total_num_reads | num_clusters
+        /// 
+        /// distinct_read_counts.tsv
+        ///     num_distinct_reads | num_clusters
+        /// </summary>
+        private void PrintClustSummary_ReadCounts(Dictionary<int, int> graphDataAllReads,
+            Dictionary<int, int> graphDataDistinctReads, Dictionary<int, int> graphDataIndividualsTotalReadcounts, 
+            Dictionary<int, int> graphDataIndividualsDistinctReadcounts, string subdirectory, string descriptor = "")
         {
-            if (!finished)
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + descriptor + "all_read_counts.tsv"))
             {
-
-                // writes to a separate file for each significant all-clusters metric
-
-                /*Gives us the actual, unnormalised size of each cluster (independent of which individuals the reads come from)
-                 * Can be used to determine if each is above/below average size and/or the degree of distribution/variation
-                 * 
-                 * <numReadsAll, numClusters>
-                 * <numReadsDistinct, numClusters>
-                 * 
-                 * 
-                 * 1. normalise each
-                 */
-                #region clusters_avg_size
-                using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_allreadcounts.tsv"))
+                file.WriteLine("#Read-per-cluster distribution, where read count includes all read instances including duplicates");
+                file.WriteLine("total_num_reads\tnum_clusters");
+                foreach (KeyValuePair<int, int> dat in graphDataAllReads)
                 {
-                    file.WriteLine("num_reads\tnum_clusters");
-                    foreach (KeyValuePair<int, int> dat in graphDataAllReads)
-                    {
-                        file.WriteLine(dat.Key + "\t" + dat.Value);
-                    }
+                    file.WriteLine(dat.Key + "\t" + dat.Value);
                 }
-
-                using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_distinctreadcounts.tsv"))
-                {
-                    file.WriteLine("num_reads\tnum_clusters");
-                    foreach (KeyValuePair<int, int> dat in graphDataDistinctReads)
-                    {
-                        file.WriteLine(dat.Key + "\t" + dat.Value);
-                    }
-                }
-                #endregion
-
-
-                /*
-             * How many individuals are represented in each cluster? Also as Poisson-graphable type data
-             * e.g. proportion of clusters that have all population represented Vs proportion that have half population represnted
-             * <numIndividuals, numClusters>
-             */
-                #region cluster_individual_representation
-
-                using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_numindividualscounts.tsv"))
-                {
-                    file.WriteLine("num_reads\tnum_clusters");
-                    foreach (KeyValuePair<int, int> dat in graphDataIndividualsCounts)
-                    {
-                        file.WriteLine(dat.Key + "\t" + dat.Value);
-                    }
-                }
-
-                // even if every individual is represented in the cluster, is there a vast difference between how they are represented?
-                // something to work out how many reads on average each individual has (read count per indiv averaged across cluster instead of just
-                // read count per cluster)
-                // average total readcount by individual
-                //graphDataIndividualsTotalReadcounts
-                using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_byindividualsrtotaleadcounts.tsv"))
-                {
-                    file.WriteLine("num_reads\tnum_clusters");
-                    foreach (KeyValuePair<int, int> dat in graphDataIndividualsTotalReadcounts)
-                    {
-                        file.WriteLine(dat.Key + "\t" + dat.Value);
-                    }
-                }
-
-                // average distinct readcount by individual
-                //graphDataIndividualsDistinctReadcounts
-                using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_byindividualsrdistincteadcounts.tsv"))
-                {
-                    file.WriteLine("num_reads\tnum_clusters");
-                    foreach (KeyValuePair<int, int> dat in graphDataIndividualsDistinctReadcounts)
-                    {
-                        file.WriteLine(dat.Key + "\t" + dat.Value);
-                    }
-                }
-
-                #endregion
-
-                /*
-             * The frequency distributions of the reads in each cluster on a per-individual basis
-             * Normalised as percentages from smaller to larger (e.g. piechart-type data)
-             * 
-             * 
-             */
-                #region frequency_distributions
-                using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "_frequencies.tsv"))
-                {
-                    file.WriteLine("frequencies");
-                    foreach (double[] dat in clustSeqFrequencies)
-                    {
-                        file.WriteLine(String.Join("\t", dat));
-                    }
-                }
-                #endregion
-
-                Console.WriteLine("finished");
-
-                finished = true;
             }
-            while (!canWriteToBam) // background thread is currently writing
+
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + descriptor + "distinct_read_counts.tsv"))
             {
-                Thread.Sleep(5000); // sleep 5 seconds
+                file.WriteLine("#Read-per-cluster distribution, where read count is distinct reads (duplicate reads will be counted as the one)");
+                file.WriteLine("num_distinct_reads\tnum_clusters");
+                foreach (KeyValuePair<int, int> dat in graphDataDistinctReads)
+                {
+                    file.WriteLine(dat.Key + "\t" + dat.Value);
+                }
             }
-            if(writeToFilteredBam){
-                canWriteToBam = false;
-                string f = fileName + "\\header.bam";
-                if (File.Exists(f))
+
+            // The below two files are the same as the above two, but read counts are the average per-individual count not
+            // the total count in the cluster
+
+            //(this report answers: on average, how many total read counts do the individuals in the cluster have?)
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + descriptor + "byindividualsrtotaleadcounts.tsv"))
+            {
+                file.WriteLine("#Read-count-per-individual distribution for each cluster, where read count includes all read instances including duplicates");
+                file.WriteLine("total_num_reads\tnum_clusters");
+                foreach (KeyValuePair<int, int> dat in graphDataIndividualsTotalReadcounts)
                 {
-                    File.Delete(f);
+                    file.WriteLine(dat.Key + "\t" + dat.Value);
                 }
-                using (Stream writer = File.OpenWrite(f))
+            }
+
+            // average distinct readcount by individual 
+            //(this report answers: on average, how many distinct read counts do the individuals in the cluster have)
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + descriptor + "byindividualsrdistincteadcounts.tsv"))
+            {
+                file.WriteLine("#Read-count-per-individual distribution for each cluster, where read count is distinct reads (duplicate reads will be counted as the one)");
+                file.WriteLine("num_distinct_reads\tnum_clusters");
+                foreach (KeyValuePair<int, int> dat in graphDataIndividualsDistinctReadcounts)
                 {
-                    new BAMFormatter().WriteHeader(newHeader, writer);
+                    file.WriteLine(dat.Key + "\t" + dat.Value);
                 }
-                //Thread.Sleep(5000); // sleep 5 seconds
-                canWriteToBam = true;
+            }
+
+        }
+
+        /// <summary>
+        /// The read-frequency distribution per-cluster (where frequency was calculated on a per-individual basis). This
+        /// is the relative distribution of each sequence and the percentage which are the top-1, top-2,... top-n reads for
+        /// each individual in the cluster
+        /// Data is normalised and displayed as percentages from smaller to larger (e.g. piechart data)
+        /// </summary>
+        private void PrintClustSummary_FrequencyDistributions(List<double[]> clustSeqFrequencies, string subdirectory, string descriptor = "")
+        {
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + descriptor + "frequencies.tsv"))
+            {
+                file.WriteLine("#Per-cluster relative distribution of each sequence, from top-1, top-2, ...top-n");
+                file.WriteLine("frequencies");
+                foreach (double[] dat in clustSeqFrequencies)
+                {
+                    file.WriteLine(String.Join("\t", dat));
+                }
             }
         }
 
         /// <summary>
-        /// Write sequences from output queue into filtered bam output file
+        /// Per-cluster distribution of individuals (i.e. how many individuals are represented in each cluster, grouped by number of individuals)
         /// </summary>
-        /// <returns></returns>
-        private System.Delegate WriteToBam()
+        private void PrintClustSummary_IndivCounts(Dictionary<int, int> graphDataIndividualsCounts, string subdirectory, string descriptor = "")
         {
-            while (bamOutputQueue.Count > 0)
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + descriptor + "individualsDistribution.tsv"))
             {
-                List<SAMAlignedSequence> seqs = bamOutputQueue.Dequeue();
-                foreach (SAMAlignedSequence seq in seqs)
+                file.WriteLine("#Per-cluster distribution of individuals");
+                file.WriteLine("num_individuals\tnum_clusters");
+                foreach (KeyValuePair<int, int> dat in graphDataIndividualsCounts)
                 {
-                    bamFormatter.WriteAlignedSequence(header, seq, bamStream);
+                    file.WriteLine(dat.Key + "\t" + dat.Value);
                 }
-                seqs.Clear();
-                seqs = null;
-                GC.Collect();
-                
             }
-            // signal to next thread runner that it can now process sequences from the queue
-            canWriteToBam = true;
-            return null;
         }
+
+        // writes to a separate file for each significant all-clusters metric
+        // also writes bam output file header (if required)
+        private void PrintFinalCluserMetrics()
+        {
+            if (!finished) // this flag exists to make sure this method only executes once (unless reset)
+            {
+
+                // all sequences
+                if(WriteOverviewMetricOriginal)
+                {
+                    if (!Directory.Exists(fileName + "\\" + OUTPUT_DIRECTORY))
+                    {
+                        Directory.CreateDirectory(fileName + "\\" + OUTPUT_DIRECTORY);
+                    }
+                    PrintClustSummary_ReadCounts(graphDataAllReads, graphDataDistinctReads, graphDataIndividualsTotalReadcounts, graphDataIndividualsDistinctReadcounts, OUTPUT_DIRECTORY);
+                    PrintClustSummary_IndivCounts(graphDataIndividualsCounts, OUTPUT_DIRECTORY);
+                    PrintClustSummary_FrequencyDistributions(clustSeqFrequencies, OUTPUT_DIRECTORY);
+                }
+
+                // filtered sequences
+                if (WriteOverviewMetricFiltered && goodCount > 0)
+                {
+                    if (!Directory.Exists(fileName + "\\" + FILTERED_OUTPUT_DIRECTORY))
+                    {
+                        Directory.CreateDirectory(fileName + "\\" + FILTERED_OUTPUT_DIRECTORY);
+                    }
+                    PrintClustSummary_ReadCounts(graphDataAllReadsGood, graphDataDistinctReadsGood, 
+                        graphDataIndividualsTotalReadcountsGood, graphDataIndividualsDistinctReadcountsGood, FILTERED_OUTPUT_DIRECTORY, "filtered_");
+                    PrintClustSummary_IndivCounts(graphDataIndividualsCountsGood, FILTERED_OUTPUT_DIRECTORY, "filtered_");
+                    PrintClustSummary_FrequencyDistributions(clustSeqFrequenciesGood, FILTERED_OUTPUT_DIRECTORY, "filtered_");
+                }
+
+                Console.WriteLine("Finished writing to metric summary files");
+                finished = true;
+            }
+
+            while (!canWriteToBam)
+            {
+                Thread.Sleep(5000); // sleep 5 seconds, background thread is currently writing to bam file
+            }
+            
+            // If bam output has been requested, and now that we know the file can be written to, continue
+            if(writeToFilteredBam)
+            {
+                canWriteToBam = false;
+                string headerFile = fileName + "\\header.bam";
+                File.Delete(headerFile);    
+                using (Stream writer = File.OpenWrite(headerFile))
+                {
+                    new BAMFormatter().WriteHeader(newHeader, writer);
+                }
+                canWriteToBam = true;
+            }
+        }
+
+        #endregion
 
         #endregion
 

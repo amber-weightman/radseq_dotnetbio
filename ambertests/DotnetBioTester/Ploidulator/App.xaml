@@ -1,8 +1,219 @@
 ﻿<Application x:Class="MainWindow.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:charting="clr-namespace:System.Windows.Controls.DataVisualization.Charting;assembly=System.Windows.Controls.DataVisualization.Toolkit"             
+             xmlns:visualisation="clr-namespace:System.Windows.Controls.DataVisualization;assembly=System.Windows.Controls.DataVisualization.Toolkit"
+             xmlns:chartingprimitives="clr-namespace:System.Windows.Controls.DataVisualization.Charting.Primitives;assembly=System.Windows.Controls.DataVisualization.Toolkit"
              StartupUri="Ploidulator.xaml">
     <Application.Resources>
-         
+
+        <ResourceDictionary >
+
+            <!--
+        Source for default WPF Toolkit chart templates is:
+        http://silverlight.codeplex.com/SourceControl/changeset/view/18791#Development/Silverlight2/Source/Controls.DataVisualization.Toolkit/Charting/Chart/Chart.xaml
+        -->
+
+            <!--COLUMNCHART: Format for a group of columns on the column chart
+                minimal for increased efficiency
+                fill Gray-->
+            <ControlTemplate TargetType="charting:ColumnDataPoint" x:Key="ColumnDataTemplateA">
+                <Border Opacity="1" x:Name="Root">
+                    <Grid>
+                        <Rectangle >
+                            <Rectangle.Stroke>
+                                <SolidColorBrush Color="#FF646060" />
+                            </Rectangle.Stroke>
+                            <Rectangle.Fill>
+                                <SolidColorBrush Color="Gray" />
+                            </Rectangle.Fill>
+                        </Rectangle>
+                    </Grid>
+                    <ToolTipService.ToolTip>
+                        <ContentControl Content="{TemplateBinding FormattedDependentValue}"/>
+                    </ToolTipService.ToolTip>
+                </Border>
+            </ControlTemplate>
+
+            <!--COLUMNCHART: Format for a column on the column chart
+                minimal for increased efficiency
+                fill #FFDED6D6 (light grey)-->
+            <ControlTemplate TargetType="charting:ColumnDataPoint" x:Key="ColumnDataTemplateB">
+                <Border Opacity="1" x:Name="Root">
+                    <Grid>
+                        <Rectangle >
+                            <Rectangle.Stroke>
+                                <SolidColorBrush Color="#FF918C8C" />
+                            </Rectangle.Stroke>
+                            <Rectangle.Fill>
+                                <SolidColorBrush Color="#FFDED6D6" />
+                            </Rectangle.Fill>
+                        </Rectangle>
+                    </Grid>
+                    <ToolTipService.ToolTip>
+                        <ContentControl Content="{TemplateBinding FormattedDependentValue}"/>
+                    </ToolTipService.ToolTip>
+                </Border>
+            </ControlTemplate>
+
+            <!--COLUMN CHART: Layout for the chart area and position of label, legend etc-->
+            <ControlTemplate TargetType="charting:Chart" x:Key="ColumnLayoutTemplate">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <chartingprimitives:EdgePanel x:Name="ChartArea"  Background="Transparent" Grid.Row="0">
+                        <Grid Name="ChartCanvas" Canvas.ZIndex="-1"  />
+                        <Border Canvas.ZIndex="10" BorderBrush="#FF919191" BorderThickness="1,0,0,1" />
+                    </chartingprimitives:EdgePanel>
+
+                    <visualisation:Title Content="{TemplateBinding Title}" HorizontalAlignment="Left" FontWeight="Bold" Grid.Row="1" />
+
+                    <visualisation:Legend x:Name="Legend" Title="{TemplateBinding LegendTitle}" 
+                                HorizontalAlignment="Left" BorderBrush="Transparent" Background="Transparent" Grid.Row="2" />
+                </Grid>
+            </ControlTemplate>
+            
+            <!--PIECHART: Copy-paste modification of default piechart data (slice) template.
+                Incorproates custom tool tip-->
+            <ControlTemplate TargetType="charting:PieDataPoint" x:Key="PieDataTemplate">
+                <Grid x:Name="Root" Opacity="1">
+                    <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroup x:Name="CommonStates">
+                            <VisualStateGroup.Transitions>
+                                <VisualTransition GeneratedDuration="0:0:0.1"/>
+                            </VisualStateGroup.Transitions>
+                            <VisualState x:Name="Normal"/>
+                            <VisualState x:Name="MouseOver">
+                                <Storyboard>
+                                    <DoubleAnimation
+                                            Storyboard.TargetName="MouseOverHighlight"
+                                            Storyboard.TargetProperty="Opacity"
+                                            To="0.6"
+                                            Duration="0"/>
+                                </Storyboard>
+                            </VisualState>
+                        </VisualStateGroup>
+                        <VisualStateGroup x:Name="SelectionStates">
+                            <VisualStateGroup.Transitions>
+                                <VisualTransition GeneratedDuration="0:0:0.1"/>
+                            </VisualStateGroup.Transitions>
+                            <VisualState x:Name="Unselected"/>
+                            <VisualState x:Name="Selected">
+                                <Storyboard>
+                                    <DoubleAnimation
+                                            Storyboard.TargetName="SelectionHighlight"
+                                            Storyboard.TargetProperty="Opacity"
+                                            To="0.6"
+                                            Duration="0"/>
+                                </Storyboard>
+                            </VisualState>
+                        </VisualStateGroup>
+                        <VisualStateGroup x:Name="RevealStates">
+                            <VisualStateGroup.Transitions>
+                                <VisualTransition GeneratedDuration="0:0:0.5"/>
+                            </VisualStateGroup.Transitions>
+                            <VisualState x:Name="Shown">
+                                <Storyboard>
+                                    <DoubleAnimation
+                                            Storyboard.TargetName="Root"
+                                            Storyboard.TargetProperty="Opacity"
+                                            To="1"
+                                            Duration="0"/>
+                                </Storyboard>
+                            </VisualState>
+                            <VisualState x:Name="Hidden">
+                                <Storyboard>
+                                    <DoubleAnimation
+                                            Storyboard.TargetName="Root"
+                                            Storyboard.TargetProperty="Opacity"
+                                            To="0"
+                                            Duration="0"/>
+                                </Storyboard>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateManager.VisualStateGroups>
+                    <Path
+                            x:Name="Slice"
+                            Data="{TemplateBinding Geometry}"
+                            Fill="{TemplateBinding Background}"
+                            Stroke="{TemplateBinding BorderBrush}"
+                            StrokeMiterLimit="1">
+                        <ToolTipService.ToolTip>
+                            <StackPanel>
+                                <ContentControl Content="{TemplateBinding FormattedRatio}"/>
+                            </StackPanel>
+                        </ToolTipService.ToolTip>
+                    </Path>
+                    <Path
+                            x:Name="SelectionHighlight"
+                            Data="{TemplateBinding GeometrySelection}"
+                            Fill="Red"
+                            StrokeMiterLimit="1"
+                            IsHitTestVisible="False"
+                            Opacity="0"/>
+                    <Path
+                            x:Name="MouseOverHighlight"
+                            Data="{TemplateBinding GeometryHighlight}"
+                            Fill="White"
+                            StrokeMiterLimit="1"
+                            IsHitTestVisible="False"
+                            Opacity="0"/>
+                </Grid>
+            </ControlTemplate>
+
+            <!--PIECHART: Copy-paste modification of default piechart template.
+                Modified to create my custom pie chart layout-->
+            <ControlTemplate TargetType="charting:Chart" x:Key="PieLayoutTemplate">
+                <Grid  Margin="0,0,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <chartingprimitives:EdgePanel x:Name="ChartArea" Style="{TemplateBinding ChartAreaStyle}" Grid.Row="0">
+                        <Grid Canvas.ZIndex="-1" Style="{TemplateBinding PlotAreaStyle}"  />
+                    </chartingprimitives:EdgePanel>
+                    <visualisation:Title Content="{TemplateBinding Title}" HorizontalAlignment="Center" FontWeight="Bold" 
+                                                             Grid.Row="1" />
+                    <visualisation:Legend x:Name="Legend" Title="{TemplateBinding LegendTitle}" 
+                                                            HorizontalAlignment="Center" BorderBrush="Transparent" Background="Transparent" Grid.Row="2" />
+                </Grid>
+            </ControlTemplate>
+
+            <!--LINECHART CHART: Layout for the chart area and position of label, legend etc-->
+            <ControlTemplate TargetType="charting:Chart" x:Key="LinechartLayoutTemplate">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <chartingprimitives:EdgePanel x:Name="ChartArea"  Background="Transparent" Grid.Row="0">
+                        <Grid Canvas.ZIndex="-1"  />
+                        <Border Canvas.ZIndex="10" BorderBrush="#FF919191" BorderThickness="1,0,0,1" />
+                    </chartingprimitives:EdgePanel>
+
+                    <visualisation:Title Content="{TemplateBinding Title}" HorizontalAlignment="Left" FontWeight="Bold" Grid.Row="1" />
+
+                    <visualisation:Legend x:Name="Legend" Title="{TemplateBinding LegendTitle}" 
+                                HorizontalAlignment="Left" BorderBrush="Transparent" Background="Transparent" Grid.Row="2" />
+                </Grid>
+            </ControlTemplate>
+            
+        </ResourceDictionary>
     </Application.Resources>
 </Application>
