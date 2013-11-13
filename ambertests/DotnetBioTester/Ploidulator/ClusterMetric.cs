@@ -22,24 +22,41 @@ namespace Ploidulator
 
         #region Private Fields
 
+        /// <summary>
+        /// The expected ploidy level of the organism under study
+        /// </summary>
         private int expectedPloidy;
 
         /// <summary>
         /// The number of samples represented in the entire population
         /// </summary>
         private int numSamples;
-        
-        private List<Tuple<char, char>> genotype = null;
 
+        /// <summary>
+        /// The number of haplotypes in this cluster
+        /// </summary>
+        private int numHaplotpes = -1;
 
-        // buckets of everything
+        #region storing sequences
+
+        /// <summary>
+        /// All reads which are in-ploidy for the owning individual
+        /// </summary>
         private List<SAMAlignedSequence> readsInPloidyForIndividuals = null;
-        private List<SAMAlignedSequence> readsNotInPloidyForIndividuals = null;
-        int totQualInPloidy = 0;
-        int totQualNotInPloidy = 0;
 
-        // 
+        /// <summary>
+        /// All reads which are not in-ploidy for the owning individual
+        /// </summary>
+        private List<SAMAlignedSequence> readsNotInPloidyForIndividuals = null;
+
+        /// <summary>
+        /// All reads which are in-ploidy for the owning individual, as a dictionary
+        /// </summary>
         private Dictionary<string, List<SAMAlignedSequence>> readsInPloidyForIndividualsDict = null;
+
+        /// <summary>
+        /// All reads which are not in-ploidy for the owning individual, as a dictionary
+        /// </summary>
         private Dictionary<string, List<SAMAlignedSequence>> readsNotInPloidyForIndividualsDict = null;
 
         /// <summary>
@@ -62,21 +79,11 @@ namespace Ploidulator
         private Dictionary<String, Dictionary<String, List<SAMAlignedSequence>>> sampleSequenceDict = null;
 
         /// <summary>
-        /// Experimental
-        /// </summary>
-        private Dictionary<String, Dictionary<String, List<SAMAlignedSequence>>> sequenceSampleDict = null;
-
-        /// <summary>
         /// List of all sequences.
         /// </summary>
         private List<SAMAlignedSequence> sequences = null;
 
-        /// <summary>
-        /// The number of haplotypes in this cluster
-        /// </summary>
-        private int numHaplotpes = -1;
-
-        //private SequenceAlignmentMap sequenceMap = null;
+        #endregion
 
         #endregion
 
@@ -87,14 +94,12 @@ namespace Ploidulator
         /// </summary>
         public ClusterMetric()
         {
-            //throw new NotImplementedException();
         }
 
         public ClusterMetric(int ploidy, int samples)
         {
             expectedPloidy = ploidy;
             numSamples = samples;
-            
         }
 
         #endregion
@@ -118,9 +123,6 @@ namespace Ploidulator
 
         public string PhaseData { get { return phaseData; } }
         private string phaseData;
-
-        public double TotalGDirt { get { return totalGDirt; } }
-        private double totalGDirt;
 
         /// <summary>
         /// The number of haplotypes in this cluster
@@ -181,18 +183,7 @@ namespace Ploidulator
         public List<int> FrequencyDistributionSamples { get { return frequencyDistributionSamples; } }
         private List<int> frequencyDistributionSamples;
 
-        /// <summary>
-        /// The total number of sequences which are within ploidy (i.e. the top two represented query
-        /// sequences)
-        /// </summary>
-        //public int CountInPloidy { get { return GetCountInPloidy(2, GetFrequencyDistribution(SequenceDict)); } }
-
-        /// <summary>
-        /// The total number of sequences which are beyond ploidy (i.e. total count excluding the 
-        /// top two represented query sequences)
-        /// </summary>
-        //public Double BeyondPloidy { get { return GetPercentBeyondPloidy(2, GetFrequencyDistribution(SequenceDict)); } }
-
+      
         /// <summary>
         /// Average frequencies for each sequence, calculated per sample per cluster and averaged
         /// out to cluster
@@ -257,27 +248,19 @@ namespace Ploidulator
         /// </summary>
         public string ToFileString() // print file string
         {
-            // PRINT THIS OUT TO SHOW DAD
-            // for each in samplereadcountsAll, i want to know how much it deviates from the average
-            // the degree of deviation would show that individuals are unevenly reprsented
-            // this requires some sort of frequency distribution
-            // the array of nums that applies for fx dist is below
-            /*string ss = "\nSamplereadcountsAll: ";
-            foreach (double d in SampleReadCountsAll) { ss += (d + "\t"); }
-            ss += ("\navg: " + SampleReadCountsAll.Average());*/
-
-            // MAYBE ALSO SHOW DAD PRINTOUT FOR clustSeqFrequencies
-
-            // todo update
             string header = (this.Id == "0") ? "#cluster_id\tcount_all_reads\tcount_distinct_reads\tnum_individuals\tdirt\talignment_qualities_all\tploidy_disagreement_unnormalised\tread_qualities_all\tpopulation_percentage\tavg_read_count_per_indiv_all\tavg_read_count_per_indiv_distinct\tnum_haplotypes" + Environment.NewLine : "";
 
             return header  + Id + "\t" + CountAll + "\t" +
                 CountDistinct + "\t" +
-                CountSamples + 
-                "\t" + Dirt + "\t" + AlignmentQualities[0] /*+ " : " + AlignmentQualities[1] + " : " + AlignmentQualities[2]*/ + "\t(" + ploidyDisagreement + ")\t" +
-                ReadQualities[0] /*+ " : " + ReadQualities[1] + " : " + ReadQualities[2]*/ + "\t" + PopulationPercentage + "\t" + Math.Round(SampleReadCountsAll.Average(), 2) + " \t " + Math.Round(SampleReadCountsDistinct.Average(), 2)  + "\t"
-                + numHaplotpes
-                ;
+                CountSamples + "\t" + 
+                Dirt + "\t" + 
+                AlignmentQualities[0]  + "\t(" + 
+                ploidyDisagreement + ")\t" +
+                ReadQualities[0]  + "\t" + 
+                PopulationPercentage + "\t" + 
+                Math.Round(SampleReadCountsAll.Average(), 2) + " \t " + 
+                Math.Round(SampleReadCountsDistinct.Average(), 2)  + "\t" + 
+                numHaplotpes;
             ;
         }
         /// <summary>
@@ -300,13 +283,11 @@ namespace Ploidulator
 
         public void Calculate(List<SAMAlignedSequence> sequences)
         {
-            //Console.Write(Id+"-");
             // Create various structures to store or index the sequence data in different ways
             this.sequences = sequences;
             sequenceDict = MakeSequenceDict(sequences);
             sampleDict = MakeSampleDict(sequences);
             sampleSequenceDict = MakeNestedSequenceDict(sampleDict);
-            sequenceSampleDict = MakeNestedSampleDict(sequenceDict);
             
             // Get the counts once and once only
             countAll = sequences.Count;
@@ -318,7 +299,6 @@ namespace Ploidulator
             IterateSequences();
             IterateSequenceDict();
             IterateSampleDict();
-            IterateSequenceSampleDict();
             IterateSampleSequenceDict();
 
             // Simple things that do not need to iterate to get their values
@@ -327,15 +307,10 @@ namespace Ploidulator
             // At this point every value should be set and nothing more should need to be done
             readQualities = FindReadQualities(); // takes a long time
 
-            // CHECK WHICH DIRT CALC IS MORE ACCURATE
+            
             dirt = Math.Round(1 - GetCountInPloidy(expectedPloidy, clustSeqFrequencies), 2);
-            //double newDirt = readsNotInPloidyForIndividualsDict.Count / (double)(readsInPloidyForIndividualsDict.Count + readsNotInPloidyForIndividualsDict.Count);
-
-
-
-            //clustAlignmentQualities = FindAlignmentQualities(sequenceDict); // quality; quantity
-
-            //Console.WriteLine(this.ToFileString()); // todo fixme this line of course should be removed
+            // alternative method
+            // dirt = readsNotInPloidyForIndividualsDict.Count / (double)(readsInPloidyForIndividualsDict.Count + readsNotInPloidyForIndividualsDict.Count);
         }
 
         #region iterateSequences
@@ -353,6 +328,8 @@ namespace Ploidulator
             return allelesThisIndiv;
         }
 
+
+
         // Dictionary of all possible allele values
         private Dictionary<char, string> alleles = new Dictionary<char, string>()
             {
@@ -362,9 +339,6 @@ namespace Ploidulator
                 {'G', "4"},
                 {'?', "-1"}
             };
-
-
-
 
 
         private void GetIndivBiAllelicLocusAlleles(char[] allelesThisIndiv, int numSeqsThisIndivHas, ref string chr1, ref string chr2)
@@ -440,7 +414,6 @@ namespace Ploidulator
                     break;
 
                 default:
-                    // todo fixme - hardcoded ploidy assumption below
                     throw new Exception("More than two alleles at a position impossible for GetIndivMultiAllelicLocusAlleles (while only top 2 sequences are being considered)");
             }
         }
@@ -455,7 +428,6 @@ namespace Ploidulator
             id = SetId(sequences);
             referenceSequence = GetSequence(sequences[0]);
 
-            masterPhaseLocusTypes = new char[referenceSequence.Length]; // new blank string for sss, mmm
 
             Dictionary<char, double>[] alleleFxAllIndiv = new Dictionary<char, double>[referenceSequence.Length];
             List<Dictionary<char, double>[]> alleleFxAllIndivFull = new List<Dictionary<char, double>[]>();
@@ -464,19 +436,19 @@ namespace Ploidulator
             string phaseFileData = "";
             foreach (Dictionary<string, List<SAMAlignedSequence>> seqList in sampleSequenceDict.Values) 
             {
-                //string[] ff = readsInPloidyForIndividualsDict.Keys.ToArray();
                 Dictionary<char, double>[] alleleFxThisIndiv = BaseFrequenciesBetter(seqList.Keys.ToArray(), (double)expectedPloidy, ref alleleFxAllIndiv);
                 alleleFxAllIndivFull.Add(alleleFxThisIndiv);
             }
 
             loci = "";
+            string noSnp = "-";
             string biAllelic = "S";
             string multiAllelic = "M";
             foreach (Dictionary<char, double> i in alleleFxAllIndiv)
             {
                 if(i.Keys.Count == 0 || i.Keys.Count == 1)
                 {
-                    loci += "-";
+                    loci += noSnp;
                 } 
                 else if(i.Keys.Count == 2)
                 {
@@ -486,22 +458,7 @@ namespace Ploidulator
                 {
                     loci += multiAllelic;
                 }
-
-                /*if (i.Keys.Count > 1)
-                {
-                    Console.Write("(");
-                }
-                foreach (char c in i.Keys)
-                {
-                    Console.Write(c + ", ");
-                }
-                if (i.Keys.Count > 1)
-                {
-                    Console.Write("),");
-                }*/
             }
-
-            //Console.WriteLine(loci);
 
             int j = 0;
             foreach (Dictionary<string, List<SAMAlignedSequence>> seqList in sampleSequenceDict.Values)
@@ -539,7 +496,6 @@ namespace Ploidulator
 
                 // Add this individual's genotype information to the phase file data string
                 phaseFileData += (indivId + "\r\n" + chr1 + "\r\n" + chr2 + "\r\n");
-                //Console.WriteLine((indivId + "\r\n" + chr1 + "\r\n" + chr2 + "\r\n"));
                 j++;
             }
 
@@ -554,8 +510,6 @@ namespace Ploidulator
                 }
             }
             loci = locii;
-            //Console.WriteLine("trimmed loci "+ loci);
-
         }
 
 
@@ -568,7 +522,7 @@ namespace Ploidulator
             }
             else
             {
-                throw new Exception("Unmapped query exception"); // todo particular kind of exception?
+                throw new Exception("Unmapped query exception"); 
             }
         }
 
@@ -581,20 +535,16 @@ namespace Ploidulator
             {
                 phaseLocusTypes = "";
             }
+            string noSnp = "-";
             string biAllelic = "S";
             string multiAllelic = "M";
-            double totalGDirtTmp = 0;
-            // length of REFERENCE
+            
             Dictionary<char, double>[] freqList = new Dictionary<char, double>[seqs[0].Length];
 
-            int hello = 0;
             //For each position, get each nucleotide and its relative frequency
             foreach (string seq in seqs)
             {
-                if(hello++ >= topX && !all)
-                {
-                    break;
-                }
+               
                 string seqStr = seq;
                 int count = 0;
                 foreach (char c in seqStr.ToUpper().ToCharArray())
@@ -622,62 +572,33 @@ namespace Ploidulator
                 char[] chars = freqList[i].Keys.ToArray();
                 foreach (char c in chars)
                 {
-                    freqList[i][c] = Math.Round((freqList[i][c] / numBases), 2);
-                    //if (freqList[i][c] == 0) { freqList[i].Remove(c); }
+                    //freqList[i][c] = Math.Round((freqList[i][c] / numBases), 2);
+                    freqList[i][c] = (freqList[i][c] / numBases);
                 }
 
-                var sorted = (from b in freqList[i]
-                                          orderby b.Value descending
-                                          select b)
+                freqList[i] = (from b in freqList[i] orderby b.Value descending select b)
                     .ToDictionary(pair => pair.Key, pair => pair.Value);
-                freqList[i] = sorted;
-
-
-
-                int j = 0;
-                double gDirt = 0;
+                
 
                 int len = freqList[i].Keys.Count;
-
-                if (len == 1 && phaseLocusTypes != null)
+                if (phaseLocusTypes != null && len > 0)
                 {
-                    phaseLocusTypes += "-";
-                }
-                else if (len == 2 && phaseLocusTypes != null)
-                {
-                    phaseLocusTypes += biAllelic;
-                }
-                else if (len > 2 && phaseLocusTypes != null)
-                {
-                    phaseLocusTypes += multiAllelic;
-                }
-
-
-                foreach (char c in freqList[i].Keys)
-                {
-                    //Console.Write("(" + c + ", " + freqList[i][c] + "), ");
-
-                    if (j++ >= topX)
+                    switch (len)
                     {
-                        gDirt += freqList[i][c];   
+                        case 1:
+                            phaseLocusTypes += noSnp;
+                            break;
+                        case 2:
+                            phaseLocusTypes += biAllelic;
+                            break;
+                        default:
+                            phaseLocusTypes += multiAllelic;
+                            break;
                     }
-                    
+                }
 
-                }
-                if(gDirt > 0)
-                {
-                    totalGDirtTmp += gDirt;
-                    //Console.Write("\t[" + gDirt + "] ");
-                }
-                //Console.WriteLine("");
             }
-            //Console.WriteLine(phaseLocusTypes); // the ssm output
-            //Console.WriteLine("-- " + totalGDirt + " --");
-            if(all)
-            {
-                totalGDirt = totalGDirtTmp;
-            }
-            
+
             return freqList;
         }
 
@@ -689,7 +610,6 @@ namespace Ploidulator
             // A dictionary of char:double for each base pair position
             Dictionary<char, double>[] freqList = new Dictionary<char, double>[seqs[0].Length];
 
-            //int timesThisPositionConsidered = 0;
             //For each position, get each nucleotide and its relative frequency
             foreach (string seq in seqs)
             {
@@ -742,6 +662,9 @@ namespace Ploidulator
                
                 foreach(KeyValuePair<char,double> p in freqList[i])
                 {
+                    if(alleles.ContainsKey(p.Key)){
+
+                    }
                     if (p.Key == 'A' || p.Key == 'T' || p.Key == 'C' || p.Key == 'G')
                     {
                         if (masterFreqList[i] != null && masterFreqList[i].ContainsKey(p.Key))
@@ -762,27 +685,9 @@ namespace Ploidulator
             }
  
 
-                //int j = 0;
-
-                //int len = freqList[i].Keys.Count;
-
-                // Construct the SSSSSS--SSS string
-                /*if (len == 1 && phaseLocusTypes != null)
-                {
-                    phaseLocusTypes += "-";
-                }
-                else if (len == 2 && phaseLocusTypes != null)
-                {
-                    phaseLocusTypes += biAllelic;
-                    masterPhaseLocusTypes[phaseLocusTypes.Length-1] = biAllelic.ToCharArray()[0];
-                }*/
-                //Console.WriteLine("");
-            //}
-            //Console.WriteLine(phaseLocusTypes); // the ssm output
             return freqList;
         }
 
-        private char[] masterPhaseLocusTypes;
 
         #endregion
 
@@ -798,18 +703,14 @@ namespace Ploidulator
 
         private void IterateSequenceDict()
         {
-            /*int i = 0;
-            foreach(KeyValuePair<string, List<SAMAlignedSequence>> kvp in sequenceDict){
-            }*/
             frequencyDistributionSequences = GetFrequencyDistribution(SequenceDict);
-            alignmentQualities = FindAlignmentQualities(/*SequenceDict*/); // quality; quantity
+            alignmentQualities = FindAlignmentQualities(); 
             alignmentQual = alignmentQualities[1];
         }
 
         // this is used for either seq or sample dict
         private List<int> GetFrequencyDistribution(Dictionary<String, List<SAMAlignedSequence>> dict)
         {
-            // todo aw probably a more efficient way
             List<int> frequencies = new List<int>();
             foreach (KeyValuePair<String, List<SAMAlignedSequence>> seq in dict)
             {
@@ -824,10 +725,7 @@ namespace Ploidulator
         /// i have assumed for now that this is only ever used with sequenceDict
         /// ploidy is per individual
         /// // this is skewed where a sequence appears in both in and out of ploidy buckets
-        /// 
-        /// 255 indicates qual is not available
-        /// 29 is max
-        /// read qual 0 is bad.
+
         /// </summary>
         /// <param name="dict"></param>
         /// <returns></returns>
@@ -845,7 +743,6 @@ namespace Ploidulator
             // could be indicative of those individuals being 'triploid'?
             // the number should be small
             ploidyDisagreement = Math.Round(((qualsIn.Length + qualsOut.Length) - CountDistinct) / (double)CountDistinct, 2);
-            //Console.WriteLine("ploidy disagreement " + ploidyDisagreement);
 
             i = 0;
             foreach (List<SAMAlignedSequence> seqList in sequenceDict.Values)
@@ -895,7 +792,6 @@ namespace Ploidulator
             {
                 qSeq = new QualitativeSequence(SAMDnaAlphabet.Instance, FastQFormatType.Sanger, GetSequence(seq), GetReadQuality(seq));
                 readQualScoresAll[i++] = qSeq.GetQualityScores().Average();
-                //readQualScoresAll[i++] = GetReadQuality(seq).ToCharArray().Select(x => (int)x - 33).Average(); // [2,4,4,4,5,4,4,4] per sequence
             }
 
             i = 0;
@@ -903,7 +799,6 @@ namespace Ploidulator
             {
                 qSeq = new QualitativeSequence(SAMDnaAlphabet.Instance, FastQFormatType.Sanger, GetSequence(seq), GetReadQuality(seq));
                 readQualScoresIn[i++] = qSeq.GetQualityScores().Average();
-                //readQualScoresAll[i++] = GetReadQuality(seq).ToCharArray().Select(x => (int)x - 33).Average(); // [2,4,4,4,5,4,4,4] per sequence
             }
 
             i = 0;
@@ -911,10 +806,7 @@ namespace Ploidulator
             {
                 qSeq = new QualitativeSequence(SAMDnaAlphabet.Instance, FastQFormatType.Sanger, GetSequence(seq), GetReadQuality(seq));
                 readQualScoresOut[i++] = qSeq.GetQualityScores().Average();
-                //readQualScoresAll[i++] = GetReadQuality(seq).ToCharArray().Select(x => (int)x - 33).Average(); // [2,4,4,4,5,4,4,4] per sequence
             }
-
-           
 
 
             return new double[] 
@@ -926,18 +818,6 @@ namespace Ploidulator
         }
 
 
-        /*private IEnumerable<SAMAlignedSequence> test()
-        {
-            BAMParser parser = new BAMParser(handler, false);
-            parser
-
-            var bamparser = new BAMParser();
-            header = bamparser.GetHeader(stream);
-            while (!bamparser.IsEOF())
-            {
-                yield return bamparser.GetAlignedSequence(false);
-            }
-        }*/
 
         // Fx with one seq per individual
         private List<int> GetFrequencyDistribution(Dictionary<String, Dictionary<String, List<SAMAlignedSequence>>> dict)
@@ -956,15 +836,10 @@ namespace Ploidulator
         private void IterateSampleDict()
         {
             int i = 0;
-            /*foreach (KeyValuePair<string, List<SAMAlignedSequence>> kvp in sampleDict)
-            {
-
-
-            }*/
+            
             // are all individuals represented equally - for this I need the variation not hte average
             // this is the total read counts per person
             sampleReadCountsAll = new double[CountSamples];
-            i = 0;
             foreach (List<SAMAlignedSequence> seqList in sampleDict.Values)
             {
                 // for each sample, the total number of reads it has
@@ -972,10 +847,7 @@ namespace Ploidulator
             }
             frequencyDistributionSamples = GetFrequencyDistribution(SampleDict);
         }
-        private void IterateSequenceSampleDict()
-        {
-
-        }
+       
         private void IterateSampleSequenceDict()
         {
             clustSeqFrequencies = SampleFrequenciesAvg(sampleSequenceDict);
@@ -994,12 +866,10 @@ namespace Ploidulator
         /// </summary>
         public void Reset()
         {
-            //sequenceMap.Clear();
             sequences.Clear();
             sequenceDict.Clear();
             sampleDict.Clear();
             sampleSequenceDict.Clear();
-            sequenceSampleDict.Clear();
             readsInPloidyForIndividuals.Clear();
             readsNotInPloidyForIndividuals.Clear();
 
@@ -1012,41 +882,14 @@ namespace Ploidulator
         #region Private Methods
 
 
-
-
-        /// <summary>
-        /// get the number of base pair differences between 2 query strings
-        /// loaded with assumptions
-        /// </summary>
-        /// <param name="seqA"></param>
-        /// <param name="seqB"></param>
-        /// <returns></returns>
-        private int NumQueryDiff(string seqA, string seqB)
-        {
-            // if diff lengths or diff index, do something about that todo aw
-            //int startPos = (seqA.MPos > seqB.MPos) ? seqA.MPos - seqB.MPos : seqB.MPos - seqA.MPos; // startPos is 0 based
-
-            char[] charsA = seqA.ToCharArray();
-            char[] charsB = seqB.ToCharArray();
-            int count = 0;
-            for (int i = 0; i < charsA.Length; i++)
-            {
-                if (charsA[i] != charsB[i])
-                {
-                    ++count;
-                }
-            }
-            return count;
-        }
-
-
-        private double GetCountInPloidy(int ploidy, double[] frequencies)
+     
+        private double GetCountInPloidy(int ploidyLevel, double[] frequencies)
         {
             int count = 0;
             double seqsCount = 0;
             foreach (double fx in frequencies)
             {
-                if (count++ < ploidy)
+                if (count++ < ploidyLevel)
                 {
                     seqsCount += fx;
                 }
@@ -1075,63 +918,7 @@ namespace Ploidulator
             return seqsCount;
         }
 
-        private double GetPercentBeyondPloidy(int ploidy, List<int> frequencies)
-        {
-            return Math.Round((frequencies.Sum() - GetCountInPloidy(ploidy, frequencies)) / (Double)frequencies.Sum(), 2);
-        }
-        
-
-        // is this it??????
-        //http://bioinformatics.oxfordjournals.org/content/early/2012/10/09/bioinformatics.bts601.abstract
-        //http://bioinformatics.tudelft.nl/
-
-        // gene prediction: uses hmm
-        // "copy number variation"
-
-        // "De novo detection of copy number variation "
-
-        // Aneuploidy - abnormal num chromosomes
-        // Given that we know the probable ploidy of the organism, we could be said to be
-        // detecting aneuoploidy instead
-
-        // each indiv should ONLY have two dominant sequences.
-        // for a group of individuals, snps could make it appear that there are >2 dominant sequences
-
-
-        // {900, 850, 67, 53, 2, 2, 2, 2, 1, 1, 1, 1, 1}
-        // avg frequency haploid (top 1)  V avg frequency all the others
-        // avg frequency diploid (top 2)
-        // avg frequency triploid (top 3)
-
-        // surely we would also expect one or two sequences to be highly represented,
-        // and the rest to be lowly represented for true diploid cluster (i.e. bigger gap
-        // between 0:1 and 2:max frequency of occurrence)
-
-        // hmm
-        // states: haploid, diploid, polyploid, ... (1, 2, 3, 4, more)
-        // observations: AAA, AAB, ABA  (i.e. num unique highly represented sequences)
-        // start probability: haploid 0.1, diploid 0.7, polyploid 0.2  ??
-        // transition: ?????
-        // emission probability:    haploid {AAA, AAA 0.9; AAA, AAB 0.1}
-        //                          diploid {AAA, AAB 0.8; AAA, AAA 0.1, AAA, AAB, ABA 0.1}
-
-        // trying to observe the actual state based on the observations
-
-
-        // infer the nmber of haplotypes present within each cluster 
-        // (where the reads are the observed data)
-        private void HiddenMarkov()
-        {
-            // don't understand how this translates to transition over time
-            // http://nar.oxfordjournals.org/content/33/suppl_2/W451.long need the species name + our seq too short
-        }
-
-        // use information derived from the alignment within a cluster as covariates
-        private void LogisticRegression()
-        {
-            // appears to be a sensible model to use
-            //(multinomial logitic progression)
-        }
+       
 
 
         // Get sequence string
@@ -1183,13 +970,8 @@ namespace Ploidulator
             {
                 AddToDict(dict, GetSequenceDictKey(seq), seq);
             }
-            var sortedSequenceDict = (from sequence in dict
-                                      orderby sequence.Value.Count descending
-                                      select sequence)
+            return (from sequence in dict orderby sequence.Value.Count descending select sequence)
                     .ToDictionary(pair => pair.Key, pair => pair.Value);
-
-            dict = sortedSequenceDict;
-            return dict;
         }
 
         /// <summary>
@@ -1285,103 +1067,20 @@ namespace Ploidulator
             Debug.Assert((readsInPloidyForIndividuals.Count + readsNotInPloidyForIndividuals.Count) == sequences.Count);
 
             // todo fixme there might be a sequence in both buckets that shares the same query string
-            // this is valid but it complicates the averages
-            //Console.WriteLine(".." + CountDistinct + "< " + ctDist);
 
             return superDict;
         }
 
-       
-
-
-        
-
-        private string PrintSampleFrequencies(Dictionary<String, Dictionary<String, List<SAMAlignedSequence>>> sampleDict)
-        {
-            List<double>[] thisClusterSampleFrequencies = GetSampleFrequenciesAll(sampleDict);
-            string returnStr = "";
-            int j = 0;
-            foreach(List<double> fx in thisClusterSampleFrequencies)
-            {
-                returnStr += ("Sample "+(j++) + "\t");
-                foreach(double d in fx)
-                {
-                    returnStr += (d + "\t");
-                }
-                returnStr += ("\n"); // end this list of frequencies for this indiv
-                
-            }
-            return returnStr;
-        }
-
- 
-        /// <summary>
-        /// For an array of values and a given ploidy level, returns an array with three double values, 
-        /// representing [averageAllValues, averageInPloidy, averageNotInPloidy]
-        /// Values are rounded to 2 decimal places
-        /// FIXME is there a copy paste alternative?
-        /// </summary>
-        /// <param name="arr"></param>
-        /// <param name="ploidy"></param>
-        /// <returns></returns>
-        private double[] PloidyAwareAverages(int[] arr, int ploidy)
-        {
-            double sumInPloidy = arr.Take(ploidy).Sum();
-            double sumOutOfPloidy = arr.Sum() - sumInPloidy;            
-            //double avgAll = arr.Sum() / (double)arr.Length;
-
-            double avgAll = (arr.Length > 0) ? arr.Average() : 0;
-
-            double avgIn = sumInPloidy / (double)ploidy;
-            double avgOut = (arr.Sum() - sumInPloidy) / (double)(arr.Length - ploidy);
-
-
-            return new double[] { Math.Round(avgAll, 2), Math.Round(avgIn, 2), Math.Round(avgOut, 2) };
-
-
-        }
-        private double[] PloidyAwareAverages(double[] arr, int ploidy)
-        {
-            double sumInPloidy = arr.Take(ploidy).Sum();
-            double sumOutOfPloidy = arr.Sum() - sumInPloidy;
-            double avgAll = (arr.Length > 0) ? arr.Average() : 0;
-
-            double avgIn = sumInPloidy / (double)ploidy;
-            double avgOut = (arr.Sum() - sumInPloidy) / (double)(arr.Length - ploidy);
-            return new double[] { Math.Round(avgAll, 2), Math.Round(avgIn, 2), Math.Round(avgOut, 2) };
-        }
-
-
-        /// <summary>
-        /// Quality score between 0 and 93
-        /// </summary>
-        /// <param name="readQualStr"></param>
-        /// <returns></returns>
-        private int[] GetReadQualityScores(string readQualStr)
-        {
-            int[] scores = new int[readQualStr.Length];
-            int i = 0;
-            foreach(char c in readQualStr)
-            {
-                scores[i++] = (int)c - 33;
-            }
-            return scores;
-        }
-
-        
 
         private double[] SampleFrequenciesAvg(Dictionary<String, Dictionary<String, List<SAMAlignedSequence>>> sampleDict)
         {
             
             List<double>[] thisClusterSampleFrequencies = GetSampleFrequenciesAll(sampleDict);
-            //Console.WriteLine("The length of the array is " + thisClusterSampleFrequencies.Length);
-
             int maxlen = 0;
             foreach (List<double> fx in thisClusterSampleFrequencies)
             {
                 maxlen = (fx.Count > maxlen) ? fx.Count : maxlen;
             }
-            //Console.WriteLine("maxlen: "+maxlen);
             double[] temp = new double[maxlen];
 
 
@@ -1393,112 +1092,15 @@ namespace Ploidulator
                 {
                     temp[i] += fx[i];
                 }
-                
             }
-            //Console.Write("FX....\t");
             for (int j = 0; j < temp.Length; j++)
-            {
-                
+            {                
                 temp[j] = temp[j] / (double)thisClusterSampleFrequencies.Length; // divide by num samples
-                //Console.Write(temp[j] + "\t");
             }
-            //Console.WriteLine("\n");
             return temp;
         }
 
-        private string PoissonifySampleFrequences(List<int>[] frequencies)
-        {
-            PoissonDistribution[] distributions = new PoissonDistribution[frequencies.Length];
-            int i = 0;
-            foreach(List<int> sample in frequencies)
-            {
-                distributions[i++] = new PoissonDistribution(lambda: sample.Average());
-            }
-
-            Mixture<PoissonDistribution> mix = new Mixture<PoissonDistribution>(distributions);
-            
-            double mean = mix.Mean;     // 3.5 
-            double median = mix.Median;   // 3.4999998506015895 
-            double var = mix.Variance; // 3.25 
-            
-            double pmf1 = mix.ProbabilityDensityFunction(x: 1);
-            double pmf2 = mix.ProbabilityDensityFunction(x: 2);
-            double pmf3 = mix.ProbabilityDensityFunction(x: 3);
-            double pmf4 = mix.ProbabilityDensityFunction(x: 4);
-            double pmf5 = mix.ProbabilityDensityFunction(x: 5);
-            double pmf6 = mix.ProbabilityDensityFunction(x: 6);
-            return "pmfs: \t" + pmf1 + "\t" + pmf2 + "\t" + pmf3 + "\t" + pmf4 + "\t" + pmf5 + "\t" + pmf6 + "\n";
-
-        }
-
-
-        private void LogisticRegressionIfy()
-        {
-            // Suppose we have the following data about some patients. 
-            // The first variable is continuous and represent patient 
-            // age. The second variable is dicotomic and give whether 
-            // they smoke or not (This is completely fictional data). 
-            double[][] input =
-                {
-                    new double[] { 55, 0 }, // 0 - no cancer 
-                    new double[] { 28, 0 }, // 0 
-                    new double[] { 65, 1 }, // 0 
-                    new double[] { 46, 0 }, // 1 - have cancer 
-                    new double[] { 86, 1 }, // 1 
-                    new double[] { 56, 1 }, // 1 
-                    new double[] { 85, 0 }, // 0 
-                    new double[] { 33, 0 }, // 0 
-                    new double[] { 21, 1 }, // 0 
-                    new double[] { 42, 1 }, // 1
-                };
-
-            // We also know if they have had lung cancer or not, and  
-            // we would like to know whether smoking has any connection 
-            // with lung cancer (This is completely fictional data). 
-            double[] output =
-                {
-                    0, 0, 0, 1, 1, 1, 0, 0, 0, 1
-                };
-
-
-            // To verify this hypothesis, we are going to create a logistic 
-            // regression model for those two inputs (age and smoking).
-            LogisticRegression regression = new LogisticRegression(inputs: 2);
-
-            // Next, we are going to estimate this model. For this, we 
-            // will use the Iteravely reweighted least squares method. 
-            var teacher = new IterativeReweightedLeastSquares(regression);
-
-            // Now, we will iteratively estimate our model. The Run method returns 
-            // the maximum relative change in the model parameters and we will use 
-            // it as the convergence criteria. 
-
-            double delta = 0;
-            do
-            {
-                // Perform an iteration
-                delta = teacher.Run(input, output);
-
-            } while (delta > 0.001);
-
-            // At this point, we can compute the odds ratio of our variables. 
-            // In the model, the variable at 0 is always the intercept term,  
-            // with the other following in the sequence. Index 1 is the age 
-            // and index 2 is whether the patient smokes or not. 
-
-            // For the age variable, we have that individuals with 
-            //   higher age have 1.021 greater odds of getting lung 
-            //   cancer controlling for cigarrete smoking. 
-            double ageOdds = regression.GetOddsRatio(1); // 1.0208597028836701 
-
-            // For the smoking/non smoking category variable, however, we 
-            //   have that individuals who smoke have 5.858 greater odds 
-            //   of developing lung cancer compared to those who do not  
-            //   smoke, controlling for age (remember, this is completely 
-            //   fictional and for demonstration purposes only). 
-            double smokeOdds = regression.GetOddsRatio(2); // 5.8584748789881331
-        }
-
+       
         // Gets an array of List<double> types
         // the length of the array is the number of individuals in the cluster
         private List<double>[] GetSampleFrequenciesAll(Dictionary<String, Dictionary<String, List<SAMAlignedSequence>>> sampleDict)
@@ -1542,29 +1144,7 @@ namespace Ploidulator
 
         #endregion
 
-
-        public void Shrink()
-        {
-            Console.Write("1");
-            sequenceDict.Clear();
-            Console.Write("2");
-            sampleDict.Clear();
-            Console.Write("3");
-            sequenceSampleDict.Clear();
-            Console.Write("4");
-            sampleSequenceDict.Clear();
-            Console.Write("5");
-            readsInPloidyForIndividuals.Clear();
-            Console.Write("6");
-            readsNotInPloidyForIndividuals.Clear();
-            Console.Write("7");
-            
-        }
-
     }
     
-
-    
-
 
 }

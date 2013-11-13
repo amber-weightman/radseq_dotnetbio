@@ -823,26 +823,35 @@ namespace Ploidulator
             }
         }
 
+        protected virtual void Dispose(bool includeManagedResources)
+        {
+            if(includeManagedResources){
+                if (formatterOriginalFile != null)
+                {
+                    formatterOriginalFile.Close();
+                    formatterOriginalFile = null;
+                }
+                if (formatterFilteredFile != null)
+                {
+                    formatterFilteredFile.Close();
+                    formatterFilteredFile = null;
+                }
+                if (bamStream != null)
+                {
+                    bamStream.Close();
+                    bamStream = null;
+                }
+            }
+            
+        }
+
         /// <summary>
         /// Disposes all formatters
         /// </summary>
         public void Dispose()
         {
-            if (formatterOriginalFile != null)
-            {
-                formatterOriginalFile.Close();
-                formatterOriginalFile = null;
-            }
-            if (formatterFilteredFile != null)
-            {
-                formatterFilteredFile.Close();
-                formatterFilteredFile = null;
-            }
-            if (bamStream != null)
-            {
-                bamStream.Close();
-                bamStream = null;
-            }
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         #endregion
