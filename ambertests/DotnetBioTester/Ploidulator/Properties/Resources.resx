@@ -135,6 +135,12 @@
   <data name="CONSTRUCTING_OUTPUT_FILE_FINISHED" xml:space="preserve">
     <value>Joining output file header and body (finished)</value>
   </data>
+  <data name="FILE_NOT_CLOSED" xml:space="preserve">
+    <value>File is already open</value>
+  </data>
+  <data name="FILE_NOT_OPENED" xml:space="preserve">
+    <value>File is not opened. Please call Open method  to open the file.</value>
+  </data>
   <data name="FILE_NOT_READABLE" xml:space="preserve">
     <value>The file could not be read</value>
   </data>
@@ -155,6 +161,15 @@
   </data>
   <data name="HAPLOTYPE_COUNT_BAD" xml:space="preserve">
     <value>Haplotype count indicates cluster is not good: </value>
+  </data>
+  <data name="METRICFORMATTER_DESCRIPTION" xml:space="preserve">
+    <value>Writes an IMetric or List&lt;IMetric&gt; to a particular location, usually a file. The output is a tab separated text file with a .metr file extension</value>
+  </data>
+  <data name="METRIC_FILEEXTENSION" xml:space="preserve">
+    <value>.metr</value>
+  </data>
+  <data name="METRIC_NAME" xml:space="preserve">
+    <value>Metric</value>
   </data>
   <data name="PHASE_ERROR_DELETE" xml:space="preserve">
     <value>Unable to calculate genotypes. Please close any related files then try again.</value>

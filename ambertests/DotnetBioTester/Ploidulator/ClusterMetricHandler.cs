@@ -767,7 +767,7 @@ namespace Ploidulator
                 }
                 if(isGood) { ++goodCount; }
                 
-                Console.WriteLine(metric.ToFileString());
+                Console.WriteLine(metric.ToString());
 
                 // Get statistics from the metric for this new cluster
                 CreateSummaryArrays(metric, isGood);
@@ -934,7 +934,7 @@ namespace Ploidulator
         private int CalculateClusterHaplotypes()
         {
             ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.UseShellExecute = false; // set to false to display output in console
+            startInfo.UseShellExecute = true; // set to false to display output in console
             startInfo.FileName = "PHASE.exe";
             startInfo.ErrorDialog = false;
             startInfo.WindowStyle = ProcessWindowStyle.Hidden;
@@ -1065,8 +1065,8 @@ namespace Ploidulator
         private bool GoodOrBad(ClusterMetric tempMetric)
         {
             if (tempMetric.Dirt > dirtCutoff
-                    || tempMetric.AlignmentQualities[0] < alignQualCutoff
-                    || tempMetric.ReadQualities[0] < readQualCutoff
+                    || tempMetric.AlignmentQuality < alignQualCutoff
+                    || tempMetric.ReadQuality < readQualCutoff
                     || tempMetric.PopulationPercentage < popPercent)
             {
                 Console.Write(Properties.Resources.BAD_CLUSTER);
@@ -1279,18 +1279,18 @@ namespace Ploidulator
             }
 
             // maximum quality value found so far in any one cluster
-            maxMapQuality = (metric.AlignmentQualities[0] > maxMapQuality) ? metric.AlignmentQualities[0] : maxMapQuality;
-            maxReadQuality = (metric.ReadQualities[0] > maxReadQuality) ? metric.ReadQualities[0] : maxReadQuality;
+            maxMapQuality = (metric.AlignmentQuality > maxMapQuality) ? metric.AlignmentQuality : maxMapQuality;
+            maxReadQuality = (metric.ReadQuality > maxReadQuality) ? metric.ReadQuality : maxReadQuality;
 
             // set totals for all clusters
             totalDirt += metric.Dirt;
-            totalMapQ += metric.AlignmentQualities[0];
-            totalReadQ += metric.ReadQualities[0];
+            totalMapQ += metric.AlignmentQuality;
+            totalReadQ += metric.ReadQuality;
 
             // set totals for good clusters
             totalDirtGood = (isGood) ? totalDirtGood + metric.Dirt : totalDirtGood;
-            totalMapQGood += (isGood) ? metric.AlignmentQualities[0] : 0;
-            totalReadQGood += (isGood) ? metric.ReadQualities[0] : 0;
+            totalMapQGood += (isGood) ? metric.AlignmentQuality : 0;
+            totalReadQGood += (isGood) ? metric.ReadQuality : 0;
 
             // running averages for all clusters
             averageDirt = Math.Round(totalDirt / (double)numberClustersParsed, 2);

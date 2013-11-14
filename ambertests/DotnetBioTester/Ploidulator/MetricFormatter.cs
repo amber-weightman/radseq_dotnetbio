@@ -19,11 +19,6 @@ namespace Ploidulator
         /// </summary>
         private StreamWriter streamWriter = null;
 
-        /// <summary>
-        /// Buffer used while writing to file.
-        /// </summary>
-        private byte[] buffer = null;
-
         #endregion
 
         #region constructors
@@ -61,8 +56,7 @@ namespace Ploidulator
         {
             get
             {
-                return "Metric";
-                //return Properties.Resource.METRIC_NAME;
+                return Properties.Resources.METRIC_NAME;
             }
         }
 
@@ -76,8 +70,7 @@ namespace Ploidulator
         {
             get
             {
-                return "Writes an IMetric or List<IMetric> to a particular location, usually a file. The output is a tab separated text file with a .metr file extension";
-                //return Properties.Resource.METRICFORMATTER_DESCRIPTION;
+                return Properties.Resources.METRICFORMATTER_DESCRIPTION;
             }
         }
 
@@ -88,8 +81,7 @@ namespace Ploidulator
         {
             get
             {
-                return ".metr";
-                //return Properties.Resource.METRIC_FILEEXTENSION;
+                return Properties.Resources.METRIC_FILEEXTENSION;
             }
         }
 
@@ -110,8 +102,7 @@ namespace Ploidulator
         {
             if (this.streamWriter != null)
             {
-                throw new InvalidOperationException("File is already open.");
-                //throw new InvalidOperationException(Bio.Properties.Resource.FileNotClosed);
+                throw new InvalidOperationException(Properties.Resources.FILE_NOT_CLOSED);
             }
 
             this.FileName = fileName;
@@ -126,34 +117,12 @@ namespace Ploidulator
         {
             if (this.streamWriter != null)
             {
-                throw new InvalidOperationException("File is already open.");
-                //throw new InvalidOperationException(Properties.Resource.FileNotClosed);
+                throw new InvalidOperationException(Properties.Resources.FILE_NOT_CLOSED);
             }
 
             this.FileName = null;
             this.streamWriter = outStream;
         }
-
-
-        // Writes a List<IMetric> as tab separated values to the file, one IMetric per line.
-
-        // <param name="sequences">Sequences to write.</param>
-        /*[Obsolete("Use the IEnumerable overload instead")]
-        public void Write(ICollection<IMetric> metrics)
-        {
-            if (metrics == null)
-            {
-                throw new ArgumentNullException("metrics");
-            }
-
-            foreach (IMetric metric in metrics)
-            {
-                Write(metric);
-            }
-
-            this.streamWriter.Flush();
-        }*/
-        // todo fixme ok to remove?
 
         /// <summary>
         /// Writes an IMetric list as tab separated values to the file, one IMetric per line.
@@ -187,25 +156,10 @@ namespace Ploidulator
 
             if (this.streamWriter == null)
             {
-                throw new InvalidOperationException("File is not opened. Please call Open method  to open the file.");
-                //throw new InvalidOperationException(Properties.Resource.FileNotOpened);
+                throw new InvalidOperationException(Properties.Resources.FILE_NOT_OPENED);
             }
 
-            string stringToWrite = metric.ToFileString();
-            this.buffer = new byte[System.Text.ASCIIEncoding.Unicode.GetByteCount(stringToWrite)];
-            this.streamWriter.WriteLine(metric.ToFileString());
-            // todo fixme placeholder until we know what we are writing
-
-            /*for (long index = 0; index < sequence.Count; index += maxLineSize)
-            {
-                for (bufferIndex = 0; bufferIndex < maxLineSize && index + bufferIndex < sequence.Count; bufferIndex++)
-                {
-                    this.buffer[bufferIndex] = sequence[index + bufferIndex];
-                }
-
-                string line = UTF8Encoding.UTF8.GetString(this.buffer, 0, bufferIndex);
-                this.streamWriter.WriteLine(line);
-            }*/
+            this.streamWriter.WriteLine(metric.ToString());
 
             if (this.AutoFlush)
             {
@@ -220,10 +174,8 @@ namespace Ploidulator
         {
             if (this.streamWriter == null)
             {
-                throw new InvalidOperationException("File is not opened. Please call Open method  to open the file.");
-                //throw new InvalidOperationException(Properties.Resource.FileNotOpened);
+                throw new InvalidOperationException(Properties.Resources.FILE_NOT_OPENED);
             }
-
             this.streamWriter.Flush();
         }
 
@@ -234,8 +186,7 @@ namespace Ploidulator
         {
             if (this.streamWriter == null)
             {
-                throw new InvalidOperationException("File is not opened. Please call Open method  to open the file.");
-                //throw new InvalidOperationException(Properties.Resource.FileNotOpened);
+                throw new InvalidOperationException(Properties.Resources.FILE_NOT_OPENED);
             }
 
             this.Flush();
@@ -256,27 +207,6 @@ namespace Ploidulator
 
             GC.SuppressFinalize(this);
         }
-
-
-
-        // todo fixme reinstate this when i know what the format is
-        /*public static string FormatString(ISequence sequence)
-        {
-            if (sequence == null)
-            {
-                throw new ArgumentNullException("sequence");
-            }
-
-            StringBuilder stringBuilder = new StringBuilder();
-
-            stringBuilder.AppendLine(">" + sequence.ID);
-            foreach (byte item in sequence)
-            {
-                stringBuilder.Append((char)item);
-            }
-
-            return stringBuilder.ToString();
-        }*/
 
         #endregion
     }

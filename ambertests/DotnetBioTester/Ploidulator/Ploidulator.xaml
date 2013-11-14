@@ -323,7 +323,9 @@
                                             VerticalAlignment="Center" Margin="0,2" Height="auto"  Grid.RowSpan="1"
                                             Grid.Column="1" Grid.Row="4" SelectedIndex="1" IsDropDownOpen="False">
                                             <ListBoxItem Content="0"/>
+                                            <ListBoxItem Content="5"/>
                                             <ListBoxItem Content="10"/>
+                                            <ListBoxItem Content="15"/>
                                             <ListBoxItem Content="20"/>
                                             <ListBoxItem Content="30"/>
                                             <ListBoxItem Content="40"/>

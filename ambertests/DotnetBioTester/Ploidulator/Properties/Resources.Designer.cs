@@ -115,6 +115,24 @@ namespace Ploidulator.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to File is already open.
+        /// </summary>
+        internal static string FILE_NOT_CLOSED {
+            get {
+                return ResourceManager.GetString("FILE_NOT_CLOSED", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to File is not opened. Please call Open method  to open the file..
+        /// </summary>
+        internal static string FILE_NOT_OPENED {
+            get {
+                return ResourceManager.GetString("FILE_NOT_OPENED", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The file could not be read.
         /// </summary>
         internal static string FILE_NOT_READABLE {
@@ -174,6 +192,33 @@ namespace Ploidulator.Properties {
         internal static string HAPLOTYPE_COUNT_BAD {
             get {
                 return ResourceManager.GetString("HAPLOTYPE_COUNT_BAD", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to .metr.
+        /// </summary>
+        internal static string METRIC_FILEEXTENSION {
+            get {
+                return ResourceManager.GetString("METRIC_FILEEXTENSION", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Metric.
+        /// </summary>
+        internal static string METRIC_NAME {
+            get {
+                return ResourceManager.GetString("METRIC_NAME", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Writes an IMetric or List&lt;IMetric&gt; to a particular location, usually a file. The output is a tab separated text file with a .metr file extension.
+        /// </summary>
+        internal static string METRICFORMATTER_DESCRIPTION {
+            get {
+                return ResourceManager.GetString("METRICFORMATTER_DESCRIPTION", resourceCulture);
             }
         }
         

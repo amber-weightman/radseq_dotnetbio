@@ -15,10 +15,8 @@ namespace Ploidulator
     {
         /// <summary>
         /// String of tab-separated values for writing to file by MetricFormatter.
-        /// todo fixme we want the MetricFormater to decide how to write each line, but
-        /// for now until I know what values are being written I will let the Metric handle this.
         /// </summary>
-        string ToFileString();
+        string ToString();
 
         /// <summary>
         /// Calculate metric values from the given list of sequences.
