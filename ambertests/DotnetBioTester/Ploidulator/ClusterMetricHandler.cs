@@ -24,7 +24,7 @@ namespace Ploidulator
         private static CultureInfo ci = new CultureInfo("en-AU");
 
         // todo delete this
-        bool haplotypingEnabled = true;
+        bool haplotypingEnabled = false;
 
         #region Private Static Fields
         private static int OUTPUT_QUEUE_SIZE = 7;                       // max number of clusters that can be stored in the
@@ -646,13 +646,13 @@ namespace Ploidulator
         /// </summary>
         /// <param name="sequences">A list of sequences.</param>
         /// <returns>Always returns true</returns>
-        public bool AddRange(IEnumerable<SAMAlignedSequence> newSequences)
+        public bool AddRange(IEnumerable<SAMAlignedSequence> sequences)
         {
-            if (newSequences == null || newSequences.Count() == 0)
+            if (sequences == null || sequences.Count() == 0)
             {
                 return true;
             }
-            foreach (SAMAlignedSequence seq in newSequences)
+            foreach (SAMAlignedSequence seq in sequences)
             {
                 Add(seq); 
             }
@@ -1390,13 +1390,14 @@ namespace Ploidulator
         /// each individual in the cluster
         /// Data is normalised and displayed as percentages from smaller to larger (e.g. piechart data)
         /// </summary>
-        private void PrintClustSummary_FrequencyDistributions(List<Collection<double>> clustSeqFrequencies, string subdirectory, string descriptor = "")
+        private void PrintClustSummary_FrequencyDistributions(List<Collection<double>> sequenceFrequencies, 
+            string subdirectory, string descriptor = "")
         {
             using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + descriptor + "frequencies.tsv"))
             {
                 file.WriteLine("#Per-cluster relative distribution of each sequence, from top-1, top-2, ...top-n");
                 file.WriteLine("frequencies");
-                foreach (Collection<double> dat in clustSeqFrequencies)
+                foreach (Collection<double> dat in sequenceFrequencies)
                 {
                     file.WriteLine(String.Join("\t", dat));
                 }

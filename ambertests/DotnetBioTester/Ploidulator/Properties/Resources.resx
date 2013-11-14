@@ -162,6 +162,9 @@
   <data name="HAPLOTYPE_COUNT_BAD" xml:space="preserve">
     <value>Haplotype count indicates cluster is not good: </value>
   </data>
+  <data name="INVALID_KEY" xml:space="preserve">
+    <value>Invalid dictionary key</value>
+  </data>
   <data name="METRICFORMATTER_DESCRIPTION" xml:space="preserve">
     <value>Writes an IMetric or List&lt;IMetric&gt; to a particular location, usually a file. The output is a tab separated text file with a .metr file extension</value>
   </data>

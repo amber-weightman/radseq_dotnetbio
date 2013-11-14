@@ -117,7 +117,7 @@
             <StackPanel Name="StatsPanel" Orientation="Vertical" VerticalAlignment="Top" Margin="5,-25" DockPanel.Dock="right"  
                    Height="auto" Width="150" HorizontalAlignment="Right">
                 <!--Stats menu section one-->
-                <Expander x:Name="OverviewFileStats" Header="DETECTED SO FAR" FontSize="10" IsExpanded="False" 
+                <Expander x:Name="OverviewFileStats" Header="DETECTED SO FAR" FontSize="10" IsExpanded="False" Cursor="Hand"
                             ExpandDirection="Down" Grid.ColumnSpan="2" Width="auto">
                     <Border BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}" BorderThickness="1,0,1,1">
                         <Grid HorizontalAlignment="Right" >
@@ -142,7 +142,7 @@
                 </Expander>
                 
                 <!--Stats menu section two-->
-                <Expander x:Name="OverviewAllClustersStats" Header="ALL CLUSTERS" FontSize="10" IsExpanded="False" 
+                <Expander x:Name="OverviewAllClustersStats" Header="ALL CLUSTERS" FontSize="10" IsExpanded="False" Cursor="Hand"
                             ExpandDirection="Down" Grid.ColumnSpan="2" Width="auto" >
                     <Border BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"  BorderThickness="1,0,1,1">
                         <Grid HorizontalAlignment="Right" >
@@ -177,7 +177,7 @@
                 </Expander>
 
                 <!--Stats menu section three-->
-                <Expander x:Name="OverviewGoodClustersStats" Header="GOOD CLUSTERS" FontSize="10" IsExpanded="False" 
+                <Expander x:Name="OverviewGoodClustersStats" Header="GOOD CLUSTERS" FontSize="10" IsExpanded="False" Cursor="Hand"
                             ExpandDirection="Down" Grid.ColumnSpan="2" Width="auto"
                           ToolTip="These will be the averages for your filtered BAM output file">
                     <Border BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"  BorderThickness="1,0,1,1">
@@ -214,7 +214,7 @@
         <StatusBar x:Name="StatusBar" DockPanel.Dock="Bottom" Height="50" Background="{DynamicResource {x:Static SystemColors.MenuBrushKey}}">
 
             <!--Abort button-->
-            <Button Name="AbortButton" Content="X" ToolTip="Finish parsing the current file" Margin="10,0,0,0"
+            <Button Name="AbortButton" Content="X" ToolTip="Finish parsing the current file" Margin="10,0,0,0" Cursor="Hand"
                      Height="20" Width="20" Click="Button_Click_Abort" Visibility="Hidden" FontWeight="Bold" 
                     Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" FontFamily="Tahoma"/>
 
@@ -244,13 +244,13 @@
             <TabControl Width="auto" >
                 
                 <!--Menu options tab-->
-                <TabItem Name="Tab0" Header="Menu" IsSelected="True">
+                <TabItem Name="Tab0" Header="Menu" IsSelected="True" Cursor="Hand">
 
                     <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Auto">
                         <WrapPanel ScrollViewer.CanContentScroll="True" Margin="10" Orientation="Vertical" >
 
                             <!--Input file menu-->
-                            <Expander x:Name="FileExpander" Header="INPUT FILE AND PARAMETERS" Margin="0" IsExpanded="True" 
+                            <Expander x:Name="FileExpander" Header="INPUT FILE AND PARAMETERS" Margin="0" IsExpanded="True" Cursor="Hand"
                                 ExpandDirection="Down" Grid.ColumnSpan="2" Width="auto" >
                                 <Border  BorderThickness="0,0,0,2" Padding="5" Margin="15,0,0,15"
                                          BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}" >
@@ -430,7 +430,7 @@
                             </Expander>
 
                             <!--Output file menu-->
-                            <Expander x:Name="OutputFileExpander" Header="OUTPUT FILES" Margin="0" IsExpanded="False" 
+                            <Expander x:Name="OutputFileExpander" Header="OUTPUT FILES" Margin="0" IsExpanded="False" Cursor="Hand"
                                 ExpandDirection="Down" Grid.ColumnSpan="2" Width="auto">
                                 <Border  BorderThickness="0,0,0,2" Padding="5" Margin="15,0,0,15"
                                          BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}" >
@@ -491,7 +491,7 @@
                 </TabItem>
 
                 <!--Ploidy piechart tab-->
-                <TabItem Name="Tab1" Header="Ploidy" GotFocus="UpdatePiechartDisplay" IsEnabled="False">
+                <TabItem Name="Tab1" Header="Ploidy" GotFocus="UpdatePiechartDisplay" IsEnabled="False" Cursor="Hand">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*" />
@@ -502,8 +502,6 @@
                             <ColumnDefinition  />
                         </Grid.ColumnDefinitions>
                         
-                        <Button Content="Refresh" Click="UpdatePiechartDisplay" Grid.Row="1" Grid.Column="1" 
-                                HorizontalAlignment="Right"  />
 
                         <Label Width="auto" HorizontalAlignment="Center" Margin="10" FontSize="14" Grid.ColumnSpan="2">Ploidy distribution</Label>
 
@@ -583,7 +581,7 @@
 
                         <!--Piechart: filtered output file (in/out of ploidy distribution)-->
                         <charting:Chart  Name="PloidyPieGood" Title="Good clusters" Margin="10,10,10,10" BorderBrush="{x:Null}"
-		                    Grid.RowSpan="1" Grid.ColumnSpan="1" Grid.Row="0" Grid.Column="1" >
+		                    Grid.RowSpan="1" Grid.ColumnSpan="1" Grid.Row="0" Grid.Column="1" Visibility="Hidden">
 
                             <!--Data series style-->
                             <charting:PieSeries DependentValuePath="Value" IndependentValuePath="Key" ItemsSource="{Binding}" >
@@ -657,7 +655,7 @@
                 </TabItem>
 
                 <!--Columnchart tab-->
-                <TabItem Name="Tab2" Header="Read count" GotFocus="UpdateColumnchartDisplay" IsEnabled="False" >
+                <TabItem Name="Tab2" Header="Read count" GotFocus="UpdateColumnchartDisplay" IsEnabled="False" Cursor="Hand">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="auto" />
@@ -675,13 +673,13 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <Slider Name="SliderA" ValueChanged="SliderA_ValueChanged" VerticalAlignment="Center"
+                            <Slider Name="SliderA" ValueChanged="SliderA_ValueChanged" VerticalAlignment="Center" Cursor="Hand"
                                     Value="{Binding SliderPosition, Mode=TwoWay}" Grid.Column="1" />
-                            <Slider Name="SliderB" ValueChanged="SliderB_ValueChanged" VerticalAlignment="Center"
+                            <Slider Name="SliderB" ValueChanged="SliderB_ValueChanged" VerticalAlignment="Center" Cursor="Hand"
                                     Value="{Binding SliderPosition, Mode=TwoWay}" Grid.Column="2" />
                             <!--<Button Content="Refresh" Click="UpdateColumnchartDisplay" 
                                     HorizontalAlignment="Right" Grid.Column="0" />-->
-                            <ComboBox x:Name="ReadCountRounding" Margin="5,0,5,0" Height="20"
+                            <ComboBox x:Name="ReadCountRounding" Margin="5,0,5,0" Height="20" Cursor="Hand"
                                 ToolTip="Round read count to nearest [n]" SelectedIndex="1" IsDropDownOpen="False"  >
                                 <ListBoxItem Content="1" MouseDown="UpdateColumnchartDisplay" />
                                 <ListBoxItem Content="10" MouseDown="UpdateColumnchartDisplay"/>
@@ -739,7 +737,7 @@
                 </TabItem>
 
                 <!--Linechart tab-->
-                <TabItem Name="Tab3" Header="Individual distribution" GotFocus="UpdateLinechartDisplay" IsEnabled="False">
+                <TabItem Name="Tab3" Header="Individual distribution" GotFocus="UpdateLinechartDisplay" IsEnabled="False" Cursor="Hand">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="auto" />
@@ -800,7 +798,7 @@
                 </TabItem>
 
                 <!--Help/information tab-->
-                <TabItem Name="Tab4" Header="About"  IsEnabled="True" >
+                <TabItem Name="Tab4" Header="About"  IsEnabled="True" Cursor="Hand">
                     <ScrollViewer Name="d" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Auto"  >
                         <Grid>
                             <Grid.RowDefinitions>
@@ -814,7 +812,7 @@
 
                             <!--Help: input parameters-->
                             <Expander x:Name="AboutInputParameters" Header="INPUT FILE AND PARAMETERS" Margin="0" IsExpanded="False" 
-                                ExpandDirection="Down" Grid.ColumnSpan="1"   HorizontalAlignment="Left"
+                                ExpandDirection="Down" Grid.ColumnSpan="1"   HorizontalAlignment="Left" Cursor="Hand"
                                           Width="{Binding ActualWidth, ElementName=d}" MinWidth="200">
                                 <Border  BorderThickness="0,0,0,2" Padding="5" Margin="15,0,0,15"
                                          BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}" >
@@ -836,7 +834,7 @@
                             </Expander>
 
                             <!--Help: output files-->
-                            <Expander x:Name="AboutOutputFiles" Header="OUTPUT FILES" Margin="0" IsExpanded="False" 
+                            <Expander x:Name="AboutOutputFiles" Header="OUTPUT FILES" Margin="0" IsExpanded="False" Cursor="Hand"
                                       Width="{Binding ActualWidth, ElementName=d}" MinWidth="200" HorizontalAlignment="Left"
                                         ExpandDirection="Down"  Grid.Row="1"  >
 
@@ -854,7 +852,7 @@
                             </Expander>
 
                             <!--About: information-->
-                            <Expander x:Name="AboutAbout" Header="ABOUT PLOIDULATOR" Margin="0" IsExpanded="False" 
+                            <Expander x:Name="AboutAbout" Header="ABOUT PLOIDULATOR" Margin="0" IsExpanded="False" Cursor="Hand"
                                 ExpandDirection="Down" Grid.ColumnSpan="1" Grid.Row="2" Grid.Column="1" 
                                       Width="{Binding ActualWidth, ElementName=d}" MinWidth="200" HorizontalAlignment="Left">
                                 <Border  BorderThickness="0,0,0,2" Padding="5" Margin="15,0,0,15"

@@ -228,6 +228,7 @@ namespace Ploidulator
 
             // Hide progress bar
             ProgressStatusBar.Visibility = System.Windows.Visibility.Hidden;
+            LoadingBarLabel.Content = "";
             AbortButton.Visibility = System.Windows.Visibility.Hidden;
 
             // Hide any messages

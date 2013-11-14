@@ -196,6 +196,15 @@ namespace Ploidulator.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalid dictionary key.
+        /// </summary>
+        internal static string INVALID_KEY {
+            get {
+                return ResourceManager.GetString("INVALID_KEY", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to .metr.
         /// </summary>
         internal static string METRIC_FILEEXTENSION {
