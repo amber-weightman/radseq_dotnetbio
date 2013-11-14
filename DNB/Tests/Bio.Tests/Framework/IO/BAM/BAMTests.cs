@@ -3,8 +3,6 @@ using Bio;
 using Bio.IO.BAM;
 using Bio.IO.SAM;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Bio.Tests.Framework.IO.BAM;
-using Bio.Algorithms.Metric;
 
 namespace Bio.Tests.IO.BAM
 {

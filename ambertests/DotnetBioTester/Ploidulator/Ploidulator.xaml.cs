@@ -5,6 +5,8 @@ using Microsoft.Win32;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -23,6 +25,8 @@ namespace Ploidulator
     /// </summary>
     public partial class MainWindow : Window
     {
+        private static CultureInfo ci = new CultureInfo("en-AU");
+
         #region private fields
 
         #region delegates
@@ -142,7 +146,7 @@ namespace Ploidulator
         /// <summary>
         /// Create a timer
         /// </summary>
-        private void CreateTimer(ref DispatcherTimer timer, EventHandler eventHandler, int h, int m, int s)
+        private static void CreateTimer(ref DispatcherTimer timer, EventHandler eventHandler, int h, int m, int s)
         {
             timer = new System.Windows.Threading.DispatcherTimer();
             timer.Tick += eventHandler;
@@ -165,8 +169,8 @@ namespace Ploidulator
         private void dispatcherTimer_Tick(object sender, EventArgs e)
         {
             TimeSpan time = DateTime.Now - startedTime;
-            TimerLabel.Content = "Time elapsed: " + time.Hours.ToString() + ":" 
-                + time.Minutes.ToString("00") + ":" + time.Seconds.ToString("00");
+            TimerLabel.Content = "Time elapsed: " + time.Hours.ToString(ci) + ":" 
+                + time.Minutes.ToString("00",ci) + ":" + time.Seconds.ToString("00",ci);
         }
 
         /// <summary>
@@ -273,17 +277,17 @@ namespace Ploidulator
             {
                 UpdateProgress(numClustersParsed);
 
-                SamplesDisplay.Content = maxSampleCount.ToString();
-                MAPQdisplay.Content = maxMapq.ToString();
-                READQdisplay.Content = maxReadq.ToString();
+                SamplesDisplay.Content = maxSampleCount.ToString(ci);
+                MAPQdisplay.Content = maxMapq.ToString(ci);
+                READQdisplay.Content = maxReadq.ToString(ci);
 
-                DirtDisplay.Content = avgDirt.ToString();
-                AvgMAPQDisplay.Content = avgMapq.ToString();
-                AvgREADQDisplay.Content = avgReadq.ToString();
+                DirtDisplay.Content = avgDirt.ToString(ci);
+                AvgMAPQDisplay.Content = avgMapq.ToString(ci);
+                AvgREADQDisplay.Content = avgReadq.ToString(ci);
 
-                DirtDisplayGood.Content = avgDirtGood.ToString();
-                AvgMAPQDisplayGood.Content = avgMapqGood.ToString();
-                AvgREADQDisplayGood.Content = avgReadqGood.ToString();
+                DirtDisplayGood.Content = avgDirtGood.ToString(ci);
+                AvgMAPQDisplayGood.Content = avgMapqGood.ToString(ci);
+                AvgREADQDisplayGood.Content = avgReadqGood.ToString(ci);
 
                 double numGood = Math.Round(numGoodClusters / (double)numClustersParsed * 100, 2);
                 double numBad = 100 - numGood;
@@ -296,8 +300,8 @@ namespace Ploidulator
                 GoodCountLabel.ToolTip = numGood + "% of clusters are good (" + numGoodClusters + " cluster" + plural + ")";
                 BadCountLabel.ToolTip = numBad + "% of clusters are bad (" + (numClustersParsed - numGoodClusters) + " cluster" + plural2 + ")";
 
-                int a = Convert.ToInt32(maxSampleCount);
-                int b = Convert.ToInt32(NumSamplesTextbox.Text);
+                int a = Convert.ToInt32(maxSampleCount, ci);
+                int b = Convert.ToInt32(NumSamplesTextbox.Text, ci);
                 if ((int)a < (int)b && (int)a != 0)
                 {
                     SamplesDisplay.Foreground = Brushes.Red;
@@ -330,7 +334,7 @@ namespace Ploidulator
             if(max != 0)
             {    
                 ProgressBar.IsIndeterminate = false;
-                ProgressBar.ToolTip = "Found " + max.ToString() + " clusters to analyse ...";
+                ProgressBar.ToolTip = "Found " + max.ToString(ci) + " clusters to analyse ...";
             }
             else
             {
@@ -353,12 +357,12 @@ namespace Ploidulator
             {
                 ProgressBar.Value = index;
                 double percent = Math.Round((index / (double)ProgressBar.Maximum * 100), 2);
-                ProgressBar.ToolTip = "Analysed " + index.ToString() + " out of " + ProgressBar.Maximum.ToString() + " clusters (" + percent.ToString() + "%)";
+                ProgressBar.ToolTip = "Analysed " + index.ToString(ci) + " out of " + ProgressBar.Maximum.ToString(ci) + " clusters (" + percent.ToString(ci) + "%)";
                 LoadingBarLabel.Content = ProgressBar.ToolTip;
             }
             else if (ProgressBar.Maximum == 0)
             {
-                ProgressBar.ToolTip = "Analysed " + index.ToString() + " clusters";
+                ProgressBar.ToolTip = "Analysed " + index.ToString(ci) + " clusters";
                 LoadingBarLabel.Content = ProgressBar.ToolTip;
             }
             return null;
@@ -386,7 +390,7 @@ namespace Ploidulator
         /// <summary>
         /// Returns a tuple of pie chart ItemsSources (enables partial rendering of piechart in background thread)
         /// </summary>
-        private Tuple<IEnumerable, IEnumerable> PreRenderPiechart(KeyValuePair<string, double>[] dataSeriesA, 
+        private static Tuple<IEnumerable, IEnumerable> PreRenderPiechart(KeyValuePair<string, double>[] dataSeriesA, 
             KeyValuePair<string, double>[] dataSeriesB)
         {
             Chart temp = new Chart();
@@ -476,10 +480,10 @@ namespace Ploidulator
         /// </summary>
         private void UpdatePiechartDisplay(object sender, RoutedEventArgs e)
         {
-            int ploidyLevel = Convert.ToInt32(ExpectedPloidyTextbox.Text);
+            int ploidyLevel = Convert.ToInt32(ExpectedPloidyTextbox.Text, ci);
 
-            KeyValuePair<string, double>[] dataSeriesA = GetPieData(metricHandler.ClustSeqFrequenciesOverview, ploidyLevel);
-            KeyValuePair<string, double>[] dataSeriesB = GetPieData(metricHandler.ClustSeqFrequenciesOverviewGood, ploidyLevel);
+            KeyValuePair<string, double>[] dataSeriesA = GetPieData(metricHandler.ClusterSequenceFrequenciesOverview, ploidyLevel);
+            KeyValuePair<string, double>[] dataSeriesB = GetPieData(metricHandler.ClusterSequenceFrequenciesOverviewGood, ploidyLevel);
 
             Tuple<IEnumerable, IEnumerable> charts = PreRenderPiechart(dataSeriesA, dataSeriesB);
 
@@ -492,8 +496,8 @@ namespace Ploidulator
         /// </summary>
         private void UpdateColumnchartDisplay(object sender, RoutedEventArgs e)
         {
-            double rounding = Convert.ToDouble(ReadCountRounding.Text);
-            KeyValuePair<int, double>[] data = GetColumnData(metricHandler.GraphDataDistinctReads, metricHandler.NumClustersParsed, rounding);
+            double rounding = Convert.ToDouble(ReadCountRounding.Text, ci);
+            KeyValuePair<int, double>[] data = GetColumnData(metricHandler.GraphDataDistinctReads, metricHandler.NumberClustersParsed, rounding);
             KeyValuePair<int, double>[] datab = GetColumnData(metricHandler.GraphDataDistinctReadsGood, metricHandler.GoodCount, rounding);
 
             int min = metricHandler.MinDistinctReadCount;
@@ -506,7 +510,7 @@ namespace Ploidulator
         /// <summary>
         /// retrieve data for the column chart, rounded by [rounding] and sorted
         /// </summary>
-        private KeyValuePair<int, double>[] GetColumnData(Dictionary<int, int> data, double count, double rounding)
+        private static KeyValuePair<int, double>[] GetColumnData(Dictionary<int, int> data, double count, double rounding)
         {
             Dictionary<int, double> roundedData = new Dictionary<int, double>();
             foreach (KeyValuePair<int, int> entry in data)
@@ -542,6 +546,7 @@ namespace Ploidulator
         /// <summary>
         /// Draw a Poisson curve over the columnchart
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         private void DrawPoisson(Chart chart, KeyValuePair<int, double>[] dataSeries)
         {
             // Calculate Poisson mean
@@ -566,7 +571,7 @@ namespace Ploidulator
         /// <summary>
         /// Enables the linechart to be partially rendered in the background thread
         /// </summary>
-        public Chart PreDrawLineChart(KeyValuePair<int, int>[] dataSeriesA, KeyValuePair<int, int>[] dataSeriesB)
+        public static Chart PreDrawLineChart(Dictionary<int, int> dataSeriesA, Dictionary<int, int> dataSeriesB)
         {
             Chart chart = new Chart();
             if (chart.Series.Count == 0)
@@ -574,7 +579,7 @@ namespace Ploidulator
                 chart.Series.Add(new LineSeries());
             }
             ((LineSeries)chart.Series[0]).ItemsSource = dataSeriesA;
-            if (dataSeriesB != null && dataSeriesB.Length > 0)
+            if (dataSeriesB != null && dataSeriesB.Count > 0)
             {
                 if (chart.Series.Count == 1)
                 {
@@ -588,9 +593,13 @@ namespace Ploidulator
         /// <summary>
         /// Draw a piechart
         /// </summary>
-        public void DrawPieChart(ref Chart chart, KeyValuePair<string, double>[] dataSeries)
+        public static void DrawPieChart(ref Chart chart, KeyValuePair<string, double>[] dataSeries)
         {
-            if (chart.Series.Count == 0)
+            if(dataSeries == null || dataSeries.Count() == 0 || chart == null || chart.Series == null)
+            {
+                return;
+            }
+            if (chart.Series != null && chart.Series.Count == 0)
             {
                 chart.Series.Add(new PieSeries());
             }
@@ -601,9 +610,9 @@ namespace Ploidulator
         /// <summary>
         /// Format piechart data (converts to two values - one for in-ploidy and one for out-of-ploidu
         /// </summary>
-        private KeyValuePair<string, double>[] GetPieData(double[] data, int ploidyLevel)
+        private static KeyValuePair<string, double>[] GetPieData(Collection<double> data, int ploidyLevel)
         {
-            if (data == null || data.Length == 0)
+            if (data == null || data.Count() == 0)
             {
                 return null;
             }
@@ -626,7 +635,7 @@ namespace Ploidulator
                 {
                     dataSeries[0] = new KeyValuePair<string, double>("In ploidy", inPloidy);
                 }
-                else if (j == data.Length - 1)
+                else if (j == data.Count() - 1)
                 {
                     dataSeries[1] = new KeyValuePair<string, double>("Out of ploidy", outOfPloidy);
                 }
@@ -635,14 +644,7 @@ namespace Ploidulator
             return dataSeries;
         }
 
-        /// <summary>
-        /// Columnchart is rounded by a new value, so update
-        /// </summary>
-        private void ReadCountRounding_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            UpdateColumnchartDisplay(null, null);
-        }
-
+     
         /// <summary>
         /// Update SliderB and columnchart x axis when SliderA value changes
         /// </summary>
@@ -703,10 +705,10 @@ namespace Ploidulator
             string newName = filename.Split(new char[] { '.' })[0];
 
             // Set up the handler
-            metricHandler = new ClusterMetricHandler(newName + "_pl", Convert.ToInt32(ploidy), Convert.ToDouble(dirtCutoff),
-                Convert.ToDouble(alignQualCutoff), Convert.ToDouble(readQualCutoff), Convert.ToDouble(popPercent), Convert.ToInt32(numSamples), outputToFile);
+            metricHandler = new ClusterMetricHandler(newName + "_pl", Convert.ToInt32(ploidy, ci), Convert.ToDouble(dirtCutoff, ci),
+                Convert.ToDouble(alignQualCutoff, ci), Convert.ToDouble(readQualCutoff, ci), Convert.ToDouble(popPercent, ci), Convert.ToInt32(numSamples, ci), outputToFile);
 
-            metricHandler.HaplotypesMaxCutoff = Convert.ToInt32(hapMaxCutoff);
+            metricHandler.HaplotypesMaxCutoff = Convert.ToInt32(hapMaxCutoff, ci);
             metricHandler.OnlyHaplotypeGood = onlyHaplotypeGood == true;
             metricHandler.WriteToFilteredBam = outputToFile == true;
             metricHandler.WriteClusterMetricOriginal = metricFileParent == true;
@@ -724,7 +726,7 @@ namespace Ploidulator
             {
                 metricHandler.InputHeader = parser.GetHeader(readStream);
                 numClustersInInputFile = metricHandler.InputHeader.ReferenceSequences.Count;
-                Console.WriteLine("Number of clusters detected from input file header: " + numClustersInInputFile);
+                Console.WriteLine(Properties.Resources.CLUSTER_COUNT_DISPLAY + numClustersInInputFile);
             }
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal,
                 new IntDelegate(SetProgressBar), numClustersInInputFile);
@@ -737,28 +739,29 @@ namespace Ploidulator
             string readQualCutoff, string popPercent, string hapMaxCutoff, bool? onlyHaplotypeGood, string numSamples, bool? outputToFile, 
             bool? metricFileParent, bool? metricFileChild, bool? outputOverviewParent, bool? outputOverviewChild)
         {
-            BAMParser parser = new BAMParser();
-            int numClustersInInputFile = 0;
+            using (BAMParser parser = new BAMParser())
+            {
+                int numClustersInInputFile = 0;
             
-            // Initialise the metric handler
-            InitHandler(filename, ploidy, dirtCutoff, alignQualCutoff, readQualCutoff, popPercent, hapMaxCutoff, onlyHaplotypeGood, numSamples, 
-                outputToFile, metricFileParent, metricFileChild, outputOverviewParent, outputOverviewChild);
+                // Initialise the metric handler
+                InitHandler(filename, ploidy, dirtCutoff, alignQualCutoff, readQualCutoff, popPercent, hapMaxCutoff, onlyHaplotypeGood, numSamples, 
+                    outputToFile, metricFileParent, metricFileChild, outputOverviewParent, outputOverviewChild);
 
-            ReadHeader(filename, parser, numClustersInInputFile);
+                ReadHeader(filename, parser, numClustersInInputFile);
 
-            // Begin parsing sequences
-            Dispatcher.BeginInvoke( System.Windows.Threading.DispatcherPriority.Normal,
-                new QuickDelegate(UpdateGui_BeganParsing)); // updates GUI to indicate that parsing has begun
-            ProcessSequences(filename, parser);
+                // Begin parsing sequences
+                Dispatcher.BeginInvoke( System.Windows.Threading.DispatcherPriority.Normal,
+                    new QuickDelegate(UpdateGui_BeganParsing)); // updates GUI to indicate that parsing has begun
+                ProcessSequences(filename, parser);
                 
-            // Finished sequences for this input file
-            Dispatcher.BeginInvoke( System.Windows.Threading.DispatcherPriority.Normal,
-                new QuickDelegate(UpdateGui_FinishedParsing));
+                // Finished sequences for this input file
+                Dispatcher.BeginInvoke( System.Windows.Threading.DispatcherPriority.Normal,
+                    new QuickDelegate(UpdateGui_FinishedParsing));
 
-            // Close handler and return
-            Console.WriteLine("FINISHED");
-            metricHandler.Dispose();
-            parser.Dispose();
+                // Close handler and return
+                Console.WriteLine(Properties.Resources.FINISHED);
+                metricHandler.Dispose();
+            }
             return null;
         }
 
@@ -785,14 +788,14 @@ namespace Ploidulator
                         Dispatcher.BeginInvoke(
                             System.Windows.Threading.DispatcherPriority.Normal,
                             new StatsDelegate(UpdateStatsPanel), metricHandler.GoodCount, clusterCount,
-                                metricHandler.MaxSampleCount, metricHandler.MaxMapQ, metricHandler.MaxReadQ,
+                                metricHandler.MaxSampleCount, metricHandler.MaxMapQuality, metricHandler.MaxReadQuality,
                                 metricHandler.AverageDirt, metricHandler.AverageMapQ, metricHandler.AverageReadQ,
                                 metricHandler.AverageDirtGood, metricHandler.AverageMapQGood, metricHandler.AverageReadQGood);
                     }
                 }
                 else
                 {
-                    Console.WriteLine("Handler has finished processing sequences");
+                    Console.WriteLine(Properties.Resources.HANDLER_FINISHED);
                     break;
                 }
             }
@@ -947,8 +950,8 @@ namespace Ploidulator
         {
             if(isProcessingFile)
             {
-                MessageBoxResult result = MessageBox.Show("Data is currently being output to file. \nIf you close this window the output file will be incomplete.\n\nAre you sure you want to close this window?",
-                "Warning", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                MessageBoxResult result = MessageBox.Show(Properties.Resources.WINDOW_CLOSE_WARNING,
+                Properties.Resources.GENERAL_WARNING, MessageBoxButton.YesNo, MessageBoxImage.Warning);
                 if (result == MessageBoxResult.No)
                 {
                     e.Cancel = true;
@@ -964,10 +967,10 @@ namespace Ploidulator
             TextBox t = sender as TextBox;
             string s = "";
             int dec = 0;
-            foreach (Char c in t.Text.ToCharArray())
+            foreach (Char ch in t.Text.ToCharArray())
             {
-                s += Char.IsDigit(c) || (c == '.' && dec == 0)? c.ToString() : "";
-                if (c == '.')
+                s += Char.IsDigit(ch) || (ch == '.' && dec == 0)? ch.ToString() : "";
+                if (ch == '.')
                 {
                     dec++;
                 }

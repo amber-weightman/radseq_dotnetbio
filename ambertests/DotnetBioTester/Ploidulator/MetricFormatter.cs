@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace Bio.Algorithms.Metric
+namespace Ploidulator
 {
-
     /// <summary>
     /// Writes metric info to a csv file
     /// </summary>
-    public class MetricFormatter : Bio.IO.IFormatter
+    public class MetricFormatter : Bio.IO.IFormatter, IDisposable
     {
         #region Member variables
 
@@ -39,10 +39,11 @@ namespace Bio.Algorithms.Metric
         /// <summary>
         /// Initializes a new instance of the MetricFormatter class with specified filename.
         /// </summary>
-        /// <param name="filename">MetricFormatter filename (including file extension).</param>
-        public MetricFormatter(string filename) : this()
+        /// <param name="fileName">MetricFormatter filename (including file extension).</param>
+        public MetricFormatter(string fileName)
+            : this()
         {
-            this.Open(filename);
+            this.Open(fileName);
         }
         #endregion
 
@@ -50,7 +51,7 @@ namespace Bio.Algorithms.Metric
         /// <summary>
         /// Gets the filename.
         /// </summary>
-        public string Filename { get; private set; }
+        public string FileName { get; private set; }
 
         /// <summary>
         /// Gets the name of this formatter.
@@ -60,7 +61,8 @@ namespace Bio.Algorithms.Metric
         {
             get
             {
-                return Properties.Resource.METRIC_NAME;
+                return "Metric";
+                //return Properties.Resource.METRIC_NAME;
             }
         }
 
@@ -74,7 +76,8 @@ namespace Bio.Algorithms.Metric
         {
             get
             {
-                return Properties.Resource.METRICFORMATTER_DESCRIPTION;
+                return "Writes an IMetric or List<IMetric> to a particular location, usually a file. The output is a tab separated text file with a .metr file extension";
+                //return Properties.Resource.METRICFORMATTER_DESCRIPTION;
             }
         }
 
@@ -85,7 +88,8 @@ namespace Bio.Algorithms.Metric
         {
             get
             {
-                return Properties.Resource.METRIC_FILEEXTENSION;
+                return ".metr";
+                //return Properties.Resource.METRIC_FILEEXTENSION;
             }
         }
 
@@ -101,16 +105,17 @@ namespace Bio.Algorithms.Metric
         /// <summary>
         /// Opens the specified file.
         /// </summary>
-        /// <param name="filename">Name of the file to open.</param>
-        public void Open(string filename)
+        /// <param name="fileName">Name of the file to open.</param>
+        public void Open(string fileName)
         {
             if (this.streamWriter != null)
             {
-                throw new InvalidOperationException(Properties.Resource.FileNotClosed);
+                throw new InvalidOperationException("File is already open.");
+                //throw new InvalidOperationException(Bio.Properties.Resource.FileNotClosed);
             }
 
-            this.Filename = filename;
-            this.streamWriter = new StreamWriter(this.Filename);
+            this.FileName = fileName;
+            this.streamWriter = new StreamWriter(this.FileName);
         }
 
         /// <summary>
@@ -121,16 +126,17 @@ namespace Bio.Algorithms.Metric
         {
             if (this.streamWriter != null)
             {
-                throw new InvalidOperationException(Properties.Resource.FileNotClosed);
+                throw new InvalidOperationException("File is already open.");
+                //throw new InvalidOperationException(Properties.Resource.FileNotClosed);
             }
 
-            this.Filename = null;
+            this.FileName = null;
             this.streamWriter = outStream;
         }
 
-        
+
         // Writes a List<IMetric> as tab separated values to the file, one IMetric per line.
-        
+
         // <param name="sequences">Sequences to write.</param>
         /*[Obsolete("Use the IEnumerable overload instead")]
         public void Write(ICollection<IMetric> metrics)
@@ -181,7 +187,8 @@ namespace Bio.Algorithms.Metric
 
             if (this.streamWriter == null)
             {
-                throw new InvalidOperationException(Properties.Resource.FileNotOpened);
+                throw new InvalidOperationException("File is not opened. Please call Open method  to open the file.");
+                //throw new InvalidOperationException(Properties.Resource.FileNotOpened);
             }
 
             string stringToWrite = metric.ToFileString();
@@ -213,7 +220,8 @@ namespace Bio.Algorithms.Metric
         {
             if (this.streamWriter == null)
             {
-                throw new InvalidOperationException(Properties.Resource.FileNotOpened);
+                throw new InvalidOperationException("File is not opened. Please call Open method  to open the file.");
+                //throw new InvalidOperationException(Properties.Resource.FileNotOpened);
             }
 
             this.streamWriter.Flush();
@@ -226,7 +234,8 @@ namespace Bio.Algorithms.Metric
         {
             if (this.streamWriter == null)
             {
-                throw new InvalidOperationException(Properties.Resource.FileNotOpened);
+                throw new InvalidOperationException("File is not opened. Please call Open method  to open the file.");
+                //throw new InvalidOperationException(Properties.Resource.FileNotOpened);
             }
 
             this.Flush();
@@ -248,8 +257,8 @@ namespace Bio.Algorithms.Metric
             GC.SuppressFinalize(this);
         }
 
-        
-        
+
+
         // todo fixme reinstate this when i know what the format is
         /*public static string FormatString(ISequence sequence)
         {

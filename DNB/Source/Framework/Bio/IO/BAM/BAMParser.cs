@@ -9,7 +9,6 @@ using System.Text.RegularExpressions;
 using Bio.Algorithms.Alignment;
 using Bio.IO.SAM;
 using Bio.Util;
-using Bio.Algorithms.Metric;
 
 namespace Bio.IO.BAM
 {

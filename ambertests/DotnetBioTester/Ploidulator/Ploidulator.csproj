@@ -40,6 +40,8 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -137,7 +139,10 @@
     </Compile>
     <Compile Include="ClusterMetricHandler.cs" />
     <Compile Include="ClusterMetric.cs" />
-    <Compile Include="Amber_notes.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="IMetric.cs" />
+    <Compile Include="IMetricHandler.cs" />
+    <Compile Include="MetricFormatter.cs" />
     <Compile Include="Ploidulator.xaml.cs">
       <DependentUpon>Ploidulator.xaml</DependentUpon>
       <SubType>Code</SubType>

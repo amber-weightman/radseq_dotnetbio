@@ -1,11 +1,11 @@
 ﻿using Bio.IO.SAM;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace Bio.Algorithms.Metric
+namespace Ploidulator
 {
     /// <summary>
     /// An IMetricHandler receives a set of aligned sequences or an individual sequence

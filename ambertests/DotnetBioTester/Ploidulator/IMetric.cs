@@ -1,10 +1,12 @@
 ﻿using Bio.IO.SAM;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace Bio.Algorithms.Metric
+namespace Ploidulator
 {
     /// <summary>
     /// An IMetric calculates various metric values from a list of SAMAlignedSequences
@@ -21,7 +23,7 @@ namespace Bio.Algorithms.Metric
         /// <summary>
         /// Calculate metric values from the given list of sequences.
         /// </summary>
-        void Calculate(List<SAMAlignedSequence> sequences);
+        void Calculate(Collection<SAMAlignedSequence> clusterSequences);
 
         /// <summary>
         /// Reset all values to null and lists to empty.
