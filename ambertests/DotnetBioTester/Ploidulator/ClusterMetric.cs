@@ -291,6 +291,11 @@ namespace Ploidulator
         public int NumberOfHaplotypes { get { return numberOfHaplotypes; } set { numberOfHaplotypes = value; } }
 
         /// <summary>
+        /// Gets the number of distinct sequences which are in ploidy for some individuals but out of ploidy for others (for the same sequence).
+        /// </summary>
+        public double PloidyDisagreement { get { return ploidyDisagreement; } set { ploidyDisagreement = value; } }
+
+        /// <summary>
         /// Identifies whether the cluster is good or bad (note that this value can be freely get and set - external class
         /// ClusterMetricHandler is responsible for determining what makes a cluster 'good'). False by default. Read only.
         /// </summary>
@@ -348,7 +353,7 @@ namespace Ploidulator
         #region calculate specific metrics
 
         /// <summary>
-        /// Set the value of fields id and referenceSequence
+        /// Set the value of fields id and referenceSequence.
         /// </summary>
         private void SetClusterReferenceIdAndSequence()
         {
@@ -358,7 +363,7 @@ namespace Ploidulator
 
         /// <summary>
         /// Find the percentage of distinct reads which are both in ploidy (top [n]) for some individuals and 
-        /// outside ploidy for other individuals (ideally the value should be 0)
+        /// outside ploidy for other individuals (ideally the value should be 0).
         /// </summary>
         private void SetPloidyDisagreement()
         {
@@ -366,9 +371,8 @@ namespace Ploidulator
                 + readsNotInPloidyForIndividualsDict.Count) - CountDistinct) / (double)CountDistinct, 2);
         }
 
-
         /// <summary>
-        /// Initialises individualSequenceDistributions, which represents the distribution of each distinct sequence,
+        /// Initialise individualSequenceDistributions, which represents the distribution of each distinct sequence,
         /// for each individual (this distribution would be used to calculate dirt per individual)
         /// </summary>
         private void SetIndividualSequenceDistributions()
@@ -408,7 +412,6 @@ namespace Ploidulator
 
         #endregion
 
-
         #region iterate dictionaries
 
         /// <summary>
@@ -438,11 +441,8 @@ namespace Ploidulator
 
             alignmentQuality = alignmentQualities.Length > 0 ? Math.Round(alignmentQualities.Average(), 2) : 0;
             readQuality = readQualities.Length > 0 ? Math.Round(readQualities.Average(), 2) : 0;
-
             //frequencyDistributionSequences = frequencies;
         }
-
-
 
         /// <summary>
         /// Iterate through sampleDictionary once only, and perform operations on each sequence list
@@ -458,9 +458,8 @@ namespace Ploidulator
             }
         }
 
-
         /// <summary>
-        /// Sets cluster dirt. Also produces a count of the number of distinct reads each individual has
+        /// Calculate cluster dirt. Also produces a count of the number of distinct reads each individual has.
         /// </summary>
         private void IterateSampleSequenceDict()
         {
@@ -478,7 +477,6 @@ namespace Ploidulator
         #endregion
 
         #region make/initialise dictionaries
-
 
         /// <summary>
         /// returns sampleSequenceDict
@@ -755,10 +753,6 @@ namespace Ploidulator
                 }
             }
             loci = locii;
-
-
-            //readQuality = FindReadQuality(); // takes a long time
-
         }
 
 
@@ -1041,8 +1035,12 @@ namespace Ploidulator
                 IterateSampleDict();    // count how many sequences each person has in total (not distinct sequences)
                 IterateSampleSequenceDict(); // cluster dirt, count distinct reads each individual has
 
-                // Construct Phase input string for haplotyping
-                ConstructPhaseSnpString();
+                // Construct Phase input string for haplotyping (for diploid only)
+                if(expectedPloidy == 2)
+                {
+                    ConstructPhaseSnpString();
+                }
+                
             }
         }
 
@@ -1052,7 +1050,7 @@ namespace Ploidulator
         /// <returns>A string of tab-separated values for writing to file.</returns>
         public override string ToString()
         {
-            string header = (this.Id == "0") ? "#cluster_id\tcount_all_reads\tcount_distinct_reads\tnum_individuals\tdirt\talignment_qualities\tploidy_disagreement\tread_qualities\tpopulation_percentage\tavg_read_count_per_indiv_all\tavg_read_count_per_indiv_distinct\tnum_haplotypes" + Environment.NewLine : "";
+            string header = (this.Id == "0") ? "#cluster_id\tcount_all_reads\tcount_distinct_reads\tnum_individuals\tdirt\tploidy_disagreement\talignment_quality\tread_quality\tpopulation_percentage\tavg_reads_per_indiv\tavg_reads_per_indiv_dist\tnum_haplotypes" + Environment.NewLine : "";
 
             return header + 
                 Id + "\t" + 
@@ -1060,8 +1058,8 @@ namespace Ploidulator
                 CountDistinct + "\t" +
                 CountSamples + "\t" +
                 Dirt + "\t" +
-                AlignmentQuality + "\t" +
                 ploidyDisagreement + "\t" +
+                AlignmentQuality + "\t" +
                 ReadQuality + "\t" +
                 PopulationPercentage + "\t" +
                 Math.Round(SampleReadCountsAll.Average(), 2) + " \t " +

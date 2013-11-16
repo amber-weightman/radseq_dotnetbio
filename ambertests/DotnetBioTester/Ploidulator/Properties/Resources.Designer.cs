@@ -268,7 +268,7 @@ namespace Ploidulator.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Data is currently being output to file. \nIf you close this window the output file will be incomplete.\n\nAre you sure you want to close this window?.
+        ///   Looks up a localized string similar to Data is currently being output to file. If you close this window the output file will be incomplete.Are you sure you want to close this window?.
         /// </summary>
         internal static string WINDOW_CLOSE_WARNING {
             get {

@@ -24,7 +24,7 @@ namespace Ploidulator
         private static CultureInfo ci = new CultureInfo("en-AU");
 
         // todo delete this
-        bool haplotypingEnabled = false;
+        bool haplotypingEnabled = true;
 
         #region Private Static Fields
         private static int OUTPUT_QUEUE_SIZE = 7;                       // max number of clusters that can be stored in the
@@ -92,6 +92,16 @@ namespace Ploidulator
         /// This value is true if processing has finished for the current input file
         /// </summary>
         private bool finished = false;
+
+        /// <summary>
+        /// This value is true if haplotypes.txt should be constructed
+        /// </summary>
+        private bool writeHaplotypesFile = false;
+
+        /// <summary>
+        /// This value is true if genotypes.txt should be constructed
+        /// </summary>
+        private bool writeGenotypesFile = false;
 
         #endregion
 
@@ -205,14 +215,24 @@ namespace Ploidulator
         private MetricFormatter formatterFilteredFile = null;
 
         /// <summary>
-        /// Used to write read data back out to filtered BAM file
+        /// Used to write data back out to filtered BAM file
         /// </summary>
         private Stream bamStream = null;
 
         /// <summary>
-        /// Used to write read data back out to filtered BAM file
+        /// Used to write data back out to filtered BAM file
         /// </summary>
         private BAMFormatter bamFormatter = null;
+
+        /// <summary>
+        /// Used to write data to genotypes.txt
+        /// </summary>
+        private StreamWriter genotypesStream = null;
+
+        /// <summary>
+        /// Used to write data to haplotypes.txt
+        /// </summary>
+        private StreamWriter haplotypesStream = null;
 
         #endregion
 
@@ -261,6 +281,11 @@ namespace Ploidulator
         /// Max allowed haplotypes in a cluster
         /// </summary>
         private int hapMaxCutoff = int.MaxValue;
+
+        /// <summary>
+        /// Max allowed ploidy disagreement in a cluster
+        /// </summary>
+        private double ploidyDisagreementCutoff = int.MaxValue;
 
         /// <summary>
         /// Min allowed alignment qualtiy (as average per cluster)
@@ -444,6 +469,11 @@ namespace Ploidulator
         /// </summary>
         public int HaplotypesMaxCutoff { get { return hapMaxCutoff; } set { hapMaxCutoff = value; } }
 
+        /// <summary>
+        /// Maximum allowed ploidy disagreement
+        /// </summary>
+        public double PloidyDisagreementCutoff { get { return ploidyDisagreementCutoff; } set { ploidyDisagreementCutoff = value; } }
+
         #endregion
 
         #region output files
@@ -477,6 +507,16 @@ namespace Ploidulator
         /// Field from GUI form. Should an overview metric file be created for the filtered output file
         /// </summary>
         public bool WriteOverviewMetricFiltered { get { return writeOverviewMetricFiltered; } set { writeOverviewMetricFiltered = value; } }
+
+        /// <summary>
+        /// Field from GUI form. Should genotypes.txt be constructed
+        /// </summary>
+        public bool WriteGenotypesFile { get { return writeGenotypesFile; } set { writeGenotypesFile = value; } }
+
+        /// <summary>
+        /// Field from GUI form. Should haplotypes.txt be constructed
+        /// </summary>
+        public bool WriteHaplotypesFile { get { return writeHaplotypesFile; } set { writeHaplotypesFile = value; } }
 
         #endregion
 
@@ -761,7 +801,7 @@ namespace Ploidulator
                 isGood = GoodOrBad(metric);
 
                 // Get haplotype information
-                if(haplotypingEnabled)
+                if(haplotypingEnabled && expectedPloidy == 2)
                 {
                     GetHaplotypeInfo(ref metric, ref isGood);
                 }
@@ -825,6 +865,12 @@ namespace Ploidulator
                 {
                     concatFiles();
                 }
+                DeletePhaseFiles();
+                if (goodCount < 1)
+                {
+                    Console.WriteLine("good count is"+goodCount);
+                    DeleteFilteredMetricFile();
+                }
                 isComplete = true;
             }
         }
@@ -846,6 +892,16 @@ namespace Ploidulator
                 {
                     bamStream.Close();
                     bamStream = null;
+                }
+                if (genotypesStream != null)
+                {
+                    genotypesStream.Close();
+                    genotypesStream = null;
+                }
+                if (haplotypesStream != null)
+                {
+                    haplotypesStream.Close();
+                    haplotypesStream = null;
                 }
             }
             
@@ -951,8 +1007,31 @@ namespace Ploidulator
             {
                 Console.WriteLine(Properties.Resources.PHASE_ERROR_EXECUTING);
             }
+            if(writeHaplotypesFile)
+            {
+                AddHaplotypesToMasterFile();
+            }
+
             return GetPhaseNumHaplotypes(fileName + "\\haplotypes.out");
-            
+        }
+
+        /// <summary>
+        /// Copy the contents of haplotypes.out to the end of haplotypes.txt
+        /// TODO this should really be coupled in with GetPhaseNumHaplotypes to prevent reading the file twice
+        /// </summary>
+        private void AddHaplotypesToMasterFile()
+        {
+            if (haplotypesStream == null)
+            {
+                haplotypesStream = new System.IO.StreamWriter(fileName + "\\haplotypes.txt");
+            }
+            using (StreamReader sr = new StreamReader(fileName + "\\haplotypes.out"))
+            {
+                while (!sr.EndOfStream)
+                {
+                    haplotypesStream.WriteLine(sr.ReadLine());
+                }
+            }
         }
 
         /// <summary>
@@ -1026,6 +1105,14 @@ namespace Ploidulator
             using (StreamWriter file = new System.IO.StreamWriter(fileName + "\\genotypes.inp"))
             {
                 file.WriteLine(lines);
+                if(writeGenotypesFile)
+                {
+                    if (genotypesStream == null)
+                    {
+                        genotypesStream = new System.IO.StreamWriter(fileName + "\\genotypes.txt");
+                    }
+                    genotypesStream.WriteLine(lines);
+                }
             }
         }
 
@@ -1067,14 +1154,15 @@ namespace Ploidulator
             if (tempMetric.Dirt > dirtCutoff
                     || tempMetric.AlignmentQuality < alignQualCutoff
                     || tempMetric.ReadQuality < readQualCutoff
-                    || tempMetric.PopulationPercentage < popPercent)
+                    || tempMetric.PopulationPercentage < popPercent 
+                    || tempMetric.PloidyDisagreement > ploidyDisagreementCutoff)
             {
-                Console.Write(Properties.Resources.BAD_CLUSTER);
+                Console.Write(Properties.Resources.BAD_CLUSTER + " ");
                 tempMetric.Good = false;
             }
             else
             {
-                Console.Write(Properties.Resources.GOOD_CLUSTER);
+                Console.Write(Properties.Resources.GOOD_CLUSTER + " ");
                 tempMetric.Good = true;
             }
             return tempMetric.Good;
@@ -1153,6 +1241,14 @@ namespace Ploidulator
             {
                 formatterFilteredFile = new MetricFormatter(fileName + "\\filtered.metr");
             }
+        }
+
+        private void DeleteFilteredMetricFile()
+        {
+            formatterFilteredFile.Close();
+            formatterFilteredFile = null;
+            File.Delete(fileName + "\\filtered.metr");
+            File.Delete(fileName + "\\filtered.bam");
         }
 
         /// <summary>
@@ -1334,9 +1430,9 @@ namespace Ploidulator
         /// </summary>
         private void PrintClustSummary_ReadCounts(Dictionary<int, int> allReads,
             Dictionary<int, int> distinctReads, Dictionary<int, int> individualsTotalReadcounts, 
-            Dictionary<int, int> individualsDistinctReadcounts, string subdirectory, string descriptor = "")
+            Dictionary<int, int> individualsDistinctReadcounts, string subdirectory)
         {
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + descriptor + "all_read_counts.tsv"))
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + "read_counts_all.tsv"))
             {
                 file.WriteLine("#Read-per-cluster distribution, where read count includes all read instances including duplicates");
                 file.WriteLine("total_num_reads\tnum_clusters");
@@ -1346,7 +1442,7 @@ namespace Ploidulator
                 }
             }
 
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + descriptor + "distinct_read_counts.tsv"))
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + "read_counts_distinct.tsv"))
             {
                 file.WriteLine("#Read-per-cluster distribution, where read count is distinct reads (duplicate reads will be counted as the one)");
                 file.WriteLine("num_distinct_reads\tnum_clusters");
@@ -1360,7 +1456,7 @@ namespace Ploidulator
             // the total count in the cluster
 
             //(this report answers: on average, how many total read counts do the individuals in the cluster have?)
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + descriptor + "byindividualsrtotaleadcounts.tsv"))
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + "by_indiv_read_counts.tsv"))
             {
                 file.WriteLine("#Read-count-per-individual distribution for each cluster, where read count includes all read instances including duplicates");
                 file.WriteLine("total_num_reads\tnum_clusters");
@@ -1372,7 +1468,7 @@ namespace Ploidulator
 
             // average distinct readcount by individual 
             //(this report answers: on average, how many distinct read counts do the individuals in the cluster have)
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + descriptor + "byindividualsrdistincteadcounts.tsv"))
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + "by_indiv_read_counts_distinct.tsv"))
             {
                 file.WriteLine("#Read-count-per-individual distribution for each cluster, where read count is distinct reads (duplicate reads will be counted as the one)");
                 file.WriteLine("num_distinct_reads\tnum_clusters");
@@ -1391,9 +1487,9 @@ namespace Ploidulator
         /// Data is normalised and displayed as percentages from smaller to larger (e.g. piechart data)
         /// </summary>
         private void PrintClustSummary_FrequencyDistributions(List<Collection<double>> sequenceFrequencies, 
-            string subdirectory, string descriptor = "")
+            string subdirectory)
         {
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + descriptor + "frequencies.tsv"))
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + "frequencies.tsv"))
             {
                 file.WriteLine("#Per-cluster relative distribution of each sequence, from top-1, top-2, ...top-n");
                 file.WriteLine("frequencies");
@@ -1407,9 +1503,9 @@ namespace Ploidulator
         /// <summary>
         /// Per-cluster distribution of individuals (i.e. how many individuals are represented in each cluster, grouped by number of individuals)
         /// </summary>
-        private void PrintClustSummary_IndivCounts(Dictionary<int, int> individualsCounts, string subdirectory, string descriptor = "")
+        private void PrintClustSummary_IndivCounts(Dictionary<int, int> individualsCounts, string subdirectory)
         {
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + descriptor + "individualsDistribution.tsv"))
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName + "\\" + subdirectory + "\\" + "individuals_distribution.tsv"))
             {
                 file.WriteLine("#Per-cluster distribution of individuals");
                 file.WriteLine("num_individuals\tnum_clusters");
@@ -1447,9 +1543,9 @@ namespace Ploidulator
                         Directory.CreateDirectory(fileName + "\\" + FILTERED_OUTPUT_DIRECTORY);
                     }
                     PrintClustSummary_ReadCounts(graphDataAllReadsGood, graphDataDistinctReadsGood, 
-                        graphDataIndividualsTotalReadcountsGood, graphDataIndividualsDistinctReadcountsGood, FILTERED_OUTPUT_DIRECTORY, "filtered_");
-                    PrintClustSummary_IndivCounts(graphDataIndividualsCountsGood, FILTERED_OUTPUT_DIRECTORY, "filtered_");
-                    PrintClustSummary_FrequencyDistributions(clustSeqFrequenciesGood, FILTERED_OUTPUT_DIRECTORY, "filtered_");
+                        graphDataIndividualsTotalReadcountsGood, graphDataIndividualsDistinctReadcountsGood, FILTERED_OUTPUT_DIRECTORY);
+                    PrintClustSummary_IndivCounts(graphDataIndividualsCountsGood, FILTERED_OUTPUT_DIRECTORY);
+                    PrintClustSummary_FrequencyDistributions(clustSeqFrequenciesGood, FILTERED_OUTPUT_DIRECTORY);
                 }
 
                 Console.WriteLine(Properties.Resources.FINISHED_WRITING_METRIC);

@@ -187,6 +187,6 @@
     <value>Parser/processer thread must pause to let bam writer thread catch up</value>
   </data>
   <data name="WINDOW_CLOSE_WARNING" xml:space="preserve">
-    <value>Data is currently being output to file. \nIf you close this window the output file will be incomplete.\n\nAre you sure you want to close this window?</value>
+    <value>Data is currently being output to file. If you close this window the output file will be incomplete.Are you sure you want to close this window?</value>
   </data>
 </root>

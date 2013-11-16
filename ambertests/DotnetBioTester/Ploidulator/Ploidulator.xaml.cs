@@ -36,8 +36,8 @@ namespace Ploidulator
         private delegate System.Delegate ChartTupleDelegate(IEnumerable a, IEnumerable b);
         private delegate System.Delegate ChartDelegate(Chart a);
         private delegate System.Delegate IntChartDataDelegate(KeyValuePair<int, int>[] a, KeyValuePair<int, int>[] b);
-        private delegate System.Delegate HandlerDelegate(string a, string b, string c, string d, string d2,
-            string e, string f, bool? f1, string f2,bool? g, bool? h, bool? i, bool? j, bool? k);
+        private delegate System.Delegate HandlerDelegate(string a, string b, string c, string d, string d1, string d2,
+            string e, string f, bool? f1, string f2, bool? g, bool? h, bool? i, bool? j, bool? k, bool? l, bool? m);
         private delegate System.Delegate StatsDelegate(int a, int b, int c, double d, double e, 
             double f, double g, double h, double i, double j, double k);
         #endregion
@@ -78,12 +78,12 @@ namespace Ploidulator
             {
                 // Launch ParseBAMMetric in a new thread
                 HandlerDelegate handler = ParseBAMMetric;
-                handler.BeginInvoke(DataFileATextbox.Text, ExpectedPloidyTextbox.Text, 
-                    DirtCutoffTextbox.Text, AlignmentQualCutoffTextbox.Text,
+                handler.BeginInvoke(DataFileATextbox.Text, ExpectedPloidyTextbox.Text,
+                    DirtCutoffTextbox.Text, PloidyDisagreementTextbox.Text, AlignmentQualCutoffTextbox.Text,
                     ReadQualCutoffTextbox.Text, PopPercentTextbox.Text, MaxHaplotypesTextbox.Text, OnlyHaplotypeGood.IsChecked,
                     NumSamplesTextbox.Text, OutputToFile.IsChecked, 
                     MetricFileParent.IsChecked, MetricFileChild.IsChecked, OutputOverviewParent.IsChecked, 
-                    OutputOverviewChild.IsChecked,
+                    OutputOverviewChild.IsChecked, GenotypesToFile.IsChecked, HaplotypesToFile.IsChecked, 
                     null, null);
             }
         }
@@ -228,6 +228,7 @@ namespace Ploidulator
 
             // Hide progress bar
             ProgressStatusBar.Visibility = System.Windows.Visibility.Hidden;
+            ProgressBar.Value = 0;
             LoadingBarLabel.Content = "";
             AbortButton.Visibility = System.Windows.Visibility.Hidden;
 
@@ -264,6 +265,9 @@ namespace Ploidulator
             OutputOverviewParent.IsEnabled = isSearchable;
             OutputOverviewChild.IsEnabled = isSearchable;
             OutputToFile.IsEnabled = isSearchable;
+            PloidyDisagreementTextbox.IsEnabled = isSearchable;
+            GenotypesToFile.IsEnabled = isSearchable;
+            HaplotypesToFile.IsEnabled = isSearchable;
         }
 
         
@@ -698,17 +702,18 @@ namespace Ploidulator
         /// <summary>
         /// Initialise handler and handler settings based on user's input
         /// </summary>
-        private void InitHandler(string filename, string ploidy, string dirtCutoff, string alignQualCutoff,
+        private void InitHandler(string filename, string ploidy, string dirtCutoff, string ploidyCutoff, string alignQualCutoff,
             string readQualCutoff, string popPercent, string hapMaxCutoff, bool? onlyHaplotypeGood, string numSamples, bool? outputToFile, bool? metricFileParent,
-            bool? metricFileChild, bool? outputOverviewParent, bool? outputOverviewChild)
+            bool? metricFileChild, bool? outputOverviewParent, bool? outputOverviewChild, bool? genotypesToFile, bool? haplotypesToFile)
         {
             // Check user input
             string newName = filename.Split(new char[] { '.' })[0];
 
             // Set up the handler
-            metricHandler = new ClusterMetricHandler(newName + "_pl", Convert.ToInt32(ploidy, ci), Convert.ToDouble(dirtCutoff, ci),
+            metricHandler = new ClusterMetricHandler(newName, Convert.ToInt32(ploidy, ci), Convert.ToDouble(dirtCutoff, ci),
                 Convert.ToDouble(alignQualCutoff, ci), Convert.ToDouble(readQualCutoff, ci), Convert.ToDouble(popPercent, ci), Convert.ToInt32(numSamples, ci), outputToFile);
 
+            metricHandler.PloidyDisagreementCutoff = Convert.ToDouble(ploidyCutoff, ci);
             metricHandler.HaplotypesMaxCutoff = Convert.ToInt32(hapMaxCutoff, ci);
             metricHandler.OnlyHaplotypeGood = onlyHaplotypeGood == true;
             metricHandler.WriteToFilteredBam = outputToFile == true;
@@ -716,6 +721,8 @@ namespace Ploidulator
             metricHandler.WriteClusterMetricFiltered = metricFileChild == true;
             metricHandler.WriteOverviewMetricOriginal = outputOverviewParent == true;
             metricHandler.WriteOverviewMetricFiltered = outputOverviewChild == true;
+            metricHandler.WriteGenotypesFile = genotypesToFile == true;
+            metricHandler.WriteHaplotypesFile = haplotypesToFile == true;
         }
 
         /// <summary>
@@ -736,17 +743,19 @@ namespace Ploidulator
         /// <summary>
         /// Create handler and initialise handler settings, then process sequences
         /// </summary>
-        private System.Delegate ParseBAMMetric(string filename, string ploidy, string dirtCutoff, string alignQualCutoff, 
+        private System.Delegate ParseBAMMetric(string filename, string ploidy, string dirtCutoff, string ploidyDisagreement,
+            string alignQualCutoff, 
             string readQualCutoff, string popPercent, string hapMaxCutoff, bool? onlyHaplotypeGood, string numSamples, bool? outputToFile, 
-            bool? metricFileParent, bool? metricFileChild, bool? outputOverviewParent, bool? outputOverviewChild)
+            bool? metricFileParent, bool? metricFileChild, bool? outputOverviewParent, bool? outputOverviewChild, 
+            bool? genotypesToFile, bool? haplotypesToFile)
         {
             using (BAMParser parser = new BAMParser())
             {
                 int numClustersInInputFile = 0;
             
                 // Initialise the metric handler
-                InitHandler(filename, ploidy, dirtCutoff, alignQualCutoff, readQualCutoff, popPercent, hapMaxCutoff, onlyHaplotypeGood, numSamples, 
-                    outputToFile, metricFileParent, metricFileChild, outputOverviewParent, outputOverviewChild);
+                InitHandler(filename, ploidy, dirtCutoff, ploidyDisagreement, alignQualCutoff, readQualCutoff, popPercent, hapMaxCutoff, onlyHaplotypeGood, numSamples, 
+                    outputToFile, metricFileParent, metricFileChild, outputOverviewParent, outputOverviewChild, genotypesToFile, haplotypesToFile);
 
                 ReadHeader(filename, parser, numClustersInInputFile);
 
@@ -1021,6 +1030,30 @@ namespace Ploidulator
         private void Label_MouseDown_4(object sender, MouseButtonEventArgs e)
         {
             MetricFileParent.IsChecked = (MetricFileParent.IsEnabled) ? !MetricFileParent.IsChecked : MetricFileParent.IsChecked;
+        }
+
+        /// <summary>
+        /// Bind click on label to click on checkbox
+        /// </summary>
+        private void Label_MouseDown_5(object sender, MouseButtonEventArgs e)
+        {
+            GenotypesToFile.IsChecked = (GenotypesToFile.IsEnabled) ? !GenotypesToFile.IsChecked : GenotypesToFile.IsChecked;
+        }
+
+        /// <summary>
+        /// Bind click on label to click on checkbox
+        /// </summary>
+        private void Label_MouseDown_6(object sender, MouseButtonEventArgs e)
+        {
+            HaplotypesToFile.IsChecked = (HaplotypesToFile.IsEnabled) ? !HaplotypesToFile.IsChecked : HaplotypesToFile.IsChecked;
+        }
+
+        /// <summary>
+        /// Bind click on label to click on checkbox
+        /// </summary>
+        private void Label_MouseDown_7(object sender, MouseButtonEventArgs e)
+        {
+            OnlyHaplotypeGood.IsChecked = (OnlyHaplotypeGood.IsEnabled) ? !OnlyHaplotypeGood.IsChecked : OnlyHaplotypeGood.IsChecked;
         }
 
         #endregion
