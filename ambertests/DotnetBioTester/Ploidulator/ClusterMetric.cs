@@ -548,16 +548,24 @@ namespace Ploidulator
         #endregion
 
 
-
         #region base position allele haplotype stuff todo fixme
 
         /// <summary>
-        /// Given alleleFxThisIndiv representing each allele and the frequency with which it occurrs, returns
-        /// just a list of the allele chars (with unrecognised chars coded as '?')
+        /// Dictionary of all possible allele values
         /// </summary>
-        /// <param name="alleleFxThisIndiv"></param>
-        /// <param name="locusIndex"></param>
-        /// <returns></returns>
+        private static Dictionary<char, string> alleles = new Dictionary<char, string>()
+        {
+            {'A', "1"},
+            {'T', "2"},
+            {'C', "3"},
+            {'G', "4"},
+            {'?', "-1"}
+        };
+
+        /// <summary>
+        /// Given alleleFxThisIndiv representing each allele and the frequency with which it occurrs, returns
+        /// a list of the allele chars (with unrecognised chars coded as '?')
+        /// </summary>
         private char[] GetAllelesAtLocusForIndiv(Dictionary<char, double>[] alleleFxThisIndiv, int locusIndex)
         {
             char[] allelesThisIndiv = alleleFxThisIndiv[locusIndex].Keys.ToArray();
@@ -572,117 +580,85 @@ namespace Ploidulator
         }
 
 
-
-        // Dictionary of all possible allele values
-        private Dictionary<char, string> alleles = new Dictionary<char, string>()
+        /// <summary>
+        /// Get an allele from the alleles dictionary, as a string, in the format required by PHASE input for either
+        /// biallelic or multiallelic loci
+        /// </summary>
+        private static String GetAllele(char allele, bool isMultiAllelic = false)
+        {
+            if (!isMultiAllelic)
             {
-                {'A', "1"},
-                {'T', "2"},
-                {'C', "3"},
-                {'G', "4"},
-                {'?', "-1"}
-            };
+                return allele.ToString();
+            }
+            else
+            {
+                return alleles[allele];
+            }
+        }
 
-        
-        private static bool GetIndivBiAllelicLocusAlleles(char[] allelesThisIndividual, int numSeqsThisIndivHas, ref string chr1, ref string chr2)
+        /// <summary>
+        /// For a single locus append a character onto each chromosome string (chr1 and chr2) representing the allele for 
+        /// THIS INDIVIDUAL at this position, in the format required by PHASE for loci (either biallelic or multiallelic, 
+        /// as specified)
+        /// </summary>
+        private static bool GetIndivBiAllelicLocusAlleles(char[] allelesThisIndividual, int numSeqsThisIndivHas, 
+            ref string chr1, ref string chr2, bool isMultiAllelic = false)
         {
             switch (allelesThisIndividual.Length)
             {
                 case 0:
                     // This individual has no alleles at this position
-                    chr1 += ("? ");
-                    chr2 += ("? ");
+                    chr1 += GetAllele('?', isMultiAllelic) + " ";
+                    chr2 += GetAllele('?', isMultiAllelic) + " ";
                     break;
 
                 case 1:
                     if (numSeqsThisIndivHas > 1)
                     {
                         // This individual has one distinct allele at this position, but more than one instance of it occurring,
-                        // so we assume it may be on different chromosomes
-                        chr1 += allelesThisIndividual[0] + " ";
-                        chr2 += allelesThisIndividual[0] + " ";
+                        // so we assume it may be on both chromosomes
+                        chr1 += GetAllele(allelesThisIndividual[0], isMultiAllelic) + " ";
+                        chr2 += GetAllele(allelesThisIndividual[0], isMultiAllelic) + " ";
                     }
                     else
                     {
-                        // Indiv only has one sequence in this cluster. Not enough information to infer that chr2 == chr1 at this position
-                        chr1 += allelesThisIndividual[0] + " ";
-                        chr2 += "? ";
+                        // This individal only has one read in this cluster, therefore not enough information to infer that chr2 == chr1 
+                        // at this position, therefore chr2 at this position will be called undefined
+                        chr1 += GetAllele(allelesThisIndividual[0], isMultiAllelic) + " ";
+                        chr2 += GetAllele('?', isMultiAllelic) + " ";
                     }
                     break;
 
                 case 2:
-                    // Indiv has two sequences, both with different alleles at this position
-                    chr1 += allelesThisIndividual[0] + " ";
-                    chr2 += allelesThisIndividual[1] + " ";
+                    // This individual has two sequences, both with different alleles at this position
+                    chr1 += GetAllele(allelesThisIndividual[0], isMultiAllelic) + " ";
+                    chr2 += GetAllele(allelesThisIndividual[1], isMultiAllelic) + " ";
                     break;
                 
                 default:
+                    // This cannot happen. No individual has more than two alleles at any one position
                     Console.WriteLine(Properties.Resources.ALLELE_COUNT_ERROR);
                     return false;
             }
             return true;
         }
-
-
-        private bool GetIndivMultiAllelicLocusAlleles(char[] allelesThisIndividual, int numSeqsThisIndivHas, ref string chr1, ref string chr2)
-        {
-            switch (allelesThisIndividual.Length)
-            {
-                case 0:
-                    // This individual has no alleles at this position
-                    chr1 += ("-1 ");
-                    chr2 += ("-1 ");
-                    break;
-
-                case 1:
-                    if (numSeqsThisIndivHas > 1)
-                    {
-                        // This individual has one distinct allele at this position, but more than one instance of it occurring,
-                        // so we assume it may be on different chromosomes
-                        chr1 += alleles[allelesThisIndividual[0]] + " ";
-                        chr2 += alleles[allelesThisIndividual[0]] + " ";
-                    }
-                    else
-                    {
-                        // Indiv only has one sequence in this cluster. Not enough information to infer that chr2 == chr1 at this position
-                        chr1 += alleles[allelesThisIndividual[0]] + " ";
-                        chr2 += "-1 ";
-                    }
-                    break;
-
-                case 2:
-                    // Indiv has two sequences, both with different alleles at this position
-                    chr1 += alleles[allelesThisIndividual[0]] + " ";
-                    chr2 += alleles[allelesThisIndividual[1]] + " ";
-                    break;
-
-                default:
-                    Console.WriteLine(Properties.Resources.ALLELE_COUNT_ERROR);
-                    return false;
-            }
-            return true;
-        }
-
-
-        
-
-
-        
-
+ 
+        /// <summary>
+        /// Construct component of the PHASE input string (for all individuals, including master string in format
+        /// MSSSSSMMSSSSS and content string with genotypes of all individuals)
+        /// </summary>
         private void ConstructPhaseSnpString()
         {
-            
             Dictionary<char, double>[] alleleFxAllIndiv = new Dictionary<char, double>[referenceSequence.Length];
             List<Dictionary<char, double>[]> alleleFxAllIndivFull = new List<Dictionary<char, double>[]>();
 
             // Generates the data for each individual for the phase file
-            string phaseFileData = "";
+            phaseData = "";
             foreach (Dictionary<string, List<SAMAlignedSequence>> seqList in sampleSequenceDict.Values) 
             {
                 Dictionary<char, double>[] alleleFxThisIndiv = BaseFrequencies(seqList.Keys.ToArray(), ref alleleFxAllIndiv);
                 alleleFxAllIndivFull.Add(alleleFxThisIndiv);
             }
-
             loci = "";
             string noSnp = "-";
             string biAllelic = "S";
@@ -703,51 +679,55 @@ namespace Ploidulator
                 }
             }
 
+           // Add individual genotypes to PHASE format input string
+            ConstructPhaseData(alleleFxAllIndivFull);
+
+            // Remove any non-snp chars from master string
+            TrimPhaseMasterString();
+        }
+
+        /// <summary>
+        /// For each individual, add their genotypes to the phase input string (phaseData)
+        /// </summary>
+        private void ConstructPhaseData(List<Dictionary<char, double>[]> dict)
+        {
             int j = 0;
             foreach (Dictionary<string, List<SAMAlignedSequence>> seqList in sampleSequenceDict.Values)
             {
-                // need to construct another dict for each snp pos which exists, to record s or m
-
                 string indivId = "#" + seqList.Values.ToArray()[0][0].QName;
                 string chr1 = "", chr2 = "";
                 int locusCount = 0;
                 foreach (char allele in loci) // for each allele at this locus, where loci is in the format "S--SS-SM---MSSMMS-MMM--MSSSMS"
-                    // we will iterate through looking at one physical locus at a time and examining all sequences that align to that locus
+                // we will iterate through looking at one physical locus at a time and examining all sequences that align to that locus
                 {
-                    if (allele != '-')
+                    if (allele == 'S' || allele == 'M')
                     {
-
                         // Get an array of all alleles which appear at this locus for this individual
                         // If any of these allele characters are not in the dictionary of recognised alleles, replace them with '?' 
-                        char[] allelesThisIndiv = GetAllelesAtLocusForIndiv(alleleFxAllIndivFull[j], locusCount);
+                        char[] allelesThisIndiv = GetAllelesAtLocusForIndiv(dict[j], locusCount);
 
-                        // Between all samples, there are two alleles at this position
-                        if (allele == 'S')
-                        {
-                            GetIndivBiAllelicLocusAlleles(allelesThisIndiv, seqList.Count, ref chr1, ref chr2);
-                        }
-
-                        // Between all samples, there are three or four alleles at this position (although this particular individual
-                        // will still only have 2)
-                        else if (allele == 'M')
-                        {
-                            GetIndivMultiAllelicLocusAlleles(allelesThisIndiv, seqList.Count, ref chr1, ref chr2);
-                        }
+                        // Adds an allele char to each chromosome (chr1 and chr2), in format required by PHASE for either
+                        // biallelic or multiallelic
+                        GetIndivBiAllelicLocusAlleles(allelesThisIndiv, seqList.Count, ref chr1, ref chr2, (allele == 'M'));
                     }
                     locusCount++;
                 }
-
                 // Add this individual's genotype information to the phase file data string
-                phaseFileData += (indivId + "\r\n" + chr1 + "\r\n" + chr2 + "\r\n");
+                phaseData += (indivId + "\r\n" + chr1 + "\r\n" + chr2 + "\r\n");
                 j++;
             }
+        }
 
-            phaseData = phaseFileData;
-
+        /// <summary>
+        /// For any loci in the phase master string (loci) which do not have snps, remove that char in the string
+        /// (postcondition: loci string should be of format SSSSSMSSSMMSSSSS with no '-' characters)
+        /// </summary>
+        private void TrimPhaseMasterString()
+        {
             string locii = "";
-            for (int k = 0; k < loci.Length; k++ )
+            for (int k = 0; k < loci.Length; k++)
             {
-                if(loci[k] != '-')
+                if (loci[k] != '-')
                 {
                     locii += loci[k];
                 }
@@ -755,28 +735,18 @@ namespace Ploidulator
             loci = locii;
         }
 
-
-  
-
-        
-
-        // precondition seqs is an ordered list
         /// <summary>
-        /// 
+        /// Get a dictionary of base frequencies for all bases with a large enough count to be considered reliable
+        /// Precondition: seqs is an ordered list
         /// </summary>
-        /// <param name="seqs"></param>
-        /// <param name="masterFreqList"></param>
-        /// <returns></returns>
         private Dictionary<char, double>[] BaseFrequencies(string[] seqs, ref Dictionary<char, double>[] masterFreqList)
         {
-            
             // A dictionary of char:double for each base pair position
             Dictionary<char, double>[] freqList = new Dictionary<char, double>[seqs[0].Length];
 
             //For each position, get each nucleotide and its relative frequency
             foreach (string seq in seqs)
             {
-                
                 string seqStr = seq;
                 int count = 0;
                 foreach (char c in seqStr.ToUpper(CI).ToCharArray()) // for a, then t, then c, then g, increment or add to that position
@@ -810,7 +780,7 @@ namespace Ploidulator
 
                 for (int k = 0; k < chars.Length; k++)
                 {
-                    // Convert to percentage and emove bases with insufficient qty for determination
+                    // Convert to percentage and remove bases with insufficient qty for determination
                     char c = chars[k];
                     freqList[i][c] = (freqList[i][c] / numBases);
 
@@ -822,12 +792,8 @@ namespace Ploidulator
                     }
                 }
 
-               
                 foreach(KeyValuePair<char,double> p in freqList[i])
                 {
-                    if(alleles.ContainsKey(p.Key)){
-
-                    }
                     if (p.Key == 'A' || p.Key == 'T' || p.Key == 'C' || p.Key == 'G')
                     {
                         if (masterFreqList[i] != null && masterFreqList[i].ContainsKey(p.Key))
@@ -844,7 +810,6 @@ namespace Ploidulator
                         }
                     }
                 }
-                
             }
             return freqList;
         }
@@ -860,8 +825,6 @@ namespace Ploidulator
         /// <summary>
         /// Given a sequence, returns the reference ID, or null if sequences are unmapped
         /// </summary>
-        /// <param name="sequences"></param>
-        /// <returns></returns>
         private static string GetId(SAMAlignedSequence sequence)
         {
             if (!sequence.Flag.HasFlag(SAMFlags.UnmappedQuery))
@@ -883,20 +846,24 @@ namespace Ploidulator
             return Regex.Split(seqStr, "\r\n")[0];
         }
 
+        /// <summary>
+        /// Given a SAMAlignedSequence, returns the string representing encoded per-base read quality
+        /// </summary>
         private static string GetReadQuality(SAMAlignedSequence seq)
         {
             String seqStr = seq.QuerySequence.ToString();
-            return Regex.Split(seqStr, "\r\n")[1]; // todo aw something more efficient than regex?
+            return Regex.Split(seqStr, "\r\n")[1];
         }
 
-        // Get individual string
+        /// <summary>
+        /// Given a SAMAlignedSequence, get the RG tag for that read
+        /// </summary>
         private static string GetRgTag(SAMAlignedSequence seq)
         {
             foreach (SAMOptionalField field in seq.OptionalFields)
             {
                 // I iterate through to find RG each time in case the optional fields
-                // do not have a consistent format. Can I assume RG is always OptionalFields[0]
-                // to avoid creating iterator and running this loop? todo
+                // do not have a consistent format. 
                 if (field.Tag == "RG")
                 {
                     return field.Value;
@@ -909,9 +876,6 @@ namespace Ploidulator
         /// Add a sequence into a dictionary value item which represents a list of sequences. The list to which to add 
         /// to is found using key
         /// </summary>
-        /// <param name="dict"></param>
-        /// <param name="key"></param>
-        /// <param name="seq"></param>
         private static void AddToDict(Dictionary<String, List<SAMAlignedSequence>> dict, string key, SAMAlignedSequence seq)
         {
             if (key != null)
@@ -979,9 +943,6 @@ namespace Ploidulator
         /// <summary>
         /// Given an ordered collection of frequencies, return the sum of the top [ploidyLevel]
         /// </summary>
-        /// <param name="ploidyLevel"></param>
-        /// <param name="frequencies"></param>
-        /// <returns></returns>
         private static double GetCountInPloidy(int ploidyLevel, Collection<double> frequencies)
         {
             double seqsCount = 0;
@@ -1004,7 +965,6 @@ namespace Ploidulator
 
 
         #region Public Methods
-
 
         /// <summary>
         /// Calculate various metric values from the given list of sequences.

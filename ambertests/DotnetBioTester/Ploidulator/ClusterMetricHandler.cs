@@ -23,8 +23,8 @@ namespace Ploidulator
     {
         private static CultureInfo ci = new CultureInfo("en-AU");
 
-        // todo delete this
-        bool haplotypingEnabled = true;
+        // for debugging purposes haplotyping can be disabled (faster calculation of all other metrics)
+        private bool haplotypingEnabled = true;
 
         #region Private Static Fields
         private static int OUTPUT_QUEUE_SIZE = 7;                       // max number of clusters that can be stored in the
@@ -325,13 +325,26 @@ namespace Ploidulator
         /// Max number of samples found in a cluster so far
         /// </summary>
         private int maxSampleCount = 0;
-        
-        // todo aw
+
+        /// <summary>
+        /// Total number of reads
+        /// </summary>
         private int readCountTotal = 0;
+
+        /// <summary>
+        /// Total number of 'good' reads
+        /// </summary>
         private int readCountGood = 0;
+
+        /// <summary>
+        /// Number of distinct reads
+        /// </summary>
         private int readCountDistinctTotal = 0;
+
+        /// <summary>
+        /// Number of 'good' distinct reads
+        /// </summary>
         private int readCountDistinctGood = 0;
-        
 
         /// <summary>
         /// Max mapping quality found in a cluster so far
@@ -527,11 +540,24 @@ namespace Ploidulator
         /// </summary>
         public int GoodCount { get { return goodCount; } }
 
-        // todo aw
+        /// <summary>
+        /// Get the total number of reads
+        /// </summary>
         public int ReadCountTotal { get { return readCountTotal; } }
+
+        /// <summary>
+        /// Get the total number of 'good' reads
+        /// </summary>
         public int ReadCountGood { get { return readCountGood; } }
+
+        /// <summary>
+        /// Get the total number of distinct reads
+        /// </summary>
         public int ReadCountDistinctTotal { get { return readCountDistinctTotal; } }
         
+        /// <summary>
+        /// Get the total number of 'good' distinct reads
+        /// </summary>
         public int ReadCountDistinctGood { get { return readCountDistinctGood; } }
         
         /// <summary>
@@ -1176,7 +1202,7 @@ namespace Ploidulator
         /// </summary>
         private void AddToHeader(SAMAlignedSequence seq)
         {
-            newHeader.ReferenceSequences.Add(new ReferenceSequenceInfo(seq.RName, GetSequence(seq).Length)); // todo fixme this dataset only
+            newHeader.ReferenceSequences.Add(new ReferenceSequenceInfo(seq.RName, GetSequence(seq).Length)); 
 
             // for each good cluster
             SAMRecordField sq = new SAMRecordField("SQ");
