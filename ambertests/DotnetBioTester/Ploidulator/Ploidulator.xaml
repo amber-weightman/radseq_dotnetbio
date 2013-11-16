@@ -337,7 +337,7 @@
                                             <ListBoxItem Content="90"/>
                                         </ComboBox>
 
-                                        <Label Content="Population size:" ToolTip="Total number of individuals sampled in the input dataset"
+                                        <Label Content="*Population size:" ToolTip="Total number of individuals sampled in the input dataset"
                                             Grid.Row="1" Grid.Column="2" />
                                         <TextBox x:Name="NumSamplesTextbox" Text="48" ToolTip="Total number of individuals sampled in the input dataset"
                                             Margin="0,2" TextChanged="NumericOnly_TextChanged" Grid.Column="3" Grid.Row="1" />
@@ -900,10 +900,65 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
+                                        <WrapPanel Orientation="Vertical">
+                                            <TextBlock TextWrapping="Wrap" Margin="0,10,20,10">
+                                                PLOIDY
+                                                <LineBreak/>
+                                                The usual ploidy level of the organism under study. The default value is 2 (for diploid). If the input file is not for a diploid organism a different ploidy level may be supplied for this parameter, however the full range of metrics will not be available (genotype and haplotype estimates will be excluded).
+                                            </TextBlock>
+                                            <TextBlock TextWrapping="Wrap" Margin="0,10,20,10">
+                                                POPULATION SIZE
+                                                <LineBreak/>
+                                                The total number of individuals sampled in the input dataset. This value is required in order to calculate population coverage across the clusters. This field is mandatory.
+                                            </TextBlock>
+
+                                            <TextBlock TextWrapping="Wrap" Margin="0,10,20,10">
+                                                POPULATION COVERAGE MINIMUM
+                                                <LineBreak/>
+                                                The minimum percentage of the sampled population that should be represented in each cluster. The default value is 0.3 (30%).
+                                                <LineBreak/>
+                                                Care should be taken when setting this parameter, as setting the minimum too high could result in excluding valid clusters or considering only those which do not have SNPs at cut sites. On the other hand, the larger the percentage of the population which is represented in each cluster, the more accurate the cluster’s haplotype estimate may be.
+                                            </TextBlock>
+
+                                            <TextBlock TextWrapping="Wrap" Margin="0,10,20,10">
+                                                ALIGNMENT QUALITY MINIMUM
+                                                <LineBreak/>
+                                                The minimum per-cluster average alignment quality, drawn from the alignment qualities of each distinct sequence in the cluster. The higher the value, the higher the alignment quality. Clusters with an average read alignment quality below this value will be excluded. The recommended value for this parameter will vary between organisms, depending on the variability of the population.
+                                            </TextBlock>
+
+                                            <TextBlock TextWrapping="Wrap" Margin="0,10,20,10">
+                                                READ QUALITY MINIMUM
+                                                <LineBreak/>
+                                                The minimum per-cluster average read quality, drawn from the average read qualities of each distinct sequence in the cluster. This is represented by a Phred quality score from 0 to 93. The default minimum is 10, with higher values indicating higher average read qualities.
+                                            </TextBlock>
+
+                                            <TextBlock TextWrapping="Wrap" Margin="0,10,20,10">
+                                                HAPLOTYPES MAXIMUM
+                                                <LineBreak/>
+                                                The maximum number of haplotypes that should be represented in each cluster (where 3 is standard within a diploid population, but a higher value may be supplied for error tolerance). Clusters for which greater than this number of haplotypes is detected will be categorised as ‘bad’.
+                                            </TextBlock>
+
+                                            <TextBlock TextWrapping="Wrap" Margin="0,10,20,10">
+                                                CHECKBOX OPTION to calculate haplotypes only for ‘good’ clusters
+                                                <LineBreak/>
+                                                The haplotyping algorithm implemented by PHASE is computationally intensive. Parsing of the input file can be sped up by only calculating haplotypes for clusters which are nominally 'good' based on all other filter criteria. After the number of haplotypes is calculated, the cluster will then be reclassified as 'bad' if the maximum number of allowable haplotypes was exceeded.
+                                            </TextBlock>
+
+                                            <TextBlock TextWrapping="Wrap" Margin="0,10,20,10">
+                                                DIRT MAXIMUM
+                                                <LineBreak/>
+                                                Cluster ‘dirt’ represents the fraction of distinct sequences within a cluster which are outside the ploidy of the organism (i.e. for diploid, the fraction of sequences which are outside the top two most highly represented sequences for each individual). The default value is 0.1 (10%). Clusters with a 'dirt' score greater than this value will be categorised as ‘bad’.
+                                            </TextBlock>
+
+                                            <TextBlock TextWrapping="Wrap" Margin="0,10,20,10">
+                                                PLOIDY DISAGREEMENT MAXIMUM
+                                                <LineBreak/>
+                                                The ploidy disagreement score represents the fraction of distinct sequences which are both in-ploidy for some individuals in a cluster and out-of-ploidy for other individuals. The default value is set at 0.02, with a lower value indicating that there is a greater consensus between the individuals as to which distinct sequences are most highly represented.
+                                            </TextBlock>
+
+                                        </WrapPanel>
                                         
-                                        <TextBlock TextWrapping="Wrap" Margin="0,5">
-                                        Some notes here about what to provide for parametersaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa aaaaaaaa
-                                        </TextBlock>
+                                        
                                     
                                     </Grid>
                                 </Border>
@@ -918,11 +973,58 @@
                                          BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}" >
 
                                     <Grid>
-                                        <TextBlock TextWrapping="Wrap" Margin="0,5" >
-                                        Metric file (.metr)<LineBreak />
-                                            By default two metric files will be generated, one containing summary information 
-                                            for all clusters and the other containing the same information but only for.
-                                        </TextBlock>
+                                        <WrapPanel Orientation="Vertical">
+                                            <TextBlock TextWrapping="Wrap" Margin="0,10,20,10" >
+                                            METRIC FILES (.metr)
+                                                <LineBreak />
+                                            Two metric files will be produced: orig.metr for the original input file and filtered.metr for the filtered output file of ‘good’ clusters. These files contain various per-cluster metrics, one line per cluster, as the following tab-separated values:
+                                                    <LineBreak /><LineBreak />
+                                                cluster_id:  unique cluster id <LineBreak /><LineBreak />
+                                                count_all_reads: the total number of reads in this cluster <LineBreak /><LineBreak />
+                                                count_distinct_reads: the number of distinct sequences in this cluster <LineBreak /><LineBreak />
+                                                num_individuals: the number of individuals having at least one read in this cluster <LineBreak /><LineBreak />
+                                                dirt: cluster ‘dirt’ score (proportion of reads outside the top [ploidy]) <LineBreak /><LineBreak />
+                                                ploidy_disagreement: degree of consensus on the top [ploidy] sequences <LineBreak /><LineBreak />
+                                                alignment_quality: average alignment quality for the cluster <LineBreak /><LineBreak />
+                                                read_quality: average read quality for the cluster <LineBreak /><LineBreak />
+                                                population_percentage: percentage of the population represented in this cluster <LineBreak /><LineBreak />
+                                                avg_reads_per_indiv: the average number of reads per individual <LineBreak /><LineBreak />
+                                                avg_reads_per_indiv_dist: the average number of distinct reads per individual <LineBreak /><LineBreak />
+                                                num_haplotypes: the estimated number of population haplotypes for this cluster
+                                            </TextBlock>
+                                            <TextBlock TextWrapping="Wrap" Margin="0,10,20,10" >
+                                            FILTERED OUPUT FILE (.bam)
+                                                <LineBreak />
+                                            ‘Good’ clusters will be written out to a new BAM alignment file, filtered.bam, which is identical to the original file but contains only those clusters which were classified as ‘good’ based on the supplied filter parameters.
+                                            </TextBlock>
+
+                                            <TextBlock TextWrapping="Wrap" Margin="0,10,20,10" >
+                                            GENOTYPES AND HAPLOTYPES (genotypes.txt, haplotypes.txt)
+                                                <LineBreak />
+                                            Text files can also be created for both genotype and haplotype data, genotypes.txt and haplotypes.txt. These files are a concatenation of the input files submitted to PHASE for each cluster, or the output files generated by PHASE for each cluster. They are un-checked on the output file menu and are not be generated by default, as they may both be quite large in size.
+                                            </TextBlock>
+
+                                            <TextBlock TextWrapping="Wrap" Margin="0,10,20,10" >
+                                            OVERVIEW (ACROSS-CLUSTER) METRICS (various .tsv files)
+                                                <LineBreak />
+                                            Two additional directories are created within the above output directory: orig and filtered. Each of these directories contains a set of .tsv files presenting various statistical overviews of either all clusters (orig) or good clusters (filtered). The files in each of these directories are as follows:
+                                                <LineBreak /><LineBreak />
+                                                read_counts_distinct.tsv<LineBreak />For each per-cluster distinct read count, the number of clusters that share the same distinct read count. This same data is used to generate the Read count chart.
+                                                <LineBreak /><LineBreak />
+                                                read_counts_all.tsv<LineBreak />For each per-cluster read count, the number of clusters that share the same read count.
+                                                <LineBreak /><LineBreak />
+                                                by_indiv_read_counts_distinct.tsv<LineBreak />For each per-individual per-cluster distinct read count, the number of clusters that share the same read count.
+                                                <LineBreak /><LineBreak />
+                                                by_indiv_read_counts.tsv<LineBreak />For each per-individual per-cluster read count, the number of clusters that share the same read count.
+                                                <LineBreak /><LineBreak />
+                                                frequencies.tsv<LineBreak />With one line for each cluster, gives the relative distribution of each distinct sequence, ordered from most to least frequently observed.
+                                                <LineBreak /><LineBreak />
+                                                individuals_distribution.tsv<LineBreak />For each (actual, unnormalised) number of individuals, the number of clusters in which that number of individuals are represented. This same data is used, converted to percentage data, to generate the Population coverage chart.
+                                            </TextBlock>
+
+                                        </WrapPanel>
+                                        
+                                        
                                     </Grid>
                                 </Border>
                             </Expander>
@@ -940,16 +1042,27 @@
                                             <RowDefinition />
                                             <RowDefinition />
                                         </Grid.RowDefinitions>
+                                        <WrapPanel>
 
-                                        <TextBlock TextWrapping="Wrap" Grid.Row="0" Margin="0,5">
-                                        Ploidulator is a prototype developed as a student project. aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa aaaaaaaaaaaaaaaaaaaaaaaaaa
-                                        </TextBlock>
-                                        <TextBlock TextWrapping="Wrap" Grid.Row="1" Margin="0,5">
-                                        Uses .NET Bio.
-                                        </TextBlock>
-                                        <TextBlock TextWrapping="Wrap" Grid.Row="2" Margin="0,5">
-                                        Uses PHASE.
-                                        </TextBlock>
+                                            <TextBlock TextWrapping="Wrap" Grid.Row="0" Margin="0,10,20,10">
+                                                Ploidulator is a prototype cluster filtering and analysis tool. Using this tool, a BAM file containing aligned reads can be parsed, and user-defined parameters can be applied to determine which clusters are ‘good’. Good clusters are then written to a new filtered BAM file. Various metric statistics are also produced as text files, for both the original input file and the filtered ‘good’ output file, and this statistical data can be incorporated in future analyses of either the original or filtered files.
+
+                                                <LineBreak/><LineBreak/>
+                                                A variety of metrics are provided, and it is up to the user to determine which are suitable for their data set.
+                                                
+                                                <LineBreak/><LineBreak/>
+                                        Ploidulator is implemented as a WPF application written in C#. The application is powered by .NET Bio, an open source bioinformatics library from Microsoft (2013) which provides a range of classes and algorithms for implementing bioinformatics applications.
+                                        <LineBreak/><LineBreak/>
+                                                Ploidulator is designed to operate on any personal computer running Windows, and does not require unusually high memory or processing power. The process of outputting results directly to file conserves memory usage and means that the filtered file is available for further analysis immediately after the analysis process has completed. For a ~1.3GB input file, the application will require ~4GB of free memory. Due to the threading model a 64bit environment is recommended.
+                                            </TextBlock>
+
+                                            <TextBlock TextWrapping="Wrap" Grid.Row="0" Margin="0,10,20,10">
+                                                PHASE v2.1 is an implementation for a haplotype detection algorithm, built around a coalescent-based hidden Markov model, and designed for population-based statistical phasing. PHASE has been integrated into Ploidulator to calculate the probable number of haplotypes per cluster from the probable genotypes of each individual in the cluster.
+                                                
+                                            </TextBlock>
+                                        </WrapPanel>
+                                        
+                                        
 
                                     </Grid>
                                 </Border>
