@@ -21,7 +21,7 @@ using System.Windows.Threading;
 namespace Ploidulator
 {
     /// <summary>
-    /// Interaction logic for MainWindow.xaml
+    /// Interaction logic for MainWindow.xaml, being the Ploidulator user interface
     /// </summary>
     public partial class MainWindow : Window
     {
@@ -75,7 +75,7 @@ namespace Ploidulator
         private void Button_Click_Go(object sender, RoutedEventArgs e)
         {
             // Input file and number of samples must not be null
-            if (DataFileATextbox.Text != null && DataFileATextbox.Text != "" &&
+            if (!String.IsNullOrEmpty(DataFileATextbox.Text) &&
                 NumSamplesTextbox.Text != null && NumSamplesTextbox.Text != "0"
                 && File.Exists(DataFileATextbox.Text))
             {
@@ -91,7 +91,7 @@ namespace Ploidulator
             }
             else
             {
-                MessageBoxResult result = MessageBox.Show(Properties.Resources.MANDATORY_FIELDS_WARNING,
+                MessageBox.Show(Properties.Resources.MANDATORY_FIELDS_WARNING,
                 Properties.Resources.MANDATORY_FIELDS_WARNING_HEADER, MessageBoxButton.OK, MessageBoxImage.Asterisk);
             }
         }
@@ -301,7 +301,7 @@ namespace Ploidulator
                 AvgREADQDisplay.Content = avgReadq.ToString(ci);
 
                 // If this is the first time we have had good clusters, expand the good clusters menu
-                if (numGoodClusters > 0 && (DirtDisplayGood.Content == null || DirtDisplayGood.Content.ToString() == ""))
+                if (numGoodClusters > 0 && !String.IsNullOrEmpty(DirtDisplayGood.Content.ToString()))
                 {
                     OverviewGoodClustersStats.IsExpanded = true;
                 }
@@ -590,7 +590,7 @@ namespace Ploidulator
         /// <summary>
         /// Enables the linechart to be partially rendered in the background thread
         /// </summary>
-        public static Chart PreDrawLineChart(Dictionary<int, int> dataSeriesA, Dictionary<int, int> dataSeriesB)
+        private static Chart PreDrawLineChart(Dictionary<int, int> dataSeriesA, Dictionary<int, int> dataSeriesB)
         {
             Chart chart = new Chart();
             if (chart.Series.Count == 0)
@@ -612,7 +612,7 @@ namespace Ploidulator
         /// <summary>
         /// Draw a piechart
         /// </summary>
-        public static void DrawPieChart(ref Chart chart, KeyValuePair<string, double>[] dataSeries)
+        private static void DrawPieChart(ref Chart chart, KeyValuePair<string, double>[] dataSeries)
         {
             if(dataSeries == null || dataSeries.Count() == 0 || chart == null || chart.Series == null)
             {
@@ -724,8 +724,12 @@ namespace Ploidulator
             string newName = filename.Split(new char[] { '.' })[0];
 
             // Set up the handler
-            metricHandler = new ClusterMetricHandler(newName, Convert.ToInt32(ploidy, ci), Convert.ToDouble(dirtCutoff, ci),
-                Convert.ToDouble(alignQualCutoff, ci), Convert.ToDouble(readQualCutoff, ci), Convert.ToDouble(popPercent, ci), Convert.ToInt32(numSamples, ci), outputToFile);
+            metricHandler = new ClusterMetricHandler(newName, Convert.ToInt32(ploidy, ci), Convert.ToInt32(numSamples, ci));
+
+            metricHandler.DirtCutoff = Convert.ToDouble(dirtCutoff, ci);
+            metricHandler.AlignmentQualityCutoff = Convert.ToDouble(alignQualCutoff, ci);
+            metricHandler.ReadQualityCutoff = Convert.ToDouble(readQualCutoff, ci);
+            metricHandler.PopulationPercentageCutoff = Convert.ToDouble(popPercent, ci);
 
             metricHandler.PloidyDisagreementCutoff = Convert.ToDouble(ploidyCutoff, ci);
             metricHandler.HaplotypesMaxCutoff = Convert.ToInt32(hapMaxCutoff, ci);
@@ -812,7 +816,7 @@ namespace Ploidulator
                         Dispatcher.BeginInvoke(
                             System.Windows.Threading.DispatcherPriority.Normal,
                             new StatsDelegate(UpdateStatsPanel), metricHandler.GoodCount, clusterCount,
-                                metricHandler.MaxSampleCount, metricHandler.MaxMapQuality, metricHandler.MaxReadQuality,
+                                metricHandler.MaxSampleCount, metricHandler.MaxAlignmentQuality, metricHandler.MaxReadQuality,
                                 metricHandler.AverageDirt, metricHandler.AverageMapQ, metricHandler.AverageReadQ,
                                 metricHandler.AverageDirtGood, metricHandler.AverageMapQGood, metricHandler.AverageReadQGood);
                     }
@@ -999,7 +1003,7 @@ namespace Ploidulator
                     dec++;
                 }
             }
-            t.Text = (s == "") ? "0" : s; // if blank, set to 0
+            t.Text = (String.IsNullOrEmpty(s)) ? "0" : s; // if blank, set to 0
         }
 
         #endregion

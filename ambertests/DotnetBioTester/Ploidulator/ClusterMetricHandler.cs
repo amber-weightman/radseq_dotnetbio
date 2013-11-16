@@ -110,7 +110,7 @@ namespace Ploidulator
         /// <summary>
         /// Sequences stored for the current cluster, not yet processed.
         /// </summary>
-        private Collection<SAMAlignedSequence> sequences = null;
+        private Collection<SAMAlignedSequence> allSequences = null;
 
         /// <summary>
         /// Output queue for sequences which need to be written to a new filtered BAM file
@@ -273,7 +273,7 @@ namespace Ploidulator
         #region good/bad filter cutoffs
 
         /// <summary>
-        /// Max allowed dirt
+        /// Max allowed dirt. Default 1.
         /// </summary>
         private double dirtCutoff = 1;
 
@@ -300,7 +300,7 @@ namespace Ploidulator
         /// <summary>
         /// Min allowed population percentage within each cluster
         /// </summary>
-        private double popPercent = 0;
+        private double populationPercentageCutoff = 0;
 
         /// <summary>
         /// The number of samples to expect for the current input file
@@ -423,26 +423,16 @@ namespace Ploidulator
         #region Constructors
 
         /// <summary>
-        /// Default constructor.
+        /// Constructor, used to set the file name, and the ploidy level and number of individuals in that file
         /// </summary>
-        public ClusterMetricHandler() { }
-
-        /// <summary>
-        /// Non-default constructor, used to set the file name
-        /// </summary>
-        /// <param name="clusterFileName">Name of the file metric data is to be written to.</param>
-        public ClusterMetricHandler(string clusterFileName, int ploidy, 
-            double dirtCutoff, double alignmentQualityCutoff, double readQualityCutoff, double populationPercent, int numberSamples, bool? outputToFile)
-            : this()
+        /// <param name="clusterFileName">Name of the input file.</param>
+        /// <param name="ploidy">Expected ploidy level of the organism in the input file.</param>
+        /// <param name="numberSamples">Number of samples present in the input file.</param>
+        public ClusterMetricHandler(string clusterFileName, int ploidy, int numberSamples)
         {
             this.fileName = clusterFileName;
             this.expectedPloidy = ploidy;
-            this.dirtCutoff = dirtCutoff;
-            this.alignQualCutoff = alignmentQualityCutoff;
-            this.readQualCutoff = readQualityCutoff;
-            this.popPercent = populationPercent;
             this.numSamples = numberSamples;
-            this.writeToFilteredBam = (outputToFile.HasValue) ? outputToFile.Value : false;
 
             // Create a new output directory with name of input file, if it does not already exist
             if (!Directory.Exists(fileName))
@@ -456,78 +446,98 @@ namespace Ploidulator
         #region Properties
 
         /// <summary>
-        /// Name of the input file/directory
+        /// Get the name of the input file/directory (excluding file extension).
         /// </summary>
         public string FileName { get { return fileName; } }
 
         /// <summary>
-        /// Id of the cluster to which current sequences belong.
+        /// Get the id of the cluster to which current sequences belong.
         /// </summary>
         public string CurrentClusterId { get { return currentClusterId; } }
 
         /// <summary>
-        /// number of clusters which have been parsed
+        /// Get the number of clusters which have been parsed (so far).
         /// </summary>
         public int ClusterCount { get { return clusterCount; } }
 
         /// <summary>
-        /// The header for the bam input file
+        /// Get the header for the bam input file.
         /// </summary>
         public SAMAlignmentHeader InputHeader { get { return header; } set { header = value; } }
 
         #region filters
 
         /// <summary>
-        /// Maximum haplotypes in a cluster
+        /// Get or set the maximum number haplotypes allowed in a good cluster
         /// </summary>
         public int HaplotypesMaxCutoff { get { return hapMaxCutoff; } set { hapMaxCutoff = value; } }
 
         /// <summary>
-        /// Maximum allowed ploidy disagreement
+        /// Get or set the maximum allowed ploidy disagreement in a good cluster
         /// </summary>
         public double PloidyDisagreementCutoff { get { return ploidyDisagreementCutoff; } set { ploidyDisagreementCutoff = value; } }
+
+        /// <summary>
+        /// Get or set the maximum dirt allowed in a good cluster. Default 1.
+        /// </summary>
+        public double DirtCutoff { get { return dirtCutoff; } set { dirtCutoff = value; } }
+
+        /// <summary>
+        /// Get or set the minimum alignment qualtiy allowed in a good cluster (as average per cluster).
+        /// </summary>
+        public double AlignmentQualityCutoff { get { return alignQualCutoff; } set { alignQualCutoff = value; } }
+
+        /// <summary>
+        /// Get or set the minimum read quality allowed in a good cluster (as average per cluster).
+        /// </summary>
+        public double ReadQualityCutoff { get { return readQualCutoff; } set { readQualCutoff = value; } }
+
+        /// <summary>
+        /// Get or set the minimum population percentage allowed within each good cluster.
+        /// </summary>
+        public double PopulationPercentageCutoff { get { return populationPercentageCutoff; } set { populationPercentageCutoff = value; } }
 
         #endregion
 
         #region output files
 
         /// <summary>
-        /// Field from GUI form. Should a new filtered bam file be created
+        /// Get or set a flag to indicate whether a new filtered bam file be created.
         /// </summary>
         public bool WriteToFilteredBam { get { return writeToFilteredBam; } set { writeToFilteredBam = value; } }
 
         /// <summary>
-        /// Field from GUI form. Should haplotypes be calculated for all clusters or only those which are probably good
+        /// Get or set a flag to indicate whether haplotypes should be calculated for all clusters or only those which are probably good based on other criteria
         /// </summary>
         public bool OnlyHaplotypeGood { get { return onlyHaplotypeGood; } set { onlyHaplotypeGood = value; } }
 
         /// <summary>
-        /// Field from GUI form. Should a metric file be created for the input file
+        /// Get or set a flag to indicate whether a metric file should be created for the input file
         /// </summary>
         public bool WriteClusterMetricOriginal { get { return writeClusterMetricOriginal; } set { writeClusterMetricOriginal = value; } }
         
         /// <summary>
-        /// Field from GUI form. Should a metric file be created for the filtered output file
+        /// Get or set a flag to indicate whether a metric file should be created for the filtered output file
         /// </summary>
         public bool WriteClusterMetricFiltered { get { return writeClusterMetricFiltered; } set { writeClusterMetricFiltered = value; } }
         
         /// <summary>
-        /// Field from GUI form. Should an overview metric file be created for the input file
+        /// Get or set a flag to indicate whether an overview metric file should be created for the input file
         /// </summary>
         public bool WriteOverviewMetricOriginal { get { return writeOverviewMetricOriginal; } set { writeOverviewMetricOriginal = value; } }
         
         /// <summary>
-        /// Field from GUI form. Should an overview metric file be created for the filtered output file
+        /// Get or set a flag to indicate whether an overview metric file should be created for the filtered output file
         /// </summary>
         public bool WriteOverviewMetricFiltered { get { return writeOverviewMetricFiltered; } set { writeOverviewMetricFiltered = value; } }
 
         /// <summary>
-        /// Field from GUI form. Should genotypes.txt be constructed
+        /// Get or set a flag to indicate whether genotypes.txt should be constructed
         /// </summary>
         public bool WriteGenotypesFile { get { return writeGenotypesFile; } set { writeGenotypesFile = value; } }
 
         /// <summary>
-        /// Field from GUI form. Should haplotypes.txt be constructed
+        /// Get or set a flag to indicate whether haplotypes.txt should be constructed
         /// </summary>
         public bool WriteHaplotypesFile { get { return writeHaplotypesFile; } set { writeHaplotypesFile = value; } }
 
@@ -536,108 +546,105 @@ namespace Ploidulator
         #region running totals and averages
 
         /// <summary>
-        /// Number of good clusters so far
+        /// Get the number of good clusters so far.
         /// </summary>
         public int GoodCount { get { return goodCount; } }
 
         /// <summary>
-        /// Get the total number of reads
+        /// Get the total number of reads (so far).
         /// </summary>
         public int ReadCountTotal { get { return readCountTotal; } }
 
         /// <summary>
-        /// Get the total number of 'good' reads
+        /// Get the total number of 'good' reads (so far).
         /// </summary>
         public int ReadCountGood { get { return readCountGood; } }
 
         /// <summary>
-        /// Get the total number of distinct reads
+        /// Get the total number of distinct reads (so far).
         /// </summary>
         public int ReadCountDistinctTotal { get { return readCountDistinctTotal; } }
         
         /// <summary>
-        /// Get the total number of 'good' distinct reads
+        /// Get the total number of 'good' distinct reads (so far).
         /// </summary>
         public int ReadCountDistinctGood { get { return readCountDistinctGood; } }
         
         /// <summary>
-        /// Number of clusters parsed so far
+        /// Get the number of clusters parsed so far.
         /// </summary>
         public int NumberClustersParsed { get { return numberClustersParsed; } }
 
         /// <summary>
-        /// Max number of samples found in a cluster so far
+        /// Get the maximum number of samples found in a cluster so far.
         /// </summary>
         public int MaxSampleCount { get { return maxSampleCount; } }
 
         /// <summary>
-        /// Max mapping quality found in a cluster so far
+        /// Get the maximum alignment quality found in a cluster so far.
         /// </summary>
-        public double MaxMapQuality { get { return maxMapQuality; } }
+        public double MaxAlignmentQuality { get { return maxMapQuality; } }
 
         /// <summary>
-        /// Max read quality found in a cluster so far
+        /// Get the maximum read quality found in a cluster so far.
         /// </summary>
         public double MaxReadQuality { get { return maxReadQuality; } }
 
         /// <summary>
-        /// Average dirt (so far) for all clusters
+        /// Get the average dirt (so far) for all clusters.
         /// </summary>
         public double AverageDirt { get { return averageDirt; } }
 
         /// <summary>
-        /// Average mapping quality (so far) for all clusters
+        /// Get the average alignment quality (so far) for all clusters.
         /// </summary>
         public double AverageMapQ { get { return averageMapQ; } }
 
         /// <summary>
-        /// Average read qualtiy (so far) for all clusters
+        /// Get the average read qualtiy (so far) for all clusters.
         /// </summary>
         public double AverageReadQ { get { return averageReadQ; } }
 
         /// <summary>
-        /// Average dirt (so far) for good clusters
+        /// Get the average dirt (so far) for GOOD clusters.
         /// </summary>
         public double AverageDirtGood { get { return averageDirtGood; } }
 
         /// <summary>
-        /// Average mapping quality (so far) for good clusters
+        /// Get the average mapping quality (so far) for GOOD clusters.
         /// </summary>
         public double AverageMapQGood { get { return averageMapQGood; } }
 
         /// <summary>
-        /// Average read quality (so far) for good clusters
+        /// Get the average read quality (so far) for GOOD clusters.
         /// </summary>
         public double AverageReadQGood { get { return averageReadQGood; } }
 
         /// <summary>
-        /// A single frequency distribution, in the same format as one row from clustSeqFrequencies, intended to give
-        /// an overview of frequency distribution across all clusters
+        /// Get an overview of sequence frequency distribution across all clusters.
         /// </summary>
         public Collection<double> ClusterSequenceFrequenciesOverview { get { return clusterSequenceFrequenciesOverview; } }
 
         /// <summary>
-        /// A single frequency distribution, in the same format as one row from clustSeqFrequencies, intended to give
-        /// an overview of frequency distribution across all good clusters
+        /// Get an overview of sequence frequency distribution across all GOOD clusters.
         /// </summary>
         public Collection<double> ClusterSequenceFrequenciesOverviewGood { get { return clusterSequenceFrequenciesOverviewGood; } }
 
         /// <summary>
-        /// The data that goes in a poisson graph, being <metric.CountSamples, numClusters>
-        /// value is the PERCENTge of clusters
+        /// Get data for the population distribution graph (all clusters).
         /// </summary>
         public Dictionary<int,int> GraphDataIndividualsCounts 
         { 
             get 
             {
-            return (from datum in graphDataIndividualsCounts orderby datum.Key descending select datum)
+                return (from datum in graphDataIndividualsCounts orderby datum.Key descending select datum)
                     .ToDictionary(pair => (int)(pair.Key / (double)numSamples * 100), pair => (int)((double)pair.Value 
                         / (double)numberClustersParsed * (double)100));
             } 
         }
 
         /// <summary>
-        /// The data that goes in a poisson graph, being <metric.CountSamples, numClusters>
+        /// Get data for the population distribution graph (good clusters).
         /// </summary>
         public Dictionary<int, int> GraphDataIndividualsCountsGood
         {
@@ -648,8 +655,9 @@ namespace Ploidulator
             }
         
         }
+        
         /// <summary>
-        /// Sorted in descending order of value ...
+        /// Get data for the distinct read distribution graph (all clusters).
         /// </summary>
         public Dictionary<int, int> GraphDataDistinctReads
         {
@@ -660,24 +668,8 @@ namespace Ploidulator
             }
         }
 
-        public int MinDistinctReadCount
-        {
-            get
-            {
-                return (graphDataDistinctReads.Count > 0) ? graphDataDistinctReads.Keys.Min() : Int32.MinValue;
-            }
-        }
-
-        public int MaxDistinctReadCount
-        {
-            get
-            {
-                return (graphDataDistinctReads.Count > 0) ? graphDataDistinctReads.Keys.Max() : Int32.MaxValue;
-            }
-        }
-
         /// <summary>
-        /// Sorted in descending order of value ...
+        /// Get data for the distinct read distribution graph (GOOD clusters).
         /// </summary>
         public Dictionary<int, int> GraphDataDistinctReadsGood
         {
@@ -686,6 +678,22 @@ namespace Ploidulator
                 return (from datum in graphDataDistinctReadsGood orderby datum.Value descending select datum)
                         .ToDictionary(pair => pair.Key, pair => pair.Value);
             }
+        }
+
+        /// <summary>
+        /// Get the actual minimum distinct read count (all clusters), or Int32.MinValue if read counts are not known.
+        /// </summary>
+        public int MinDistinctReadCount
+        {
+            get { return (graphDataDistinctReads.Count > 0) ? graphDataDistinctReads.Keys.Min() : Int32.MinValue; }
+        }
+
+        /// <summary>
+        /// Get the actual maximum distinct read count (all clusters), or Int32.MaxValue if read counts are not known.
+        /// </summary>
+        public int MaxDistinctReadCount
+        {
+            get { return (graphDataDistinctReads.Count > 0) ? graphDataDistinctReads.Keys.Max() : Int32.MaxValue; }
         }
 
         #endregion
@@ -711,7 +719,7 @@ namespace Ploidulator
         /// then add the sequenceto a new cluster
         /// </summary>
         /// <param name="sequences">A list of sequences.</param>
-        /// <returns>Always returns true</returns>
+        /// <returns>Always returns true.</returns>
         public bool AddRange(IEnumerable<SAMAlignedSequence> sequences)
         {
             if (sequences == null || sequences.Count() == 0)
@@ -731,12 +739,12 @@ namespace Ploidulator
         /// to a new cluster
         /// </summary>
         /// <param name="sequence">A sequence.</param>
-        /// <returns>Returns true if the sequence could be added, false if the handler has been closed</returns>
+        /// <returns>Returns true if the sequence could be added, false if the handler has been closed.</returns>
         public bool Add(SAMAlignedSequence sequence)
         {
-            if (sequences == null)
+            if (allSequences == null)
             {
-                sequences = new Collection<SAMAlignedSequence>();
+                allSequences = new Collection<SAMAlignedSequence>();
             }
             if(sequence == null)
             {
@@ -761,10 +769,10 @@ namespace Ploidulator
                     ProcessSequences();
                     
                     currentClusterId = thisSeqCluster;
-                    sequences = new Collection<SAMAlignedSequence>();
+                    allSequences = new Collection<SAMAlignedSequence>();
                 }
                 
-                sequences.Add(sequence);
+                allSequences.Add(sequence);
                 return true;
             }
 
@@ -806,12 +814,12 @@ namespace Ploidulator
 
         /// <summary>
         /// Calculate metric for a single cluser of sequences (all stored sequences), 
-        /// and write metric data to file.
+        /// and write metric data to file/s if required.
         /// </summary>
         public void ProcessSequences()
         {
             bool isGood = true;
-            if (sequences != null && sequences.Count > 0 && !isComplete) // do the following only if there are sequences to be processed
+            if (allSequences != null && allSequences.Count > 0 && !isComplete) // do the following only if there are sequences to be processed
             {
                 clusterCount++;
                 ClusterMetric metric = new ClusterMetric(expectedPloidy, numSamples);
@@ -823,7 +831,7 @@ namespace Ploidulator
                 InitBamOutputFiles();
 
                 // Perform core metric calculations on cluster sequences
-                metric.Calculate(sequences);
+                metric.Calculate(allSequences);
                 isGood = GoodOrBad(metric);
 
                 // Get haplotype information
@@ -832,8 +840,7 @@ namespace Ploidulator
                     GetHaplotypeInfo(ref metric, ref isGood);
                 }
                 if(isGood) { ++goodCount; }
-                
-                Console.WriteLine(metric.ToString());
+                Console.WriteLine(metric.ToString() + "\t" + (isGood ? Properties.Resources.GOOD_CLUSTER : Properties.Resources.BAD_CLUSTER));
 
                 // Get statistics from the metric for this new cluster
                 CreateSummaryArrays(metric, isGood);
@@ -866,7 +873,7 @@ namespace Ploidulator
         #region completion
 
         /// <summary>
-        /// Set complete and process all remaining sequences
+        /// Set complete and process all remaining sequences.
         /// </summary>
         public void SetComplete()
         {
@@ -874,8 +881,10 @@ namespace Ploidulator
         }
 
         /// <summary>
-        /// Set complete but do not process any more sequences unless true
+        /// Set complete.
         /// </summary>
+        /// <param name="checkSequences">Boolean value indicates whether stored sequences should be processed
+        /// before setting complete.</param>
         public void SetComplete(bool checkSequences)
         {
             if (!isComplete)
@@ -900,6 +909,10 @@ namespace Ploidulator
             }
         }
 
+        /// <summary>
+        /// Dispose resources.
+        /// </summary>
+        /// <param name="includeManagedResources">Boolean value indicates whether managed resources should also be disposed.</param>
         protected virtual void Dispose(bool includeManagedResources)
         {
             if(includeManagedResources){
@@ -929,11 +942,10 @@ namespace Ploidulator
                     haplotypesStream = null;
                 }
             }
-            
         }
 
         /// <summary>
-        /// Disposes all formatters
+        /// Disposes all formatters.
         /// </summary>
         public void Dispose()
         {
@@ -968,8 +980,8 @@ namespace Ploidulator
                 }
 
                 // Add sequences to output file queue and output file header
-                bamOutputQueue.Enqueue(sequences);
-                AddToHeader(sequences[0]);
+                bamOutputQueue.Enqueue(allSequences);
+                AddToHeader(allSequences[0]);
             }
             else
             {
@@ -1028,9 +1040,10 @@ namespace Ploidulator
                     exeProcess.WaitForExit();
                 }
             }
-            catch
+            catch(Exception e)
             {
                 Console.WriteLine(Properties.Resources.PHASE_ERROR_EXECUTING);
+                Console.WriteLine(e.Message);
             }
             if(writeHaplotypesFile)
             {
@@ -1179,15 +1192,13 @@ namespace Ploidulator
             if (tempMetric.Dirt > dirtCutoff
                     || tempMetric.AlignmentQuality < alignQualCutoff
                     || tempMetric.ReadQuality < readQualCutoff
-                    || tempMetric.PopulationPercentage < popPercent 
+                    || tempMetric.PopulationPercentage < populationPercentageCutoff 
                     || tempMetric.PloidyDisagreement > ploidyDisagreementCutoff)
             {
-                Console.Write(Properties.Resources.BAD_CLUSTER + " ");
                 tempMetric.Good = false;
             }
             else
             {
-                Console.Write(Properties.Resources.GOOD_CLUSTER + " ");
                 tempMetric.Good = true;
             }
             return tempMetric.Good;

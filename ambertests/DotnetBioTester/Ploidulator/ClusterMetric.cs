@@ -14,9 +14,8 @@ using System.Text.RegularExpressions;
 namespace Ploidulator
 {
     /// <summary>
-    /// An IMetric calculates various metric values from a list of SAMAlignedSequences, where each
-    /// list of sequences belongs to a cluster. Clusters are determined based on sequence similarity, 
-    /// e.g. as calculated by an MCL graph clustering algorithm, or any other clustering approach
+    /// An ClusterMetric calculates various metric values from a list of SAMAlignedSequences, where each
+    /// list of sequences belongs to a cluster.
     /// </summary>
     public class ClusterMetric : IMetric
     {
@@ -302,7 +301,7 @@ namespace Ploidulator
         public bool Good { get { return good; } set { good = value; } }
 
         /// <summary>
-        /// Gets the cluster 'dirt' (proportion of reads which are outside [expected ploidy] for their individual. Read only.
+        /// Gets the cluster 'dirt' (proportion of reads which are outside expected ploidy for their individual. Read only.
         /// </summary>
         public double Dirt { get { return dirt; } }
 
@@ -566,7 +565,7 @@ namespace Ploidulator
         /// Given alleleFxThisIndiv representing each allele and the frequency with which it occurrs, returns
         /// a list of the allele chars (with unrecognised chars coded as '?')
         /// </summary>
-        private char[] GetAllelesAtLocusForIndiv(Dictionary<char, double>[] alleleFxThisIndiv, int locusIndex)
+        private static char[] GetAllelesAtLocusForIndiv(Dictionary<char, double>[] alleleFxThisIndiv, int locusIndex)
         {
             char[] allelesThisIndiv = alleleFxThisIndiv[locusIndex].Keys.ToArray();
             for (int j = 0; j < allelesThisIndiv.Length; j++)
@@ -739,7 +738,7 @@ namespace Ploidulator
         /// Get a dictionary of base frequencies for all bases with a large enough count to be considered reliable
         /// Precondition: seqs is an ordered list
         /// </summary>
-        private Dictionary<char, double>[] BaseFrequencies(string[] seqs, ref Dictionary<char, double>[] masterFreqList)
+        private static Dictionary<char, double>[] BaseFrequencies(string[] seqs, ref Dictionary<char, double>[] masterFreqList)
         {
             // A dictionary of char:double for each base pair position
             Dictionary<char, double>[] freqList = new Dictionary<char, double>[seqs[0].Length];
@@ -1005,7 +1004,7 @@ namespace Ploidulator
         }
 
         /// <summary>
-        /// Return a string of tab-separated values for writing to file.
+        /// Return a string of tab-separated values formatted for writing to file.
         /// </summary>
         /// <returns>A string of tab-separated values for writing to file.</returns>
         public override string ToString()
@@ -1029,7 +1028,7 @@ namespace Ploidulator
         }
 
         /// <summary>
-        /// Clear all structures
+        /// Reset the ClusterMetric
         /// </summary>
         public void Reset()
         {
