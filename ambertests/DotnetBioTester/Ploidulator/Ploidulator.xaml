@@ -278,7 +278,7 @@
                                         <Button x:Name="DataFileAButton" Content="Browse" Click="Button_Click_GetFile" 
                                             HorizontalAlignment="Right" Width="50"  Height="22" Grid.Row="0" Grid.Column="3" />
 
-                                        <TextBox x:Name="DataFileATextbox" Text="E:\Harvard\final-all_bam-merged.bam"
+                                        <TextBox x:Name="DataFileATextbox" 
                                             TextWrapping="Wrap" HorizontalAlignment="Left" Margin="0,2"
                                             Width="245" Height="22" ToolTip="Input file (in BAM format)"
                                             Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3"/>
@@ -337,7 +337,7 @@
                                             <ListBoxItem Content="90"/>
                                         </ComboBox>
 
-                                        <Label Content="*Population size:" ToolTip="Total number of individuals sampled in the input dataset"
+                                        <Label Content="Population size:*" ToolTip="Total number of individuals sampled in the input dataset"
                                             Grid.Row="1" Grid.Column="2" />
                                         <TextBox x:Name="NumSamplesTextbox" Text="48" ToolTip="Total number of individuals sampled in the input dataset"
                                             Margin="0,2" TextChanged="NumericOnly_TextChanged" Grid.Column="3" Grid.Row="1" />

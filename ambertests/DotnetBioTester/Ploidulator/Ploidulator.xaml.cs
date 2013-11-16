@@ -32,7 +32,7 @@ namespace Ploidulator
         #region delegates
         private delegate System.Delegate QuickDelegate();
         private delegate System.Delegate IntDelegate(int a);
-        private delegate System.Delegate SingleIntChartDataDelegate(KeyValuePair<int, double>[] a, KeyValuePair<int, double>[] b, int c, int d);
+        private delegate System.Delegate SingleIntChartDataDelegate(int c, int d);
         private delegate System.Delegate ChartTupleDelegate(IEnumerable a, IEnumerable b);
         private delegate System.Delegate ChartDelegate(Chart a);
         private delegate System.Delegate IntChartDataDelegate(KeyValuePair<int, int>[] a, KeyValuePair<int, int>[] b);
@@ -40,6 +40,20 @@ namespace Ploidulator
             string e, string f, bool? f1, string f2, bool? g, bool? h, bool? i, bool? j, bool? k, bool? l, bool? m);
         private delegate System.Delegate StatsDelegate(int a, int b, int c, double d, double e, 
             double f, double g, double h, double i, double j, double k);
+        #endregion
+
+        #region table data
+
+        /// <summary>
+        /// Data series A for columnchart (read distribution - all distinct reads)
+        /// </summary>
+        private KeyValuePair<int, double>[] columnSeriesA = null;
+
+        /// <summary>
+        /// Data series B for columnchart (read distribution - good distinct reads)
+        /// </summary>
+        private KeyValuePair<int, double>[] columnSeriesB = null;
+
         #endregion
 
         #region timers
@@ -427,14 +441,14 @@ namespace Ploidulator
         /// <summary>
         /// Update the ItemsSource for the column chart
         /// </summary>
-        private Delegate UpdateColumnchart(KeyValuePair<int, double>[] dataSeries, KeyValuePair<int, double>[] dataSeriesB, int min, int max)
+        private Delegate UpdateColumnchart(int min, int max)
         {
-            ((ColumnSeries)ReadCountChart.Series[0]).ItemsSource = null;
-            ((ColumnSeries)ReadCountChart.Series[0]).ItemsSource = dataSeries;
-            if (dataSeriesB != null && dataSeriesB.Length > 0)
+            //((ColumnSeries)ReadCountChart.Series[0]).ItemsSource = null;
+            ((ColumnSeries)ReadCountChart.Series[0]).ItemsSource = columnSeriesA;
+            if (columnSeriesB != null && columnSeriesB.Length > 0)
             {
-                ((ColumnSeries)ReadCountChart.Series[1]).ItemsSource = null;
-                ((ColumnSeries)ReadCountChart.Series[1]).ItemsSource = dataSeriesB;
+                //((ColumnSeries)ReadCountChart.Series[1]).ItemsSource = null;
+                ((ColumnSeries)ReadCountChart.Series[1]).ItemsSource = columnSeriesB;
             }
             //DrawPoisson(chart, dataSeries);
 
@@ -516,14 +530,16 @@ namespace Ploidulator
         private void UpdateColumnchartDisplay(object sender, RoutedEventArgs e)
         {
             double rounding = Convert.ToDouble(ReadCountRounding.Text, ci);
-            KeyValuePair<int, double>[] data = GetColumnData(metricHandler.GraphDataDistinctReads, metricHandler.NumberClustersParsed, rounding);
-            KeyValuePair<int, double>[] datab = GetColumnData(metricHandler.GraphDataDistinctReadsGood, metricHandler.GoodCount, rounding);
+            //KeyValuePair<int, double>[] data = GetColumnData(metricHandler.GraphDataDistinctReads, metricHandler.NumberClustersParsed, rounding);
+            //KeyValuePair<int, double>[] datab = GetColumnData(metricHandler.GraphDataDistinctReadsGood, metricHandler.GoodCount, rounding);
+            columnSeriesA = GetColumnData(metricHandler.GraphDataDistinctReads, metricHandler.NumberClustersParsed, rounding);
+            columnSeriesB = GetColumnData(metricHandler.GraphDataDistinctReadsGood, metricHandler.GoodCount, rounding);
 
             int min = metricHandler.MinDistinctReadCount;
             int max = metricHandler.MaxDistinctReadCount;
 
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal,
-                new SingleIntChartDataDelegate(UpdateColumnchart), data, datab, min, max);
+                new SingleIntChartDataDelegate(UpdateColumnchart), min, max);
         }
 
         /// <summary>
