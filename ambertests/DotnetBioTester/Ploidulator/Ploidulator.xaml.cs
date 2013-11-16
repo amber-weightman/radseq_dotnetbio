@@ -74,7 +74,10 @@ namespace Ploidulator
         /// </summary>
         private void Button_Click_Go(object sender, RoutedEventArgs e)
         {
-            if (DataFileATextbox.Text != null)
+            // Input file and number of samples must not be null
+            if (DataFileATextbox.Text != null && DataFileATextbox.Text != "" &&
+                NumSamplesTextbox.Text != null && NumSamplesTextbox.Text != "0"
+                && File.Exists(DataFileATextbox.Text))
             {
                 // Launch ParseBAMMetric in a new thread
                 HandlerDelegate handler = ParseBAMMetric;
@@ -85,6 +88,11 @@ namespace Ploidulator
                     MetricFileParent.IsChecked, MetricFileChild.IsChecked, OutputOverviewParent.IsChecked, 
                     OutputOverviewChild.IsChecked, GenotypesToFile.IsChecked, HaplotypesToFile.IsChecked, 
                     null, null);
+            }
+            else
+            {
+                MessageBoxResult result = MessageBox.Show(Properties.Resources.MANDATORY_FIELDS_WARNING,
+                Properties.Resources.MANDATORY_FIELDS_WARNING_HEADER, MessageBoxButton.OK, MessageBoxImage.Asterisk);
             }
         }
 
@@ -201,6 +209,7 @@ namespace Ploidulator
             // Show progress bar and abort button
             ProgressStatusBar.Visibility = System.Windows.Visibility.Visible;
             AbortButton.Visibility = System.Windows.Visibility.Visible;
+            AbortMenuItem.IsEnabled = true;
 
             // Show overview menus
             OverviewFileStats.IsExpanded = true;
@@ -231,6 +240,7 @@ namespace Ploidulator
             ProgressBar.Value = 0;
             LoadingBarLabel.Content = "";
             AbortButton.Visibility = System.Windows.Visibility.Hidden;
+            AbortMenuItem.IsEnabled = false;
 
             // Hide any messages
             AbortingMessage.Visibility = System.Windows.Visibility.Hidden;
@@ -290,6 +300,12 @@ namespace Ploidulator
                 AvgMAPQDisplay.Content = avgMapq.ToString(ci);
                 AvgREADQDisplay.Content = avgReadq.ToString(ci);
 
+                // If this is the first time we have had good clusters, expand the good clusters menu
+                if (numGoodClusters > 0 && (DirtDisplayGood.Content == null || DirtDisplayGood.Content.ToString() == ""))
+                {
+                    OverviewGoodClustersStats.IsExpanded = true;
+                }
+
                 DirtDisplayGood.Content = avgDirtGood.ToString(ci);
                 AvgMAPQDisplayGood.Content = avgMapqGood.ToString(ci);
                 AvgREADQDisplayGood.Content = avgReadqGood.ToString(ci);
@@ -307,7 +323,7 @@ namespace Ploidulator
 
                 int a = Convert.ToInt32(maxSampleCount, ci);
                 int b = Convert.ToInt32(NumSamplesTextbox.Text, ci);
-                if ((int)a < (int)b && (int)a != 0)
+                if ((int)a != (int)b && (int)a != 0)
                 {
                     SamplesDisplay.Foreground = Brushes.Red;
                     SamplesDisplayLabel.Foreground = Brushes.Red;
@@ -318,10 +334,7 @@ namespace Ploidulator
                     SamplesDisplayLabel.Foreground = Brushes.Black;
                 }
 
-                if (numGoodClusters > 0)
-                {
-                    OverviewGoodClustersStats.IsExpanded = true;
-                }
+                
             }
             return null;
         }
@@ -349,6 +362,7 @@ namespace Ploidulator
             ProgressBar.Visibility = System.Windows.Visibility.Visible;
             AbortButton.Visibility = System.Windows.Visibility.Visible;
             LoadingBarLabel.Visibility = System.Windows.Visibility.Visible;
+            AbortMenuItem.IsEnabled = true;
                 
             return null;
         }
@@ -985,7 +999,7 @@ namespace Ploidulator
                     dec++;
                 }
             }
-            t.Text = s;
+            t.Text = (s == "") ? "0" : s; // if blank, set to 0
         }
 
         #endregion
@@ -1090,6 +1104,31 @@ namespace Ploidulator
         }
 
         #endregion
+
+        private void ExpectedPloidyTextbox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (HaplotypesToFile != null) // only perform if the rest of the form has been initialised
+            {
+                ComboBox s = (ComboBox)sender;
+                if(s.SelectedIndex == 1) // diploid
+                {
+                    MaxHaplotypesTextbox.IsEnabled = true;
+                    OnlyHaplotypeGood.IsEnabled = true;
+                    GenotypesToFile.IsEnabled = true;
+                    HaplotypesToFile.IsEnabled = true;
+                }
+                else
+                {
+                    MaxHaplotypesTextbox.IsEnabled = false;
+                    OnlyHaplotypeGood.IsEnabled = false;
+                    GenotypesToFile.IsEnabled = false;
+                    HaplotypesToFile.IsEnabled = false;
+
+                    GenotypesToFile.IsChecked = false;
+                    HaplotypesToFile.IsChecked = false;
+                }
+            }
+        }
 
         #endregion
 

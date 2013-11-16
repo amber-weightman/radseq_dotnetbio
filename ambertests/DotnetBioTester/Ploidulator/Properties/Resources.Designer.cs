@@ -205,6 +205,24 @@ namespace Ploidulator.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Please ensure you have selected a valid BAM file for input and have nominated the population size.
+        /// </summary>
+        internal static string MANDATORY_FIELDS_WARNING {
+            get {
+                return ResourceManager.GetString("MANDATORY_FIELDS_WARNING", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Mandatory fields.
+        /// </summary>
+        internal static string MANDATORY_FIELDS_WARNING_HEADER {
+            get {
+                return ResourceManager.GetString("MANDATORY_FIELDS_WARNING_HEADER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to .metr.
         /// </summary>
         internal static string METRIC_FILEEXTENSION {

@@ -868,7 +868,6 @@ namespace Ploidulator
                 DeletePhaseFiles();
                 if (goodCount < 1)
                 {
-                    Console.WriteLine("good count is"+goodCount);
                     DeleteFilteredMetricFile();
                 }
                 isComplete = true;
